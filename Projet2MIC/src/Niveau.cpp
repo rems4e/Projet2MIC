@@ -143,8 +143,8 @@ Niveau::Niveau(Joueur *j, std::string const &nomFichier) : _elements(0), _dimX(0
 Niveau::Niveau(Joueur *j) : _elements(0), _dimX(0), _dimY(0), _zoom(1.0), _entitesMobiles(), _perso(j), _bordures() {	
 	j->definirPosition(Coordonnees(200, 100));
 	
-	_dimX = 160;
-	_dimY = 160;
+	_dimX = 16;
+	_dimY = 16;
 	
 	this->init();
 	this->remplissageBordures();
