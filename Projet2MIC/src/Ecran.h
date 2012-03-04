@@ -1,0 +1,73 @@
+/*
+ *  Ecran.h
+ *  Jeu C++
+ *
+ *  Created by Rémi on 06/07/07.
+ *  Copyright 2007 Rémi Saurel. All rights reserved.
+ *
+ */
+
+#ifndef EN_TETE_ECRAN
+#define EN_TETE_ECRAN
+
+#include "Geometrie.h"
+#include <string>
+#include <list>
+#include <stack>
+#include "fonctions.h"
+
+#define LARGEUR_ECRAN 800
+#define HAUTEUR_ECRAN 600
+#define PROFONDEUR_COULEURS 32
+#define PLEIN_ECRAN false
+#define SYNCHRO_VERTICALE true
+#define IPS true
+
+class Texte;
+class Image;
+
+struct Couleur {
+	unsigned char r, v, b, a;
+
+	static Couleur const noir;
+	static Couleur const gris;
+	static Couleur const grisClair;
+	static Couleur const grisFonce;
+	static Couleur const blanc;
+	static Couleur const rouge;
+	static Couleur const vert;
+	static Couleur const bleu;
+	static Couleur const transparent;
+	
+	inline Couleur() : r(255), v(255), b(255), a(255) { }
+	inline Couleur(unsigned char _r, unsigned char _v, unsigned char _b, unsigned char _a = 255) : r(_r), v(_v), b(_b), a(_a) { }
+	inline Couleur(unsigned char gris, unsigned char _a = 255) : r(gris), v(gris), b(gris), a(_a) { }
+	inline Couleur(Couleur const &c, unsigned char _a) : r(c.r), v(c.v), b(c.b), a(_a) { }
+};
+
+namespace Ecran {
+	void modifierResolution(unsigned int largeur, unsigned int hauteur, unsigned int profondeur, bool pleinEcran);
+	
+	Coordonnees dimensions();
+	int largeur();
+	int hauteur();
+	int profondeur();
+	
+	Rectangle ecran();
+	
+	bool pleinEcran();
+		
+	float frequence();
+	float frequenceInstantanee();
+	
+	Image *apercu();
+	
+	// Met à jour l'affichage en fonction des éléments affichés depuis le dernier appel à la fonction
+	void maj();
+	// Remplis l'écran avec une couleur unie
+	void effacer();
+	
+	void afficherCouleur(Couleur const &c, Rectangle const &r);
+}
+
+#endif
