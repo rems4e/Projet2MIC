@@ -20,7 +20,7 @@
 
 #define NB_VALEURS_PROBA_ENTITES 16
 
-class GenerateurElementAleatoire {
+/*class GenerateurElementAleatoire {
 public:
 	class Exc_ProbaInvalide : public std::exception {
 	public:
@@ -55,7 +55,7 @@ public:
 private:
 	int _probasCumulees[ElementNiveau::nbTypesElement];
 };
-
+*/
 Niveau::couche_t &operator++(Niveau::couche_t &c) { return c = static_cast<Niveau::couche_t>(static_cast<int>(c) + 1); }
 Niveau::couche_t operator+(Niveau::couche_t c, int i) { return static_cast<Niveau::couche_t>(static_cast<int>(c) + 1); }
 
