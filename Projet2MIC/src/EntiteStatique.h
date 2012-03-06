@@ -12,7 +12,7 @@
 #include "ElementNiveau.h"
 
 class EntiteStatique : public ElementNiveau {
-	friend EntiteStatique *ElementNiveau::elementNiveau<EntiteStatique>(Niveau *n, uindex_t i) throw(ElementNiveau::Exc_EntiteIndefinie, ElementNiveau::Exc_DefinitionEntiteIncomplete);
+	friend EntiteStatique *ElementNiveau::elementNiveau<EntiteStatique>(Niveau *n, uindex_t i, ElementNiveau::elementNiveau_t) throw(ElementNiveau::Exc_EntiteIndefinie, ElementNiveau::Exc_DefinitionEntiteIncomplete);
 	friend class ElementNiveau;
 public:
 	virtual ~EntiteStatique();

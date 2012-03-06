@@ -12,7 +12,7 @@
 #include "Personnage.h"
 
 struct Joueur : public Personnage {
-	friend Joueur *ElementNiveau::elementNiveau<Joueur>(Niveau *n, uindex_t i) throw(ElementNiveau::Exc_EntiteIndefinie, ElementNiveau::Exc_DefinitionEntiteIncomplete);
+	friend Joueur *ElementNiveau::elementNiveau<Joueur>(Niveau *n, uindex_t i, ElementNiveau::elementNiveau_t) throw(ElementNiveau::Exc_EntiteIndefinie, ElementNiveau::Exc_DefinitionEntiteIncomplete);
 public:
 	virtual ~Joueur();
 	

@@ -65,6 +65,20 @@ int caractereVersHexa(char c) {
 	}
 }
 
+int caractereVersBase64(char c) {
+	if(c >= 'A' && c <= 'Z')
+		return c - 'A';
+	if(c >= 'a' && c <= 'z')
+		return c - 'a' + 26;
+	if(c >= '0' && c <= '9')
+		return c - '0' + 26 + 26;
+	if(c == '+')
+		return 26 + 26 + 10;
+	if(c == '/')
+		return 26 + 26 + 10 + 1;
+	
+	return 0;
+}
 double texteVersNombre(char const *texte) {
 	long l = std::strlen(texte);
 	char *txt = (char *)std::malloc(l + 1);

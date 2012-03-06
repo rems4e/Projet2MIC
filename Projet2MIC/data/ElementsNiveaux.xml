@@ -1,6 +1,13 @@
 <?xml version="1.0" standalone="no" ?>
 <ElementsNiveau>
 	<EntiteStatique>
+		<Element0 image="dirt2.png" multi=1 x=0 y=16 />
+		<Element1 image="dirt.png"multi=1  x=0 y=64/>
+		<Element2 image="herbe.png"multi=1  x=0 y=128 />
+		<Element3 image="bleu.png" multi=1 />
+		<Element4 image="lac.png" multi=1  x=0 y=128 />
+	</EntiteStatique>
+	<Arbre>
 		<Element0 image="a1.png" x=57 y=96 centrage=1 />
 		<Element1 image="a2.png" x=49 y=95 centrage=1 />
 		<Element2 image="a3.png" x=51 y=95 centrage=1 />
@@ -21,12 +28,7 @@
 		<Element17 image="a18.png" x=41 y=90 centrage=1 />
 		<Element18 image="a19.png" x=42 y=92 centrage=1 />
 		<Element19 image="a20.png" x=50 y=100 centrage=1 />
-		<Element20 image="dirt2.png" multi=1 x=0 y=16 />
-		<Element21 image="dirt.png"multi=1  x=0 y=64/>
-		<Element22 image="herbe.png"multi=1  x=0 y=128 />
-		<Element23 image="bleu.png" multi=1  />
-		<Element24 image="lac.png" multi=1  x=0 y=128 />
-	</EntiteStatique>
+	</Arbre>
 	<Personnage>
 		<Element0 image="perso.png">
 			<Immobile nbPoses=6 tempsAttente=100 />

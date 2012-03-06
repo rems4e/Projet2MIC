@@ -25,7 +25,7 @@ void Partie::commencer() {
 	int tabId[] = {0, 1, 2, 3, 4};
 	int idId = 0;
 	_joueur = ElementNiveau::elementNiveau<Joueur>(0, tabId[idId]);
-	_niveau = new Niveau(_joueur);
+	_niveau = new Niveau(_joueur, "niveau1.xml");
 	_joueur->definirNiveau(_niveau);
 	while(Session::boucle(60, !Session::evenement(Session::QUITTER))) {
 		Ecran::effacer();
@@ -59,6 +59,6 @@ void Partie::afficher() {
 
 void Partie::reinitialiser() {
 	delete _niveau;
-	_niveau = new Niveau(_joueur);
+	_niveau = new Niveau(_joueur, "niveau1.xml");
 
 }

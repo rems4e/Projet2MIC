@@ -18,10 +18,11 @@
 
 class Niveau;
 class TiXmlElement;
+class TiXmlDocument;
 
 class ElementNiveau {
 public:
-	enum elementNiveau_t {premierTypeElement = 0, entiteStatique = premierTypeElement, joueur, ennemi, ndef4, ndef5, ndef6, ndef7, ndef8,
+	enum elementNiveau_t {premierTypeElement = 0, entiteStatique = premierTypeElement, joueur, ennemi, arbre, ndef5, ndef6, ndef7, ndef8,
 		ndef9, ndef10, ndef11, ndef12, ndef13, ndef14, ndef15, ndef16, ndef17, ndef18, ndef19, ndef20, ndef21, ndef22, ndef23, ndef24,
 		ndef25, ndef26, ndef27, ndef28, ndef29, ndef30, ndef31, ndef32, ndef33, ndef34, ndef35, ndef36, ndef37, ndef38, ndef39, ndef40,
 		ndef41, ndef42, ndef43, ndef44, ndef45, ndef46, ndef47, ndef48, ndef49, ndef50, ndef51, ndef52, ndef53, ndef54, ndef55, ndef56,
@@ -42,19 +43,25 @@ public:
 		virtual ~Exc_DefinitionEntiteIncomplete() throw() { }
 		virtual const char* what() const throw() { return "Définition de l'entité incomplète !"; }
 	};
+		
+	// Création d'une entité en fonction de sa catégorie
+	static ElementNiveau *elementNiveau(Niveau *n, uindex_t index, elementNiveau_t categorie = ElementNiveau::entiteStatique) throw(Exc_EntiteIndefinie, Exc_DefinitionEntiteIncomplete);
 	
-	// Création d'une entité en fonction du type passe en paramètre template.
+	// Création d'une entité en fonction du type passe en paramètre template. Permet d'avoir à se dispenser d'un static_cast<VraiType *>(…).
+	// Sans spécifier le 3e paramètre, l'appel de cette fonction est "sûr".
+	// En  donnant une valeur à ce 3e paramètre, l'utilisateur doit savoir ce qu'il fait. Dans le cas contraire, la création de l'entité va échouer
+	// car elle est créée à partir d'un patron qui ne correspond pas à son type réel.
+	// Exemple INCORRECT : elementNiveau<Joueur> créé avec une catégorie à ElementNiveau::arbre. Un joueur n'est en aucun cas un arbre, basé sur EntiteStatique.
+	// Exemple CORRECT : elementNiveau<EntiteStatique> créé avec une catégorie à ElementNiveau::arbre. Un arbre est une entité statique et une entité statique peut être un arbre.
 	template<class TypeEntite>
-	static TypeEntite *elementNiveau(Niveau *n, uindex_t index) throw(Exc_EntiteIndefinie, Exc_DefinitionEntiteIncomplete) {
-		if(ElementNiveau::description(index, TypeEntite::categorie())) {
-			return new TypeEntite(n, index, TypeEntite::categorie());
+	static TypeEntite *elementNiveau(Niveau *n, uindex_t index, elementNiveau_t categorie = TypeEntite::categorie()) throw(Exc_EntiteIndefinie, Exc_DefinitionEntiteIncomplete) {
+		if(ElementNiveau::description(index, categorie)) {
+			return new TypeEntite(n, index, categorie);
 		}
 		
 		throw Exc_EntiteIndefinie();
 	}
-	
-	// Création d'une entité en fonction de sa catégorie
-	static ElementNiveau *elementNiveau(Niveau *n, uindex_t index, elementNiveau_t categorie = ElementNiveau::entiteStatique) throw(Exc_EntiteIndefinie, Exc_DefinitionEntiteIncomplete);
+
 	static size_t nombreEntites(elementNiveau_t categorie);
 	
 	virtual ~ElementNiveau();
@@ -92,13 +99,7 @@ public:
 	// L'image est-elle centrée sur la cae où elle se trouve ?
 	virtual bool centrage() const;
 
-protected:
-	Niveau *_niveau;
-	Coordonnees _position;
-	Coordonnees _origine;
-	bool _centrage;
-	bool _multi;
-	
+protected:	
 	bool testerDeplacement(Coordonnees const &dep);
 	
 	static TiXmlElement *description(uindex_t index, elementNiveau_t cat);
@@ -107,7 +108,23 @@ protected:
 	ElementNiveau(Niveau *n, uindex_t index, elementNiveau_t cat);
 	ElementNiveau(ElementNiveau const &);
 	ElementNiveau &operator=(ElementNiveau const &);
+	
+private:
+	Niveau *_niveau;
+	Coordonnees _position;
+	Coordonnees _origine;
+	bool _centrage;
+	bool _multi;
+	
+	static TiXmlDocument *_description;
+	
+	static void chargerDescription();
 };
+
+
+ElementNiveau::elementNiveau_t &operator++(ElementNiveau::elementNiveau_t &c);
+ElementNiveau::elementNiveau_t operator+(ElementNiveau::elementNiveau_t, int i);
+
 
 
 #endif

@@ -18,9 +18,11 @@
 #include <cstring>
 #include "tinyxml.h"
 
-#define NB_VALEURS_PROBA_ENTITES 16
+#define NB_VALEURS_PROBA_ENTITES 64 * 64
+#define BASE_VALEURS_PROBA_ENTITES 64
+#define CHIFFRES_VALEURS_PROBA_ENTITES 2
 
-/*class GenerateurElementAleatoire {
+class GenerateurElementAleatoire {
 public:
 	class Exc_ProbaInvalide : public std::exception {
 	public:
@@ -29,24 +31,32 @@ public:
 		char const *what() const throw() { return "Proba invalide"; }
 	};
 	
-	GenerateurElementAleatoire(std::string const &s) throw(Exc_ProbaInvalide) : _probasCumulees() {
-		if(s.size() != ElementNiveau::nbTypesElement)
+	GenerateurElementAleatoire(std::string const &s) throw(Exc_ProbaInvalide) : _probasCumulees(), _nbNonNuls(0) {
+		if(s.size() != ElementNiveau::nbTypesElement * CHIFFRES_VALEURS_PROBA_ENTITES)
 			throw Exc_ProbaInvalide();
 		int total = 0;
 		for(ElementNiveau::elementNiveau_t e = ElementNiveau::premierTypeElement; e != ElementNiveau::nbTypesElement; ++e) {
-			_probasCumulees[e] = total + caractereVersHexa(s[e]);
+			int val = caractereVersBase64(s[e * CHIFFRES_VALEURS_PROBA_ENTITES]) * BASE_VALEURS_PROBA_ENTITES + caractereVersBase64(s[e * CHIFFRES_VALEURS_PROBA_ENTITES + 1]);
+			_probasCumulees[e] = total + val;
+			_nbNonNuls += val != 0;
 		}
 	}
 	
 	ElementNiveau *operator()(Niveau *n) const {
-		int nbAlea = nombreAleatoire(_probasCumulees[sizeof(_probasCumulees) - 1]);
+		if(!_nbNonNuls)
+			return 0;
+		static int nb0 = 1;
+		static int nbPas0 = 1;
+		std::cout << float (nb0) / nbPas0 << std::endl;
+		int nbAlea = nombreAleatoire(_nbNonNuls * NB_VALEURS_PROBA_ENTITES);
 		for(ElementNiveau::elementNiveau_t e = ElementNiveau::premierTypeElement; e != ElementNiveau::nbTypesElement; ++e) {
 			if(nbAlea < _probasCumulees[e]) {
-				ElementNiveau *retour = ElementNiveau::elementNiveau(n, nombreAleatoire(ElementNiveau::nombreEntites(e)), e);
+				++nbPas0;
+				ElementNiveau *retour = ElementNiveau::elementNiveau(n, nombreAleatoire(static_cast<int>(ElementNiveau::nombreEntites(e))), e);
 				return retour;
 			}
 		}
-		
+		++nb0;
 		return 0;
 	}
 	
@@ -54,8 +64,9 @@ public:
 	
 private:
 	int _probasCumulees[ElementNiveau::nbTypesElement];
+	int _nbNonNuls;
 };
-*/
+
 Niveau::couche_t &operator++(Niveau::couche_t &c) { return c = static_cast<Niveau::couche_t>(static_cast<int>(c) + 1); }
 Niveau::couche_t operator+(Niveau::couche_t c, int i) { return static_cast<Niveau::couche_t>(static_cast<int>(c) + 1); }
 
@@ -78,7 +89,22 @@ Niveau::Niveau(Joueur *j, std::string const &nomFichier) : _elements(0), _dimX(0
 	this->init();
 	this->remplissageBordures();
 	
-	TiXmlElement *probas = n->FirstChildElement("proba");
+	GenerateurElementAleatoire **generateurs = 0;
+	size_t nbGenerateurs = 0;
+	{
+		TiXmlElement *probas = n->FirstChildElement("proba");
+		for(TiXmlNode *proba = probas->FirstChild(); proba; proba = proba->NextSibling(), ++nbGenerateurs);
+		generateurs = new GenerateurElementAleatoire *[nbGenerateurs];
+		TiXmlElement *proba = probas->FirstChildElement();
+		for(index_t i = 0; i != nbGenerateurs; ++i, proba = proba->NextSiblingElement()) {
+			if(std::string(proba->Value()) != "proba") {
+				throw  Exc_CreationNiveau(std::string() + "Erreur : élément de proba " + nombreVersTexte(i) + " invalide.");
+			}
+			
+			std::string valeur = proba->Attribute("valeur");
+			generateurs[i] = new GenerateurElementAleatoire(valeur);
+		}
+	}
 	
 	for(couche_t couche = premierCouche; couche < nb_couches; ++couche) {
 		TiXmlElement *cc = n->FirstChildElement(std::string("couche") + nombreVersTexte(couche));
@@ -113,19 +139,13 @@ Niveau::Niveau(Joueur *j, std::string const &nomFichier) : _elements(0), _dimX(0
 					if(valeur == 0) { // Aucun entité présente dans la case
 						
 					}
-					else { // TODO: proba !
-						
-					}
-					/*index_t probaCumulee = 0;
-					index_t nbAlea = nombreAleatoire(NB_VALEURS_PROBA_ENTITES * ElementNiveau::nbTypesElement);
-					for(ElementNiveau::elementNiveau_t i = ElementNiveau::premierTypeElement; i != ElementNiveau::nbTypesElement; ++i) {
-						index_t proba = (v / (NB_VALEURS_PROBA_ENTITES * i)) % NB_VALEURS_PROBA_ENTITES;
-						probaCumulee += proba;
-						if(probaCumulee >= nbAlea) {
-							
-							break;
+					else { // choix d'une entité au hasard en fonction de la loi de probabilité indiquée
+						--valeur;
+						if(valeur >= nbGenerateurs) {
+							throw Exc_CreationNiveau("L'index de la loi de probabilité demandé (" + nombreVersTexte(valeur) + ") pour la case (x : " + nombreVersTexte(x) + " ; y : " + nombreVersTexte(y) + ") est invalide.");
 						}
-					}*/
+						e = generateurs[valeur]->operator()(this);
+					}
 				}
 
 				if(e) {
@@ -138,13 +158,17 @@ Niveau::Niveau(Joueur *j, std::string const &nomFichier) : _elements(0), _dimX(0
 			pos += 1;
 		}
 	}
+	
+	for(index_t i = 0; i != nbGenerateurs; ++i)
+		delete generateurs[i];
+	delete[] generateurs;
 }
 
 Niveau::Niveau(Joueur *j) : _elements(0), _dimX(0), _dimY(0), _zoom(1.0), _entitesMobiles(), _perso(j), _bordures() {	
 	j->definirPosition(Coordonnees(200, 100));
 	
-	_dimX = 16;
-	_dimY = 16;
+	_dimX = 160;
+	_dimY = 160;
 	
 	this->init();
 	this->remplissageBordures();
@@ -154,13 +178,13 @@ Niveau::Niveau(Joueur *j) : _elements(0), _dimX(0), _dimY(0), _zoom(1.0), _entit
 		for(size_t x = 0; x < _dimX; ++x) {
 			Case &c = _elements[y][x];
 			if(c._entites[cn_sol] == 0) {
-				ElementNiveau *e = ElementNiveau::elementNiveau(this, 22, ElementNiveau::entiteStatique);
+				ElementNiveau *e = ElementNiveau::elementNiveau(this, 2, ElementNiveau::entiteStatique);
 				this->definirContenuCase(x, y, cn_sol, e);
 			}
 			if(c._entites[cn_objet] == 0) {
-				int nb = nombreAleatoire(100);
+				int nb = nombreAleatoire(800);
 				if(nb < 10) {
-					EntiteStatique *e = ElementNiveau::elementNiveau<EntiteStatique>(this, nb);
+					EntiteStatique *e = ElementNiveau::elementNiveau<EntiteStatique>(this, nb, ElementNiveau::arbre);
 					this->definirContenuCase(x, y, cn_objet, e);
 				}
 			}
@@ -191,7 +215,7 @@ void Niveau::init() {
 }
 
 void Niveau::remplissageBordures() {
-	index_t idSol = 22;
+	index_t idSol = 2;
 	EntiteStatique *solBordure = ElementNiveau::elementNiveau<EntiteStatique>(this, idSol);
 	size_t dimSol = solBordure->dimensions().x / LARGEUR_CASE;
 	delete solBordure;
@@ -200,7 +224,7 @@ void Niveau::remplissageBordures() {
 		for(index_t i = 0; i < Niveau::epaisseurBordure(); ++i) {
 			for(index_t j = 0; j < dim; ++j) {
 				int nb = nombreAleatoire(10);
-				EntiteStatique *e = ElementNiveau::elementNiveau<EntiteStatique>(this, nb);
+				EntiteStatique *e = ElementNiveau::elementNiveau<EntiteStatique>(this, nb, ElementNiveau::arbre);
 				_bordures[cote][i][j]._entites[cn_objet] = e;
 				if(((cote == GAUCHE || cote == DROITE) && (i % dimSol == 0 && (Niveau::epaisseurBordure() - j - 1) % dimSol == 0)) || ((cote == HAUT || cote == BAS) && ((Niveau::epaisseurBordure() - i - 1) % dimSol == 0 && j % dimSol == 0))) {
 					e = ElementNiveau::elementNiveau<EntiteStatique>(this, idSol);
@@ -303,12 +327,12 @@ void Niveau::definirZoom(double z) {
 }
 
 void Niveau::animer(horloge_t tempsEcoule) {
-	/*if(Session::evenement(Session::T_a)) {
+	if(Session::evenement(Session::T_a)) {
 		this->definirZoom(this->zoom() * 1.2);
 	}
 	if(Session::evenement(Session::T_z)) {
 		this->definirZoom(this->zoom() / 1.2);
-	}*/
+	}
 	
 	for(couche_t c = premierCouche; c != nb_couches; ++c) {
 		for(size_t y = 0; y < _dimY; ++y) {

@@ -15,6 +15,10 @@
 #include "tinyxml.h"
 #include <cmath>
 
+TiXmlDocument *ElementNiveau::_description = 0;
+
+ElementNiveau::elementNiveau_t &operator++(ElementNiveau::elementNiveau_t &e) { return e = static_cast<ElementNiveau::elementNiveau_t>(static_cast<int>(e) + 1); }
+ElementNiveau::elementNiveau_t operator+(ElementNiveau::elementNiveau_t e, int i) { return static_cast<ElementNiveau::elementNiveau_t>(static_cast<int>(e) + 1); }
 
 ElementNiveau *ElementNiveau::elementNiveau(Niveau *n, uindex_t index, elementNiveau_t cat) throw(ElementNiveau::Exc_EntiteIndefinie, ElementNiveau::Exc_DefinitionEntiteIncomplete) {
 	switch(cat) {
@@ -24,67 +28,16 @@ ElementNiveau *ElementNiveau::elementNiveau(Niveau *n, uindex_t index, elementNi
 			return ElementNiveau::elementNiveau<Ennemi>(n, index);
 		case joueur:
 			return ElementNiveau::elementNiveau<Joueur>(n, index);
-		case ndef4:
-		case ndef5:
-		case ndef6:
-		case ndef7:
-		case ndef8:
-		case ndef9:
-		case ndef10:
-		case ndef11:
-		case ndef12:
-		case ndef13:
-		case ndef14:
-		case ndef15:
-		case ndef16:
-		case ndef17:
-		case ndef18:
-		case ndef19:
-		case ndef20:
-		case ndef21:
-		case ndef22:
-		case ndef23:
-		case ndef24:
-		case ndef25:
-		case ndef26:
-		case ndef27:
-		case ndef28:
-		case ndef29:
-		case ndef30:
-		case ndef31:
-		case ndef32:
-		case ndef33:
-		case ndef34:
-		case ndef35:
-		case ndef36:
-		case ndef37:
-		case ndef38:
-		case ndef39:
-		case ndef40:
-		case ndef41:
-		case ndef42:
-		case ndef43:
-		case ndef44:
-		case ndef45:
-		case ndef46:
-		case ndef47:
-		case ndef48:
-		case ndef49:
-		case ndef50:
-		case ndef51:
-		case ndef52:
-		case ndef53:
-		case ndef54:
-		case ndef55:
-		case ndef56:
-		case ndef57:
-		case ndef58:
-		case ndef59:
-		case ndef60:
-		case ndef61:
-		case ndef62:
-		case ndef63:
-		case ndef64:
+		case arbre:
+			return ElementNiveau::elementNiveau<EntiteStatique>(n, index, arbre);
+		case ndef5:case ndef6:case ndef7:case ndef8:
+		case ndef9:case ndef10:case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
+		case ndef17:case ndef18:case ndef19:case ndef20:case ndef21:case ndef22:case ndef23:case ndef24:
+		case ndef25:case ndef26:case ndef27:case ndef28:case ndef29:case ndef30:case ndef31:case ndef32:
+		case ndef33:case ndef34:case ndef35:case ndef36:case ndef37:case ndef38:case ndef39:case ndef40:
+		case ndef41:case ndef42:case ndef43:case ndef44:case ndef45:case ndef46:case ndef47:case ndef48:
+		case ndef49:case ndef50:case ndef51:case ndef52:case ndef53:case ndef54:case ndef55:case ndef56:
+		case ndef57:case ndef58:case ndef59:case ndef60:case ndef61:case ndef62:case ndef63:case ndef64:
 		case nbTypesElement:
 			return 0;
 	}
@@ -173,28 +126,28 @@ if(this->grille()) {
 	return true;
 }*/
 
-TiXmlElement *ElementNiveau::description(uindex_t index, elementNiveau_t cc) {
-	std::string const cat(ElementNiveau::nomCategorie(cc));
-	static TiXmlDocument *desc = 0;
-	if(!desc) {
-		desc = new TiXmlDocument(Session::cheminRessources() + "ElementsNiveaux.xml");
-		if(!desc->LoadFile())
+void ElementNiveau::chargerDescription() {
+	if(!_description) {
+		_description = new TiXmlDocument(Session::cheminRessources() + "ElementsNiveaux.xml");
+		if(!_description->LoadFile())
 			std::cout << "Erreur de l'ouverture du fichier de description d'entités (" << (Session::cheminRessources() + "ElementsNiveaux.xml") << "." << std::endl;
 	}
+}
+
+TiXmlElement *ElementNiveau::description(uindex_t index, elementNiveau_t cc) {
+	ElementNiveau::chargerDescription();
 	
-	
-	TiXmlElement *element = desc->FirstChildElement("ElementsNiveau");
+	TiXmlElement *element = _description->FirstChildElement("ElementsNiveau");
 	if(!element) {
 		std::cout << "Balise \"ElementsNiveau\" indisponible." << std::endl;
 		return 0;
 	}
 	
-	if(!cat.empty()) {
-		element = element->FirstChildElement(cat);
-		if(!element) {
-			std::cout << "Catégorie \"" << cat << "\" indisponible." << std::endl;
-			return 0;
-		}
+	std::string const cat(ElementNiveau::nomCategorie(cc));
+	element = element->FirstChildElement(cat);
+	if(!element) {
+		std::cout << "Catégorie \"" << cat << "\" indisponible." << std::endl;
+		return 0;
 	}
 	std::string balise("Element");
 	balise += nombreVersTexte(index);
@@ -203,6 +156,25 @@ TiXmlElement *ElementNiveau::description(uindex_t index, elementNiveau_t cc) {
 	return element;
 }
 
+size_t ElementNiveau::nombreEntites(elementNiveau_t categorie) {
+	static size_t nb[ElementNiveau::nbTypesElement] = {-1};
+	if(nb[0] == -1) {
+		ElementNiveau::chargerDescription();
+		TiXmlElement *element = _description->FirstChildElement("ElementsNiveau");
+		for(ElementNiveau::elementNiveau_t i = ElementNiveau::premierTypeElement; i != ElementNiveau::nbTypesElement; ++i) {
+			nb[i] = 0;
+			char const *nom = ElementNiveau::nomCategorie(i);
+			if(nom) {
+				TiXmlElement *cat = element->FirstChildElement(nom);
+				for(TiXmlNode *n = cat->FirstChild(); n; n = n->NextSibling(), ++nb[i]);
+			}
+		}
+	}
+	
+	return nb[categorie];
+}
+
+
 char const *ElementNiveau::nomCategorie(elementNiveau_t cat) {
 	switch(cat) {
 		case entiteStatique:
@@ -210,67 +182,16 @@ char const *ElementNiveau::nomCategorie(elementNiveau_t cat) {
 		case ennemi:
 		case joueur:
 			return "Personnage";
-		case ndef4:
-		case ndef5:
-		case ndef6:
-		case ndef7:
-		case ndef8:
-		case ndef9:
-		case ndef10:
-		case ndef11:
-		case ndef12:
-		case ndef13:
-		case ndef14:
-		case ndef15:
-		case ndef16:
-		case ndef17:
-		case ndef18:
-		case ndef19:
-		case ndef20:
-		case ndef21:
-		case ndef22:
-		case ndef23:
-		case ndef24:
-		case ndef25:
-		case ndef26:
-		case ndef27:
-		case ndef28:
-		case ndef29:
-		case ndef30:
-		case ndef31:
-		case ndef32:
-		case ndef33:
-		case ndef34:
-		case ndef35:
-		case ndef36:
-		case ndef37:
-		case ndef38:
-		case ndef39:
-		case ndef40:
-		case ndef41:
-		case ndef42:
-		case ndef43:
-		case ndef44:
-		case ndef45:
-		case ndef46:
-		case ndef47:
-		case ndef48:
-		case ndef49:
-		case ndef50:
-		case ndef51:
-		case ndef52:
-		case ndef53:
-		case ndef54:
-		case ndef55:
-		case ndef56:
-		case ndef57:
-		case ndef58:
-		case ndef59:
-		case ndef60:
-		case ndef61:
-		case ndef62:
-		case ndef63:
-		case ndef64:
+		case arbre:
+			return "Arbre";
+		case ndef5:case ndef6:case ndef7:case ndef8:
+		case ndef9:case ndef10:case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
+		case ndef17:case ndef18:case ndef19:case ndef20:case ndef21:case ndef22:case ndef23:case ndef24:
+		case ndef25:case ndef26:case ndef27:case ndef28:case ndef29:case ndef30:case ndef31:case ndef32:
+		case ndef33:case ndef34:case ndef35:case ndef36:case ndef37:case ndef38:case ndef39:case ndef40:
+		case ndef41:case ndef42:case ndef43:case ndef44:case ndef45:case ndef46:case ndef47:case ndef48:
+		case ndef49:case ndef50:case ndef51:case ndef52:case ndef53:case ndef54:case ndef55:case ndef56:
+		case ndef57:case ndef58:case ndef59:case ndef60:case ndef61:case ndef62:case ndef63:case ndef64:
 		case nbTypesElement:
 			return 0;
 	}

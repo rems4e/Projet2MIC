@@ -16,6 +16,7 @@
 int nombreAleatoire(int nombreMax);
 
 int caractereVersHexa(char c);
+int caractereVersBase64(char c);
 double texteVersNombre(char const *texte);
 double texteVersNombre(std::string const &texte);
 std::string nombreVersTexte(double nombre, int decimales);
