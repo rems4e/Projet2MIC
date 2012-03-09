@@ -42,6 +42,9 @@ void Joueur::animer(horloge_t tempsEcoule) {
 			this->definirAction(EntiteMobile::a_attaquer);
 			Session::reinitialiser(Session::T_ESPACE);
 		}
+		else if(Session::evenement(Session::T_m)) {
+			this->definirAction(EntiteMobile::a_mourir);
+		}
 		else
 			this->definirAction(EntiteMobile::a_immobile);
 	}

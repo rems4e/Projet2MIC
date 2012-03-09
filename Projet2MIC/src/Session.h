@@ -26,7 +26,8 @@ namespace Session {
 
 	enum evenement_t {
 		premierEvenement,
-		PREMIER_EVENEMENT_CLAVIER = premierEvenement,
+		B_GAUCHE = premierEvenement, B_DROIT,
+		PREMIER_EVENEMENT_CLAVIER,
 		/* Caractères imprimables */
 		PREMIER_EVENEMENT_IMPRIMABLE = PREMIER_EVENEMENT_CLAVIER,
 		
@@ -72,6 +73,8 @@ namespace Session {
 	
 	// Retourne si l'événement demandé est actif
 	bool evenement(evenement_t const &e);
+	// Position souris
+	Coordonnees const &souris();
 
 	// Définit l'événément à faux, même si la touche est encore enfoncée. L'utilisateur devra la relâcher puis la re-enfoncer pour réactiver l'événement.
 	void reinitialiser(evenement_t const &e);

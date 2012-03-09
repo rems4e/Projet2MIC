@@ -76,7 +76,7 @@ Coordonnees ElementNiveau::positionAffichage() const {
 	if(this->grille())
 		return Coordonnees(this->position().x * LARGEUR_CASE + this->position().y * LARGEUR_CASE, this->position().y * HAUTEUR_CASE - this->position().x * HAUTEUR_CASE) / 2 - this->origine() + this->centrage() * Coordonnees(LARGEUR_CASE, 0) / 2;
 	else {
-		return Coordonnees(this->position().x + this->position().y, (this->position().y - this->position().x) / 2) / 2 - this->origine();
+		return Coordonnees(this->position().x + this->position().y, (this->position().y - this->position().x) / 2) / 2 - this->origine() + this->centrage() * Coordonnees(LARGEUR_CASE, 0) / 2;
 	}
 }
 

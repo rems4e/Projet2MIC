@@ -27,10 +27,12 @@ namespace Session {
 	
 	bool _evenements[nombreEvenements] = {false};
 	modificateur_touche_t _modificateurTouches = M_AUCUN;
+	Coordonnees _souris;
 	
 	bool modificateurTouches(modificateur_touche_t const &mod) { return _modificateurTouches & mod; }
 	modificateur_touche_t const &modificateurTouches() { return _modificateurTouches; } 
 	bool evenement(evenement_t const &e) { return _evenements[e]; }
+	Coordonnees const &souris() { return _souris; }
 	
 	void reinitialiser(evenement_t const &e) { _evenements[e] = false; }
 	void definirQuitter(bool q) { _evenements[QUITTER] = q; }
@@ -129,6 +131,34 @@ void Session::gestionEvenements() {
 	}
 	
 	switch(evenement.type) {
+		case SDL_MOUSEMOTION:
+			_souris.x = evenement.motion.x;
+			_souris.y = evenement.motion.y;
+			break;
+		case SDL_MOUSEBUTTONDOWN:
+			_souris.x = evenement.button.x;
+			_souris.y = evenement.button.y;
+			switch(evenement.button.button) {
+				case SDL_BUTTON_LEFT:
+					_evenements[B_GAUCHE] = true;
+					break;
+				case SDL_BUTTON_RIGHT:
+					_evenements[B_DROIT] = true;
+					break;
+			}
+			break;
+		case SDL_MOUSEBUTTONUP:
+			_souris.x = evenement.button.x;
+			_souris.y = evenement.button.y;
+			switch(evenement.button.button) {
+				case SDL_BUTTON_LEFT:
+					_evenements[B_GAUCHE] = false;
+					break;
+				case SDL_BUTTON_RIGHT:
+					_evenements[B_DROIT] = false;
+					break;
+			}
+			break;
 		case SDL_KEYDOWN:
 			if(evenement.key.keysym.scancode != 0) {
 				correspondances[evenement.key.keysym.scancode] = evenement.key.keysym.unicode;

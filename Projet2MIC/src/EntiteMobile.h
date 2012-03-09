@@ -15,7 +15,7 @@
 
 class EntiteMobile : public ElementNiveau {
 public:
-	enum action_t {premiereAction, a_immobile = premiereAction, a_deplacer, a_attaquer, nbActions};
+	enum action_t {premiereAction, a_immobile = premiereAction, a_deplacer, a_attaquer, a_mourir, nbActions};
 	enum direction_t {gauche, gaucheHaut, haut, droiteHaut, droite, droiteBas, bas, gaucheBas};
 	
 	virtual ~EntiteMobile();

@@ -40,10 +40,14 @@ EntiteMobile::EntiteMobile(Niveau *n, uindex_t index, ElementNiveau::elementNive
 		int x = 0;
 		for(action_t a = premiereAction; a != nbActions; ++a) {
 			_cadres[a][direction] = new Rectangle[_nbImages[a]];
+			if(_nbImages[a] == 1) {
+				_cadres[a][direction][0] = Rectangle(Coordonnees(), _image.dimensions());
+			}
+			else {
 			for(int p = 0; p < _nbImages[a]; ++p) {
 				_cadres[a][direction][p] = Rectangle(x, direction * 128, 128, 128);
 				x += 128;
-			}
+			}}
 		}
 	}
 	
@@ -102,6 +106,8 @@ char const *EntiteMobile::transcriptionAction(action_t a) {
 			return "Deplacer";
 		case a_attaquer:
 			return "Attaque";
+		case a_mourir:
+			return "Mourir";
 		case nbActions:
 			return "nbActions";
 	}
@@ -114,6 +120,8 @@ bool EntiteMobile::actionInterruptible(action_t a) {
 		case a_deplacer:
 			return true;
 		case a_attaquer:
+			return false;
+		case a_mourir:
 			return false;
 		case nbActions:
 			return false;

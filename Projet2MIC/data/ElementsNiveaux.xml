@@ -34,6 +34,7 @@
 			<Immobile nbPoses=6 tempsAttente=100 />
 			<Deplacer nbPoses=8 tempsAttente=100 />
 			<Attaque nbPoses=5 tempsAttente=50 />
+			<Mourir nbPoses=4 tempsAttente=100 />
 		</Element0>
 		<Element1 image="perso1.png" vitesse=7 >
 			<Immobile nbPoses=4 tempsAttente=100 />

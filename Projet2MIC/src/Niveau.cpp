@@ -45,18 +45,15 @@ public:
 	ElementNiveau *operator()(Niveau *n) const {
 		if(!_nbNonNuls)
 			return 0;
-		static int nb0 = 1;
-		static int nbPas0 = 1;
-		std::cout << float (nb0) / nbPas0 << std::endl;
+
 		int nbAlea = nombreAleatoire(_nbNonNuls * NB_VALEURS_PROBA_ENTITES);
 		for(ElementNiveau::elementNiveau_t e = ElementNiveau::premierTypeElement; e != ElementNiveau::nbTypesElement; ++e) {
 			if(nbAlea < _probasCumulees[e]) {
-				++nbPas0;
 				ElementNiveau *retour = ElementNiveau::elementNiveau(n, nombreAleatoire(static_cast<int>(ElementNiveau::nombreEntites(e))), e);
 				return retour;
 			}
 		}
-		++nb0;
+
 		return 0;
 	}
 	
@@ -78,6 +75,8 @@ Niveau::Case::Case() : _entites(), _entiteExterieure() {
 }
 
 Niveau::Niveau(Joueur *j, std::string const &nomFichier) : _elements(0), _dimX(0), _dimY(0), _zoom(1.0), _entitesMobiles(), _perso(j), _bordures() {	
+	//j->definirPosition(Coordonnees(200, 100));
+	
 	TiXmlDocument niveau(Session::cheminRessources() + nomFichier);
 	if(!niveau.LoadFile())
 		std::cout << "Erreur de l'ouverture du fichier de niveau (" << (Session::cheminRessources() + nomFichier) << "." << std::endl;
@@ -150,7 +149,8 @@ Niveau::Niveau(Joueur *j, std::string const &nomFichier) : _elements(0), _dimX(0
 
 				if(e) {
 					this->definirContenuCase(x, y, couche, e);
-					_elements[y][x]._entites[couche]->definirPosition(Coordonnees(x, y));
+					bool grille = _elements[y][x]._entites[couche]->grille();
+					_elements[y][x]._entites[couche]->definirPosition(Coordonnees(x * (grille ? 1 : LARGEUR_CASE), y * (grille ? 1 : HAUTEUR_CASE)));
 				}
 			}
 			
@@ -349,10 +349,12 @@ void Niveau::animer(horloge_t tempsEcoule) {
 }
 
 void Niveau::afficher() {
-	index_t persoX = std::floor((_perso->position().x - _perso->origine().x) / LARGEUR_CASE), persoY = std::floor((_perso->position().y -  _perso->origine().y) / LARGEUR_CASE);
+	index_t persoX = std::floor(_perso->position().x / LARGEUR_CASE), persoY = std::floor(_perso->position().y / LARGEUR_CASE);
 	Coordonnees cam = _perso->positionAffichage() - (Ecran::dimensions() - _perso->dimensions()) / 2;
 	cam.x = std::floor(cam.x);
 	cam.y = std::floor(cam.y);
+	//std::cout << _perso->position() << " " << _perso->positionAffichage() << " " << _perso->origine() << std::endl;
+	
 
 	this->afficherCouche(cn_sol, cam, persoX, persoY);
 
@@ -376,6 +378,9 @@ void Niveau::afficherCouche(couche_t c, Coordonnees const &cam, index_t persoX, 
 			ElementNiveau *entite = _elements[y][_dimX - x - 1]._entites[c];
 			if(entite != 0 && !_elements[y][_dimX - x - 1]._entiteExterieure[c]) {
 				entite->afficher(cam * this->zoom(), this->zoom());
+				if(x == 0 && y == 0) {
+				//	std::cout << entite->position() << " " << entite->positionAffichage() << std::endl;
+				}
 			}
 		}
 	}

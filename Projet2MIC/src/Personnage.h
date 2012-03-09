@@ -20,6 +20,7 @@ public:
 
 	virtual bool grille() const;
 	virtual Coordonnees origine() const;
+	virtual bool centrage() const;
 	
 	// Le coefficient multiplicateur de la vitesse de déplacement de l'entité
 	virtual double vitesse() const;

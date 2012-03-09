@@ -67,7 +67,16 @@ namespace Ecran {
 	// Remplis l'écran avec une couleur unie
 	void effacer();
 	
+	// Affiche une couleur unie dans un rectangle. La couleur peut être transparente.
 	void afficherCouleur(Couleur const &c, Rectangle const &r);
+
+	// Pointeur
+	bool pointeurAffiche();
+	void definirPointeurAffiche(bool af);
+	
+	Image const *pointeur();
+	// Si image vaut 0, le pointeur par défaut est utilisé. La valeur decalage représente les coordonnées du point cliquable de l'image du pointeur.
+	void definirPointeur(Image *image, Coordonnees const &decalage = Coordonnees());
 }
 
 #endif

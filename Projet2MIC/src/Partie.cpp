@@ -26,7 +26,9 @@ void Partie::commencer() {
 	int idId = 0;
 	_joueur = ElementNiveau::elementNiveau<Joueur>(0, tabId[idId]);
 	_niveau = new Niveau(_joueur, "niveau1.xml");
+
 	_joueur->definirNiveau(_niveau);
+	Ecran::definirPointeurAffiche(true);
 	while(Session::boucle(60, !Session::evenement(Session::QUITTER))) {
 		Ecran::effacer();
 		if(Session::evenement(Session::T_r)) {
@@ -40,7 +42,7 @@ void Partie::commencer() {
 			delete _joueur;
 			_joueur = j;
 		}
-		
+				
 		_niveau->animer(1 / Ecran::frequenceInstantanee());
 		this->afficher();
 		
@@ -55,10 +57,11 @@ void Partie::commencer() {
 
 void Partie::afficher() {
 	_niveau->afficher();
+	_niveau->Niveau::afficher();
 }
 
 void Partie::reinitialiser() {
 	delete _niveau;
 	_niveau = new Niveau(_joueur, "niveau1.xml");
-
+	_joueur->definirPosition(Coordonnees());
 }

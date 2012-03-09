@@ -32,15 +32,13 @@ Couleur const Couleur::vert(0, 255, 0);
 Couleur const Couleur::bleu(0, 0, 255);
 Couleur const Couleur::transparent(0, 0);
 
-namespace Ecran {
-	struct _cadre_t {
-		Rectangle _r;
-		Coordonnees _c;
-		inline _cadre_t(Rectangle const &r, Coordonnees const &c) : _r(r), _c(c) { }
-	};
-	
+namespace Ecran {	
 	struct AttributsEcran {
 		Texte _texte;
+		Image *_pointeur;
+		Image *_pointeurDefaut;
+		Coordonnees _decalagePointeur;
+		bool _pointeurAffiche;
 		
 		int _largeur;
 		int _hauteur;
@@ -69,12 +67,13 @@ void Ecran::init(unsigned int largeur, unsigned int hauteur, unsigned int profon
 	Ecran::modifierResolution(largeur, hauteur, profondeur, pleinEcran);
 }
 
-Ecran::AttributsEcran::AttributsEcran() : _largeur(0L), _hauteur(0L), _profondeur(0), _pleinEcran(false), _frequence(1.0f), _frequenceInstantanee(1.0f), _texte("", POLICE_NORMALE, 12, Couleur::blanc) {
+Ecran::AttributsEcran::AttributsEcran() : _largeur(0L), _hauteur(0L), _profondeur(0), _pleinEcran(false), _frequence(1.0f), _frequenceInstantanee(1.0f), _texte("", POLICE_NORMALE, 12, Couleur::blanc), _pointeur(0), _pointeurDefaut(0), _decalagePointeur(), _pointeurAffiche() {
 
 }
 
 Ecran::AttributsEcran::~AttributsEcran() {
 	SDL_ShowCursor(SDL_ENABLE);
+	delete _pointeurDefaut;
 
 	if(_pleinEcran) {
 		Ecran::modifierResolution(800, 600, 32, false);
@@ -109,7 +108,10 @@ void Ecran::modifierResolution(unsigned int largeur, unsigned int hauteur, unsig
 	Ecran::_attributs._pleinEcran = pleinEcran;
 	
 	Ecran::_attributs._frequence = 0.0f;
-	
+	Ecran::_attributs._pointeurAffiche = false;
+	delete Ecran::_attributs._pointeurDefaut;
+	Ecran::_attributs._pointeurDefaut = new Image(Session::cheminRessources() + "souris.png");
+	Ecran::definirPointeur(0);
 	
 	Ecran::_ecran = Rectangle(Coordonnees(), Ecran::dimensions());
 		
@@ -170,6 +172,10 @@ void Ecran::maj() {
 	Ecran::_attributs._texte.definir(Couleur::blanc);
 	Ecran::_attributs._texte.afficher(posIps);
 #endif
+	
+	if(Ecran::_attributs._pointeurAffiche && Ecran::_attributs._pointeur) {
+		Ecran::_attributs._pointeur->afficher(Session::souris() - Ecran::_attributs._decalagePointeur);
+	}
 	
 #if REUTILISATION_ID_TEXTURE
 	Image::changerTexture(Image::aucuneTexture);
@@ -235,3 +241,27 @@ float Ecran::frequence() {
 float Ecran::frequenceInstantanee() {
 	return _attributs._frequenceInstantanee;
 }
+
+bool Ecran::pointeurAffiche() {
+	return _attributs._pointeurAffiche;
+}
+
+void Ecran::definirPointeurAffiche(bool af) {
+	_attributs._pointeurAffiche = af;
+}
+
+Image const *Ecran::pointeur() {
+	return _attributs._pointeur;
+}
+
+void Ecran::definirPointeur(Image *image, Coordonnees const &decalage) {
+	if(image == 0) {
+		_attributs._pointeur = _attributs._pointeurDefaut;
+		_attributs._decalagePointeur = Coordonnees();
+	}
+	else {
+		_attributs._pointeur = image;
+		_attributs._decalagePointeur = decalage;
+	}
+}
+

@@ -24,8 +24,12 @@ bool Personnage::grille() const {
 	return false;
 }
 
+bool Personnage::centrage() const {
+	return true;
+}
+
 Coordonnees Personnage::origine() const {
-	return Coordonnees(3 * this->dimensions().x / 2, this->dimensions().y / 2);
+	return Coordonnees(1 * this->dimensions().x / 2, 23 * this->dimensions().y / 32);
 }
 
 double Personnage::vitesse() const {
