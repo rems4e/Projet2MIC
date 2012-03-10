@@ -14,6 +14,7 @@
 #include <list>
 #include "horloge.h"
 #include <exception>
+#include "Image.h"
 
 class ElementNiveau;
 class EntiteStatique;
@@ -26,7 +27,7 @@ class Joueur;
 
 class Niveau {
 public:
-	enum couche_t {premierCouche, cn_sol = premierCouche, cn_sol2, cn_objet, nb_couches};
+	enum couche_t {premierCouche, cn_sol = premierCouche, cn_sol2, cn_transitionSol, cn_objet, nb_couches};
 
 	class Exc_CreationNiveau : public std::exception {
 	public:
@@ -74,6 +75,8 @@ protected:
 	double _zoom;
 	std::list<EntiteMobile *> _entitesMobiles;
 	Joueur *_perso;
+	Image _b1;
+	Image _b2;
 	
 	Niveau(Joueur *p, Niveau const &niveau);
 	Niveau &operator=(Niveau const &);
@@ -83,9 +86,11 @@ protected:
 	
 	void definirContenuCase(index_t x, index_t y, couche_t couche, ElementNiveau *e);
 	
-	void init();
+	void allocationCases();
 	void remplissageBordures();
 	static ssize_t epaisseurBordure();
+	static bool collision(couche_t couche);
+	static char const *nomCouche(couche_t couche);
 };
 
 Niveau::couche_t &operator++(Niveau::couche_t &c);

@@ -12,6 +12,11 @@
 
 #include <string>
 
+template <typename T>
+T signe(T const &t) {
+	return (t > 0)  ? 1 : ((t < 0) ? -1 : 0);
+}
+
 // Nombre aléatoire entre 0 et (nombreMax - 1)
 int nombreAleatoire(int nombreMax);
 

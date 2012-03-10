@@ -16,7 +16,7 @@
 #include "Unichar.h"
 
 typedef unsigned int taillePolice_t;
-typedef enum {POLICE_NORMALE, POLICE_DECO} police_t;
+enum police_t {POLICE_NORMALE, POLICE_DECO};
 
 class Texte {	
 public:

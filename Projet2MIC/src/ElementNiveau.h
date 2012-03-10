@@ -62,6 +62,7 @@ public:
 		throw Exc_EntiteIndefinie();
 	}
 
+	// Le nombre d'entités d'une catégorie, comme défini dans le document XML de description des entités.
 	static size_t nombreEntites(elementNiveau_t categorie);
 	
 	virtual ~ElementNiveau();
@@ -78,9 +79,9 @@ public:
 	// Si la fonction retourne faux, la position est en pixels.
 	Coordonnees position() const;
 	void definirPosition(Coordonnees const &p);
-	virtual bool grille() const = 0;
 	
 	// Déplacer la position d'un vecteur donné
+	// ATTENTION : utiliser cette fonction va générer une détection des collisions. Pour décaler une entité sans tester les collisions, utiliser entité.definirPosition(entité.position() + dep);
 	virtual void deplacerPosition(Coordonnees const &dep);
 	
 	
@@ -124,7 +125,5 @@ private:
 
 ElementNiveau::elementNiveau_t &operator++(ElementNiveau::elementNiveau_t &c);
 ElementNiveau::elementNiveau_t operator+(ElementNiveau::elementNiveau_t, int i);
-
-
 
 #endif

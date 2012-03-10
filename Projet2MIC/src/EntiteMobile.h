@@ -34,7 +34,8 @@ public:
 	// Elle retourne vrai si l'affectation a réussi, faux si l'action actuelle n'était pas interruptible
 	bool definirAction(action_t a);
 	
-	// Met à jour la direction de l'entité en fonction de la direction du vecteur de déplacement
+	// Met à jour la direction de l'entité en fonction de la direction du vecteur de déplacement.
+	// ATTENTION : utiliser cette fonction va générer une détection des collisions. Pour décaler une entité sans tester les collisions, utiliser entité.definirPosition(entité.position() + dep);
 	virtual void deplacerPosition(Coordonnees const &dep);
 		
 protected:	

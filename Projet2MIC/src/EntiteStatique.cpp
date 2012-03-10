@@ -25,12 +25,11 @@ EntiteStatique::~EntiteStatique() {
 
 void EntiteStatique::afficher(Coordonnees const &decalage, double zoom) const {
 	_image.redimensionner(zoom);
-	if(!Rectangle(this->positionAffichage() * zoom - decalage, this->dimensions()).intersection(Rectangle(Coordonnees(), Ecran::dimensions())).estVide())
-		_image.afficher(this->positionAffichage() * zoom - decalage);
+	_image.afficher(this->positionAffichage() * zoom - decalage);
 }
 
 bool EntiteStatique::collision() const {
-	return false;
+	return true;
 }
 
 void EntiteStatique::animer(horloge_t tempsEcoule) {
@@ -39,9 +38,5 @@ void EntiteStatique::animer(horloge_t tempsEcoule) {
 
 Coordonnees EntiteStatique::dimensions() const {
 	return _image.dimensionsReelles();
-}
-
-bool EntiteStatique::grille() const {
-	return true;
 }
 

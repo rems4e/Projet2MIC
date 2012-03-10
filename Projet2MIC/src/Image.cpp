@@ -108,7 +108,8 @@ ImageBase *ImageBase::charger(std::string const &fichier) {
 
 	SDL_Surface *surf = IMG_Load(_fichier.c_str());
 	if(!surf) {
-		std::cout << "L'image \"" << fichier << "\" n'a pu être chargée : " << IMG_GetError() << std::endl;
+		std::cerr << "L'image \"" << fichier << "\" n'a pu être chargée : " << IMG_GetError() << std::endl;
+		throw 0;
 	}
 	
 	SDL_PixelFormat format = *(surf->format);
@@ -320,6 +321,9 @@ void Image::changerTexture(GLuint tex) {
 #endif
 
 void Image::afficher(Coordonnees const &position, Rectangle const &filtre) const {
+	if(!Rectangle(position, Coordonnees(filtre.largeur * _facteurX, filtre.hauteur * _facteurY)).superposition(Ecran::ecran()))
+		return;
+	
 	Rectangle vert(position, Coordonnees(filtre.largeur * _facteurX, filtre.hauteur * _facteurY));
 		
 	#if REUTILISATION_ID_TEXTURE

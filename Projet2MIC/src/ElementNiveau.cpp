@@ -73,11 +73,7 @@ void ElementNiveau::definirPosition(Coordonnees const &p) {
 }
 
 Coordonnees ElementNiveau::positionAffichage() const {
-	if(this->grille())
-		return Coordonnees(this->position().x * LARGEUR_CASE + this->position().y * LARGEUR_CASE, this->position().y * HAUTEUR_CASE - this->position().x * HAUTEUR_CASE) / 2 - this->origine() + this->centrage() * Coordonnees(LARGEUR_CASE, 0) / 2;
-	else {
-		return Coordonnees(this->position().x + this->position().y, (this->position().y - this->position().x) / 2) / 2 - this->origine() + this->centrage() * Coordonnees(LARGEUR_CASE, 0) / 2;
-	}
+	return Coordonnees(this->position().x + this->position().y, (this->position().y - this->position().x) / 2) / 2 - this->origine() + this->centrage() * Coordonnees(LARGEUR_CASE, 0) / 2;
 }
 
 void ElementNiveau::definirNiveau(Niveau *n) {
@@ -96,16 +92,17 @@ bool ElementNiveau::multi() const {
 	return _multi;
 }
 
-void ElementNiveau::deplacerPosition(Coordonnees const &c) {
-	this->definirPosition(this->position() + c);
-}
-	/*return;
-if(this->grille()) {
-		this->definirPosition(this->position() + c);
+void ElementNiveau::deplacerPosition(Coordonnees const &delta) {
+	if(delta.vecteurNul())
+		return;
+	
+	size_t const n = std::floor(delta.norme());
+	if(n == 0) {
+		if(testerDeplacement(delta))
+			this->definirPosition(this->position() + delta);
 	}
 	else {
-		dimension_t n = c.norme();
-		Coordonnees dep = c / n;
+		Coordonnees const dep = delta / n;
 		for(index_t i = 0; i < n; ++i) {
 			if(testerDeplacement(dep)) {
 				this->definirPosition(this->position() + dep);
@@ -113,18 +110,24 @@ if(this->grille()) {
 			else
 				break;
 		}
-		if(testerDeplacement(c - index_t(n) * dep))
-			this->definirPosition(dep + c - index_t(n) * dep);
+		if(testerDeplacement(delta - n * dep))
+			this->definirPosition(this->position() + delta - n * dep);
 	}
-}*/
+}
 
-/*bool ElementNiveau::testerDeplacement(Coordonnees const &dep) {
-	index_t x = std::floor(this->position().x + dep.x / LARGEUR_CASE * 4), y = std::floor(this->position().y + dep.y / H_TILE  * 2);
+bool ElementNiveau::testerDeplacement(Coordonnees const &dep) {
+	index_t x = std::floor((this->position().x + dep.x) / LARGEUR_CASE), y = std::floor((this->position().y + dep.y) / LARGEUR_CASE);
+
+	if(dep.x > 0)
+		++x;
+	if(dep.y > 0)
+		++y;
+
 	if(_niveau->collision(x, y))
-		;//	return false;
+		return false;
 	
 	return true;
-}*/
+}
 
 void ElementNiveau::chargerDescription() {
 	if(!_description) {

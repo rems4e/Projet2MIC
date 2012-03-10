@@ -12,7 +12,7 @@
 #include <stdio.h>
 
 horloge_t horloge() {
-	static struct timeval refheure = {-1, 0};
+	static struct timeval refheure = {.tv_sec = -1, .tv_usec = 0};
 	if(refheure.tv_sec == -1)
 		gettimeofday(&refheure, 0);
 	struct timeval temp;
@@ -22,6 +22,6 @@ horloge_t horloge() {
 }
 
 void attendre(horloge_t sec) {
-	struct timespec a = {(long)sec, (long)(((double)sec - (long)sec) * 1E9)};
+	struct timespec a = {.tv_sec = (long)sec, .tv_nsec = (long)(((double)sec - (long)sec) * 1E9)};
 	nanosleep(&a, 0);
 }

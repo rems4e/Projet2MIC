@@ -84,7 +84,6 @@ std::string const &Session::cheminRessources() {
 		CFRelease(str);
 		CFRelease(res);
 		CFRelease(r);
-		CFRelease(bun);
 #elif defined(__LINUX__)
 		
 #elif defined(__WIN32__)

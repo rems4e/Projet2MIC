@@ -18,7 +18,6 @@ public:
 	virtual void animer(horloge_t tempsEcoule);
 	virtual void interagir(Personnage *p) = 0;
 
-	virtual bool grille() const;
 	virtual Coordonnees origine() const;
 	virtual bool centrage() const;
 	

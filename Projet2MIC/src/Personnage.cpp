@@ -20,16 +20,12 @@ void Personnage::animer(horloge_t tempsEcoule) {
 	EntiteMobile::animer(tempsEcoule);
 }
 
-bool Personnage::grille() const {
-	return false;
-}
-
 bool Personnage::centrage() const {
 	return true;
 }
 
 Coordonnees Personnage::origine() const {
-	return Coordonnees(1 * this->dimensions().x / 2, 23 * this->dimensions().y / 32);
+	return Coordonnees(this->dimensions().x / 2, 3 * this->dimensions().y / 4);
 }
 
 double Personnage::vitesse() const {

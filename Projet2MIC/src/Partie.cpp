@@ -28,6 +28,8 @@ void Partie::commencer() {
 	_niveau = new Niveau(_joueur, "niveau1.xml");
 
 	_joueur->definirNiveau(_niveau);
+	_joueur->definirPosition(Coordonnees(200, 200));
+	
 	Ecran::definirPointeurAffiche(true);
 	while(Session::boucle(60, !Session::evenement(Session::QUITTER))) {
 		Ecran::effacer();
@@ -63,5 +65,6 @@ void Partie::afficher() {
 void Partie::reinitialiser() {
 	delete _niveau;
 	_niveau = new Niveau(_joueur, "niveau1.xml");
+	_joueur->definirNiveau(_niveau);
 	_joueur->definirPosition(Coordonnees());
 }

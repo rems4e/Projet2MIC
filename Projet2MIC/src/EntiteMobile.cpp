@@ -66,8 +66,7 @@ void EntiteMobile::afficher(Coordonnees const &decalage, double zoom) const {
 	Image const &img = this->image();
 	img.redimensionner(zoom);
 	Rectangle const &cadre = this->cadre();
-	if(!Rectangle(this->positionAffichage() * zoom - decalage, this->dimensions()).intersection(Rectangle(Coordonnees(), Ecran::dimensions())).estVide())
-		img.afficher(this->positionAffichage() * zoom - decalage, cadre);
+	img.afficher(this->positionAffichage() * zoom - decalage, cadre);
 
 }
 
@@ -149,6 +148,9 @@ bool EntiteMobile::definirAction(action_t a) {
 }
 
 void EntiteMobile::deplacerPosition(Coordonnees const &dep) {
+	if(dep.vecteurNul())
+		return;
+
 	direction_t dir;
 	if(dep.x < 0) {
 		if(dep.y < 0)

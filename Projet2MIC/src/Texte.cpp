@@ -83,22 +83,25 @@ void Texte::afficher(Unichar const &txt, police_t police, taillePolice_t taille,
 	int hauteur;
 	float tailleRendu;
 	Image *image;
-	if(police == POLICE_DECO) {
-		hauteur = hauteurDeco;
-		tailleRendu = tailleRenduDeco;
-		if(policeDeco == 0) {
-			policeDeco = new Image(Session::cheminRessources() + "policeDeco.png");
-		}
-		image = policeDeco;
+	switch(police) {
+		case POLICE_DECO:
+			hauteur = hauteurDeco;
+			tailleRendu = tailleRenduDeco;
+			if(policeDeco == 0) {
+				policeDeco = new Image(Session::cheminRessources() + "policeDeco.png");
+			}
+			image = policeDeco;
+			break;
+		case POLICE_NORMALE:
+			hauteur = hauteurNormal;
+			tailleRendu = tailleRenduNormal;
+			if(policeNormale == 0) {
+				policeNormale = new Image(Session::cheminRessources() + "policeNormale.png");
+			}
+			image = policeNormale;
+			break;
 	}
-	else if(police == POLICE_NORMALE) {
-		hauteur = hauteurNormal;
-		tailleRendu = tailleRenduNormal;
-		if(policeNormale == 0) {
-			policeNormale = new Image(Session::cheminRessources() + "policeNormale.png");
-		}
-		image = policeNormale;
-	}
+
 	float rapportTaille = taille / tailleRendu;
 	image->redimensionner(rapportTaille);
 

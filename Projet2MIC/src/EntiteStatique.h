@@ -21,9 +21,7 @@ public:
 	virtual bool collision() const;
 	virtual void animer(horloge_t tempsEcoule);
 	virtual Coordonnees dimensions() const;
-	
-	virtual bool grille() const;
-	
+		
 protected:
 	Image _image;
 	
