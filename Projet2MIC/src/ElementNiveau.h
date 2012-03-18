@@ -15,6 +15,7 @@
 #include "Image.h"
 #include "horloge.h"
 #include <exception>
+//#include "Editeur.h"
 
 class Niveau;
 class TiXmlElement;
@@ -22,7 +23,7 @@ class TiXmlDocument;
 
 class ElementNiveau {
 public:
-	enum elementNiveau_t {premierTypeElement = 0, entiteStatique = premierTypeElement, joueur, ennemi, arbre, ndef5, ndef6, ndef7, ndef8,
+	enum elementNiveau_t {premierTypeElement = 0, entiteStatique = premierTypeElement, joueur, ennemi, arbre, entiteStatiqueAnimee, ndef6, ndef7, ndef8,
 		ndef9, ndef10, ndef11, ndef12, ndef13, ndef14, ndef15, ndef16, ndef17, ndef18, ndef19, ndef20, ndef21, ndef22, ndef23, ndef24,
 		ndef25, ndef26, ndef27, ndef28, ndef29, ndef30, ndef31, ndef32, ndef33, ndef34, ndef35, ndef36, ndef37, ndef38, ndef39, ndef40,
 		ndef41, ndef42, ndef43, ndef44, ndef45, ndef46, ndef47, ndef48, ndef49, ndef50, ndef51, ndef52, ndef53, ndef54, ndef55, ndef56,
@@ -100,12 +101,12 @@ public:
 	// L'image est-elle centrée sur la cae où elle se trouve ?
 	virtual bool centrage() const;
 
-protected:	
-	bool testerDeplacement(Coordonnees const &dep);
-	
 	static TiXmlElement *description(uindex_t index, elementNiveau_t cat);
 	static char const *nomCategorie(elementNiveau_t cat);
-	
+
+protected:	
+	bool testerDeplacement(Coordonnees const &dep);
+		
 	ElementNiveau(Niveau *n, uindex_t index, elementNiveau_t cat);
 	ElementNiveau(ElementNiveau const &);
 	ElementNiveau &operator=(ElementNiveau const &);

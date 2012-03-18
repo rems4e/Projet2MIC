@@ -20,6 +20,11 @@ T signe(T const &t) {
 // Nombre aléatoire entre 0 et (nombreMax - 1)
 int nombreAleatoire(int nombreMax);
 
+template <typename T> 
+T nombreAleatoire(T nombreMax) {
+	return static_cast<T>(nombreAleatoire(static_cast<int>(nombreMax)));
+}
+
 int caractereVersHexa(char c);
 int caractereVersBase64(char c);
 double texteVersNombre(char const *texte);

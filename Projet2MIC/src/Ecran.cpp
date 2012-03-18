@@ -19,6 +19,7 @@
 #include "Session.h"
 #include <limits>
 #include <cassert>
+#include <algorithm>
 
 Couleur teinte = Couleur(255, 255, 255);
 
@@ -77,7 +78,7 @@ Ecran::AttributsEcran::~AttributsEcran() {
 
 	if(_pleinEcran) {
 		Ecran::modifierResolution(800, 600, 32, false);
-		Ecran::afficherCouleur(Couleur::noir, Ecran::ecran());
+		Ecran::afficherRectangle(Ecran::ecran(), Couleur::noir);
 		SDL_GL_SwapBuffers();
 	}
 }
@@ -127,7 +128,7 @@ void Ecran::modifierResolution(unsigned int largeur, unsigned int hauteur, unsig
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_TEXTURE_2D);
-	Ecran::afficherCouleur(Couleur::noir, Ecran::ecran());
+	Ecran::afficherRectangle(Ecran::ecran(), Couleur::noir);
 	glClearColor(.8f, .8f, .8f, 1.0f);
 	
 	Ecran::maj();
@@ -168,7 +169,7 @@ void Ecran::maj() {
 	snprintf(ips, 255, "%.2f s - %.1f ips", horloge(), Ecran::_attributs._frequence);
 	Ecran::_attributs._texte.definir(ips);
 	Coordonnees posIps(Ecran::_attributs._largeur - Ecran::_attributs._texte.dimensions().x - 2, Ecran::_attributs._hauteur - Ecran::_attributs._texte.dimensions().y - 2);
-	Ecran::afficherCouleur(Couleur::noir, Rectangle(posIps - Coordonnees(2, 2), Ecran::_attributs._texte.dimensions() + Coordonnees(4, 4)));
+	Ecran::afficherRectangle(Rectangle(posIps - Coordonnees(2, 2), Ecran::_attributs._texte.dimensions() + Coordonnees(4, 4)), Couleur::noir);
 	Ecran::_attributs._texte.definir(Couleur::blanc);
 	Ecran::_attributs._texte.afficher(posIps);
 #endif
@@ -189,25 +190,35 @@ void Ecran::effacer() {
 	glClear(GL_COLOR_BUFFER_BIT );
 }
 
-void Ecran::afficherCouleur(Couleur const &c, Rectangle const &r) {
+void Ecran::afficherRectangle(Rectangle const &r, Couleur const &c) {
+	Ecran::afficherQuadrilatere(Coordonnees(r.gauche, r.haut), Coordonnees(r.gauche + r.largeur, r.haut), Coordonnees(r.gauche + r.largeur, r.haut + r.hauteur), Coordonnees(r.gauche, r.haut + r.hauteur), c);
+}
+
+void Ecran::afficherLigne(Coordonnees const &depart, Coordonnees const &arrivee, Couleur const &c, dimension_t epaisseur) {
+	if((depart - arrivee).vecteurNul())
+		return;
+	Coordonnees normale = (depart - arrivee).normaliser() * epaisseur;
+	std::swap(normale.x, normale.y);
+	normale.y *= -1;
+
+	Ecran::afficherQuadrilatere(depart - normale, depart + normale, arrivee + normale, arrivee - normale, c);
+}
+
+void Ecran::afficherQuadrilatere(Coordonnees const &p1, Coordonnees const &p2, Coordonnees const &p3, Coordonnees const &p4, Couleur const &c) {
 #if REUTILISATION_ID_TEXTURE
 	Image::changerTexture(Image::aucuneTexture);
-#endif
-	
-	static Rectangle tmp;
-	tmp = r;
-
+#endif	
 	glDisable(GL_TEXTURE_2D);
-
+	
 	glBegin(GL_QUADS);
 	glColor4ub(c.r, c.v, c.b, c.a);
-	glVertex2d(tmp.gauche, tmp.haut);
-	glVertex2d(tmp.gauche + tmp.largeur, tmp.haut);
-	glVertex2d(tmp.gauche + tmp.largeur, tmp.haut + tmp.hauteur);
-	glVertex2d(tmp.gauche, tmp.haut + tmp.hauteur);
+	glVertex2d(p1.x, p1.y);
+	glVertex2d(p2.x, p2.y);
+	glVertex2d(p3.x, p3.y);
+	glVertex2d(p4.x, p4.y);
 	glEnd();
 	
-	glEnable(GL_TEXTURE_2D);
+	glEnable(GL_TEXTURE_2D);	
 }
 
 Rectangle Ecran::ecran() {

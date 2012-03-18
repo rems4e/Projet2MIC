@@ -12,6 +12,7 @@
 #include "Niveau.h"
 #include "Personnage.h"
 #include "Joueur.h"
+#include "Editeur.h"
 
 Partie::Partie() : _niveau(0), _joueur(0) {
 	
@@ -43,6 +44,13 @@ void Partie::commencer() {
 			_niveau->definirJoueur(j);
 			delete _joueur;
 			_joueur = j;
+		}
+		else if(Session::evenement(Session::T_e)) {
+			Editeur *e = Editeur::editeur();
+			
+			e->editerNiveau("niveau1.xml");
+			
+			delete Editeur::editeur();
 		}
 				
 		_niveau->animer(1 / Ecran::frequenceInstantanee());

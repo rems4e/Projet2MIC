@@ -1,0 +1,45 @@
+//
+//  EntiteStatiqueAnimee.h
+//  Projet2MIC
+//
+//  Created by Rémi Saurel on 11/03/12.
+//  Copyright (c) 2012 Rémi Saurel. All rights reserved.
+//
+
+#ifndef Projet2MIC_EntiteStatiqueAnimee_h
+#define Projet2MIC_EntiteStatiqueAnimee_h
+
+#include "EntiteStatique.h"
+#include "Geometrie.h"
+
+class EntiteStatiqueAnimee : public EntiteStatique {
+	friend EntiteStatiqueAnimee *ElementNiveau::elementNiveau<EntiteStatiqueAnimee>(Niveau *n, uindex_t i, ElementNiveau::elementNiveau_t) throw(ElementNiveau::Exc_EntiteIndefinie, ElementNiveau::Exc_DefinitionEntiteIncomplete);
+	friend class ElementNiveau;
+public:
+	virtual ~EntiteStatiqueAnimee();
+	
+	virtual void afficher(Coordonnees const &decalage, double zoom = 1.0) const;
+	virtual void animer(horloge_t tempsEcoule);
+	virtual Coordonnees dimensions() const;
+	
+protected:	
+	Rectangle const &cadre() const;
+
+	static ElementNiveau::elementNiveau_t categorie() { return ElementNiveau::entiteStatiqueAnimee; }
+	EntiteStatiqueAnimee(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
+
+private:
+	size_t _nbImages;
+	Rectangle *_cadres;
+	horloge_t _tempsAffichage;
+		
+	uindex_t _imageActuelle;
+	
+	horloge_t _tempsPrecedent;
+
+	
+	EntiteStatiqueAnimee(EntiteStatiqueAnimee const &);
+	EntiteStatiqueAnimee &operator=(EntiteStatiqueAnimee const &);	
+};
+
+#endif

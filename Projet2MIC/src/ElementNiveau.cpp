@@ -9,6 +9,7 @@
 #include "ElementNiveau.h"
 #include "EntiteStatique.h"
 #include "EntiteMobile.h"
+#include "EntiteStatiqueAnimee.h"
 #include "Ennemi.h"
 #include "Joueur.h"
 #include "Niveau.h"
@@ -30,7 +31,9 @@ ElementNiveau *ElementNiveau::elementNiveau(Niveau *n, uindex_t index, elementNi
 			return ElementNiveau::elementNiveau<Joueur>(n, index);
 		case arbre:
 			return ElementNiveau::elementNiveau<EntiteStatique>(n, index, arbre);
-		case ndef5:case ndef6:case ndef7:case ndef8:
+		case entiteStatiqueAnimee:
+			return ElementNiveau::elementNiveau<EntiteStatiqueAnimee>(n, index);
+		case ndef6:case ndef7:case ndef8:
 		case ndef9:case ndef10:case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
 		case ndef17:case ndef18:case ndef19:case ndef20:case ndef21:case ndef22:case ndef23:case ndef24:
 		case ndef25:case ndef26:case ndef27:case ndef28:case ndef29:case ndef30:case ndef31:case ndef32:
@@ -39,7 +42,7 @@ ElementNiveau *ElementNiveau::elementNiveau(Niveau *n, uindex_t index, elementNi
 		case ndef49:case ndef50:case ndef51:case ndef52:case ndef53:case ndef54:case ndef55:case ndef56:
 		case ndef57:case ndef58:case ndef59:case ndef60:case ndef61:case ndef62:case ndef63:case ndef64:
 		case nbTypesElement:
-			return 0;
+			throw Exc_EntiteIndefinie();
 	}
 }
 
@@ -110,14 +113,17 @@ void ElementNiveau::deplacerPosition(Coordonnees const &delta) {
 			else
 				break;
 		}
-		if(testerDeplacement(delta - n * dep))
+		if(!(delta - n * dep).vecteurNul() && testerDeplacement(delta - n * dep))
 			this->definirPosition(this->position() + delta - n * dep);
 	}
 }
 
 bool ElementNiveau::testerDeplacement(Coordonnees const &dep) {
 	index_t x = std::floor((this->position().x + dep.x) / LARGEUR_CASE), y = std::floor((this->position().y + dep.y) / LARGEUR_CASE);
+	//index_t x1 = std::floor((this->position().x) / LARGEUR_CASE), y1 = std::floor((this->position().y) / LARGEUR_CASE);
 
+	//std::cout << x1 << " " << y1 << " " << dep << std::endl;
+	
 	if(dep.x > 0)
 		++x;
 	if(dep.y > 0)
@@ -187,7 +193,9 @@ char const *ElementNiveau::nomCategorie(elementNiveau_t cat) {
 			return "Personnage";
 		case arbre:
 			return "Arbre";
-		case ndef5:case ndef6:case ndef7:case ndef8:
+		case entiteStatiqueAnimee:
+			return "EntiteStatiqueAnimee";
+		case ndef6:case ndef7:case ndef8:
 		case ndef9:case ndef10:case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
 		case ndef17:case ndef18:case ndef19:case ndef20:case ndef21:case ndef22:case ndef23:case ndef24:
 		case ndef25:case ndef26:case ndef27:case ndef28:case ndef29:case ndef30:case ndef31:case ndef32:

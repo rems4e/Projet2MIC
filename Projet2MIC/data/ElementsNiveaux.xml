@@ -2,11 +2,14 @@
 <ElementsNiveau>
 	<EntiteStatique>
 		<Element0 image="dirt2.png" multi=1 x=0 y=16 />
-		<Element1 image="dirt.png"multi=1  x=0 y=64/>
-		<Element2 image="herbe.png"multi=1  x=0 y=128 />
-		<Element3 image="bleu.png" multi=1 />
-		<Element4 image="lac.png" multi=1  x=0 y=128 />
+		<Element1 image="dirt.png"multi=1 x=0 y=64/>
+		<Element2 image="herbe.png"multi=1 x=0 y=128 />
+		<Element3 image="bleu.png" multi=1 x=0 y=16 />
+		<Element4 image="lac.png" multi=1 x=0 y=128 />
 	</EntiteStatique>
+	<EntiteStatiqueAnimee>
+		<Element0 image="torche.png" nbPoses=20 tempsAttente=60 x=16 y=100 centrage=1/>
+	</EntiteStatiqueAnimee>
 	<Arbre>
 		<Element0 image="a1.png" x=57 y=96 centrage=1 />
 		<Element1 image="a2.png" x=49 y=95 centrage=1 />
@@ -36,7 +39,7 @@
 			<Attaque nbPoses=5 tempsAttente=50 />
 			<Mourir nbPoses=4 tempsAttente=100 />
 		</Element0>
-		<Element1 image="perso1.png" vitesse=7 >
+		<Element1 image="perso1.png" vitesse=7>
 			<Immobile nbPoses=4 tempsAttente=100 />
 			<Deplacer nbPoses=8 tempsAttente=100 />
 			<Attaque nbPoses=5 tempsAttente=50 />
@@ -46,15 +49,19 @@
 			<Deplacer nbPoses=8 tempsAttente=100 />
 			<Attaque nbPoses=5 tempsAttente=50 />
 		</Element2>
-		<Element3 image="orc_elite_0.png">
+		<Element3 image="orc_heavy_1.png">
 			<Immobile nbPoses=4 tempsAttente=100 />
 			<Deplacer nbPoses=8 tempsAttente=100 />
-			<Attaque nbPoses=5 tempsAttente=50 />
+			<Attaque nbPoses=5 tempsAttente=80 />
 		</Element3>
 		<Element4 image="spider_giant.png" vitesse=15 >
 			<Immobile nbPoses=4 tempsAttente=100 />
 			<Deplacer nbPoses=8 tempsAttente=50 />
 			<Attaque nbPoses=5 tempsAttente=80 />
 		</Element4>
+		<Element5 image="perso3.png" dimX=16 dimY=16>
+			<Immobile nbPoses=1 tempsAttente=100 />
+			<Deplacer nbPoses=1 tempsAttente=100 />
+		</Element5>
 	</Personnage>
 </ElementsNiveau>

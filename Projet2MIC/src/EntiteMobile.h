@@ -39,7 +39,6 @@ public:
 	virtual void deplacerPosition(Coordonnees const &dep);
 		
 protected:	
-	Image const &image() const;
 	Rectangle const &cadre() const;
 	bool actionDisponible(action_t a) const;
 

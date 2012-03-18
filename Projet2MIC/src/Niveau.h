@@ -26,6 +26,7 @@ class Joueur;
 #define HAUTEUR_CASE 32
 
 class Niveau {
+	friend class Editeur;
 public:
 	enum couche_t {premierCouche, cn_sol = premierCouche, cn_sol2, cn_transitionSol, cn_objet, nb_couches};
 
@@ -67,6 +68,7 @@ public:
 	void afficher();
 	
 	void definirJoueur(Joueur *j);
+	static char const *nomCouche(couche_t couche);
 		
 protected:
 	Case **_elements;
@@ -90,7 +92,6 @@ protected:
 	void remplissageBordures();
 	static ssize_t epaisseurBordure();
 	static bool collision(couche_t couche);
-	static char const *nomCouche(couche_t couche);
 };
 
 Niveau::couche_t &operator++(Niveau::couche_t &c);

@@ -17,6 +17,7 @@
 #include <cmath>
 #include <cstring>
 #include "tinyxml.h"
+#include "UtilitaireNiveau.h"
 
 #define NB_VALEURS_PROBA_ENTITES 64 * 64
 #define BASE_VALEURS_PROBA_ENTITES 64
@@ -124,31 +125,32 @@ Niveau::Niveau(Joueur *j, std::string const &nomFichier) : _elements(0), _dimX(0
 		for(index_t y = 0; y < _dimY; ++y) {
 			for(index_t x = 0; x < _dimX; ++x, pos += 4) {
 				uint16_t valeur = (caractereVersHexa(texte[pos]) << 12) + (caractereVersHexa(texte[pos + 1]) << 8) + (caractereVersHexa(texte[pos + 2]) << 4) + caractereVersHexa(texte[pos + 3]);
+				ElementNiveau::elementNiveau_t categorie;
+				index_t index;
+				bool proba;
+				index_t indexProba;
+				obtenirInfosEntites(valeur, proba, indexProba, categorie, index);
 				
 				ElementNiveau *e = 0;
-				if(valeur & (1 << 15)) { // Bit de poids fort à 1 -> valeur déterminée de la case
-					ElementNiveau::elementNiveau_t categorie = ElementNiveau::nbTypesElement;
-					index_t index = 0;
-					categorie = static_cast<ElementNiveau::elementNiveau_t>((valeur & 0x7E00) >> 9);
-					index = valeur & 0x1FF;
+				if(!proba) { // Valeur déterminée de la case
 					try {
 						e = ElementNiveau::elementNiveau(this, index, categorie);
 					}
 					catch(ElementNiveau::Exc_EntiteIndefinie &e) {
-						std::cerr << "L'entité (cat : " << categorie << " ; index : " << index << ") appelée dans le fichier de niveau \"" << nomFichier << "\" (x : " << x << " ; y : " << y << ") n'est pas définie !" << std::endl;
+						std::cerr << "L'entité (cat : " << categorie << " ; index : " << index << ") appelée dans le fichier de niveau \"" << nomFichier << "\" (couche : " << Niveau::nomCouche(couche) << " ; x : " << x << " ; y : " << y << ") n'est pas définie !" << std::endl;
 						throw;
 					}
 				}
 				else { // Bit de poids fort à 0 -> valeur probabiliste de la case
-					if(valeur == 0) { // Aucun entité présente dans la case
+					if(indexProba == 0) { // Aucun entité présente dans la case
 						
 					}
 					else { // choix d'une entité au hasard en fonction de la loi de probabilité indiquée
-						--valeur;
-						if(valeur >= nbGenerateurs) {
-							throw Exc_CreationNiveau("L'index de la loi de probabilité demandé (" + nombreVersTexte(valeur) + ") pour la case (x : " + nombreVersTexte(x) + " ; y : " + nombreVersTexte(y) + ") est invalide.");
+						--indexProba;
+						if(indexProba >= nbGenerateurs) {
+							throw Exc_CreationNiveau("L'index de la loi de probabilité demandé (" + nombreVersTexte(indexProba) + ") pour la case (x : " + nombreVersTexte(x) + " ; y : " + nombreVersTexte(y) + ") est invalide.");
 						}
-						e = generateurs[valeur]->operator()(this);
+						e = generateurs[indexProba]->operator()(this);
 					}
 				}
 
@@ -267,7 +269,7 @@ void Niveau::remplissageBordures() {
 }
 
 ssize_t Niveau::epaisseurBordure() {
-	return 16;
+	return 24;
 }
 
 Niveau::~Niveau() {

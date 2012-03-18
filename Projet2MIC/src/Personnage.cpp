@@ -25,7 +25,7 @@ bool Personnage::centrage() const {
 }
 
 Coordonnees Personnage::origine() const {
-	return Coordonnees(this->dimensions().x / 2, 3 * this->dimensions().y / 4);
+	return Coordonnees(this->cadre().largeur / 2, 3 * this->cadre().hauteur / 4);
 }
 
 double Personnage::vitesse() const {

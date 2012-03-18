@@ -68,8 +68,10 @@ namespace Ecran {
 	void effacer();
 	
 	// Affiche une couleur unie dans un rectangle. La couleur peut être transparente.
-	void afficherCouleur(Couleur const &c, Rectangle const &r);
-
+	void afficherRectangle(Rectangle const &r, Couleur const &c);
+	void afficherLigne(Coordonnees const &depart, Coordonnees const &arrivee, Couleur const &c, dimension_t epaisseur = 1.0);
+	void afficherQuadrilatere(Coordonnees const &p1, Coordonnees const &p2, Coordonnees const &p3, Coordonnees const &p4, Couleur const &c);
+	
 	// Pointeur
 	bool pointeurAffiche();
 	void definirPointeurAffiche(bool af);

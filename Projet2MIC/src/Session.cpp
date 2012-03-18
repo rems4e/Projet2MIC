@@ -49,9 +49,11 @@ namespace Session {
 	}
 	
 	void reinitialiserEvenements() {
+		bool q = _evenements[QUITTER];
 		for(evenement_t i = premierEvenement; i < nombreEvenements; ++i) {
 			_evenements[i] = false;
 		}
+		_evenements[QUITTER] = q;
 	}
 	
 	bool init = false;

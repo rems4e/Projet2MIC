@@ -10,6 +10,7 @@
 #include <string>
 #include <cstring>
 #include "tinyxml.h"
+#include "Niveau.h"
 
 EntiteMobile::action_t &operator++(EntiteMobile::action_t &c) { return c = static_cast<EntiteMobile::action_t>(static_cast<int>(c + 1)); }
 
@@ -26,6 +27,12 @@ EntiteMobile::EntiteMobile(Niveau *n, uindex_t index, ElementNiveau::elementNive
 	
 	_image = Image(Session::cheminRessources() + img);
 	
+	size_t dimX = 128, dimY = 128;
+	if(e->Attribute("dimX"))
+		e->Attribute("dimX", &dimX);
+	if(e->Attribute("dimY"))
+		e->Attribute("dimY", &dimY);
+	
 	for(action_t a = premiereAction; a != nbActions; ++a) {
 		TiXmlElement *action = e->FirstChildElement(EntiteMobile::transcriptionAction(a));
 		if(action) {
@@ -40,14 +47,10 @@ EntiteMobile::EntiteMobile(Niveau *n, uindex_t index, ElementNiveau::elementNive
 		int x = 0;
 		for(action_t a = premiereAction; a != nbActions; ++a) {
 			_cadres[a][direction] = new Rectangle[_nbImages[a]];
-			if(_nbImages[a] == 1) {
-				_cadres[a][direction][0] = Rectangle(Coordonnees(), _image.dimensions());
-			}
-			else {
 			for(int p = 0; p < _nbImages[a]; ++p) {
-				_cadres[a][direction][p] = Rectangle(x, direction * 128, 128, 128);
-				x += 128;
-			}}
+				_cadres[a][direction][p] = Rectangle(x, direction * dimY, dimX, dimY);
+				x += dimX;
+			}
 		}
 	}
 	
@@ -63,11 +66,9 @@ EntiteMobile::~EntiteMobile() {
 }
 
 void EntiteMobile::afficher(Coordonnees const &decalage, double zoom) const {
-	Image const &img = this->image();
-	img.redimensionner(zoom);
+	_image.redimensionner(zoom);
 	Rectangle const &cadre = this->cadre();
-	img.afficher(this->positionAffichage() * zoom - decalage, cadre);
-
+	_image.afficher(this->positionAffichage() * zoom - decalage, cadre);
 }
 
 bool EntiteMobile::collision() const {
@@ -82,11 +83,7 @@ void EntiteMobile::animer(horloge_t tempsEcoule) {
 }
 
 Coordonnees EntiteMobile::dimensions() const {
-	return Coordonnees(this->cadre(), 0);
-}
-
-Image const &EntiteMobile::image() const {
-	return _image;
+	return Coordonnees(LARGEUR_CASE, LARGEUR_CASE);
 }
 
 Rectangle const &EntiteMobile::cadre() const {
@@ -151,7 +148,7 @@ void EntiteMobile::deplacerPosition(Coordonnees const &dep) {
 	if(dep.vecteurNul())
 		return;
 
-	direction_t dir;
+	direction_t dir = EntiteMobile::gauche;
 	if(dep.x < 0) {
 		if(dep.y < 0)
 			dir = EntiteMobile::gauche;

@@ -80,6 +80,9 @@ void Texte::afficher(Coordonnees const &pos) const {
 }
 
 void Texte::afficher(Unichar const &txt, police_t police, taillePolice_t taille, Couleur const &coul, Coordonnees pos) {
+	Couleur teinte = Image::teinte();
+	Image::definirTeinte(coul);
+
 	int hauteur;
 	float tailleRendu;
 	Image *image;
@@ -132,6 +135,8 @@ void Texte::afficher(Unichar const &txt, police_t police, taillePolice_t taille,
 		}
 
 	}
+	
+	Image::definirTeinte(teinte);
 }
 
 static void initialiserCaracteres() {
