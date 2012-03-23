@@ -40,7 +40,6 @@ namespace Session {
 	void gestionEvenements();
 	
 	void reinitialiserEvenementsClavier();
-	void reinitialiserEvenements();
 	
 	void reinitialiserEvenementsClavier() {
 		for(evenement_t i = PREMIER_EVENEMENT_CLAVIER; i < DERNIER_EVENEMENT_CLAVIER; ++i) {
@@ -131,10 +130,13 @@ void Session::gestionEvenements() {
 		return;
 	}
 	
+	_evenements[SOURIS] = false;
+	
 	switch(evenement.type) {
 		case SDL_MOUSEMOTION:
 			_souris.x = evenement.motion.x;
 			_souris.y = evenement.motion.y;
+			_evenements[SOURIS] = true;
 			break;
 		case SDL_MOUSEBUTTONDOWN:
 			_souris.x = evenement.button.x;

@@ -22,10 +22,6 @@ dimension_t Coordonnees::norme() const {
 	return std::sqrt(x * x + y * y);
 }
 
-Coordonnees::Coordonnees(Rectangle const &r) : x(r.gauche), y(r.haut) { }
-Coordonnees::Coordonnees(Rectangle const &r, int) : x(r.largeur), y(r.hauteur) { }
-
-
 bool Coordonnees::operator<(Rectangle const &r) const {
 	return Rectangle(*this, Coordonnees()) < r;
 }

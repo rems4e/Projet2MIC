@@ -26,7 +26,7 @@ namespace Session {
 
 	enum evenement_t {
 		premierEvenement,
-		B_GAUCHE = premierEvenement, B_DROIT,
+		SOURIS, B_GAUCHE = premierEvenement, B_DROIT,
 		PREMIER_EVENEMENT_CLAVIER,
 		/* Caractères imprimables */
 		PREMIER_EVENEMENT_IMPRIMABLE = PREMIER_EVENEMENT_CLAVIER,
@@ -78,6 +78,9 @@ namespace Session {
 
 	// Définit l'événément à faux, même si la touche est encore enfoncée. L'utilisateur devra la relâcher puis la re-enfoncer pour réactiver l'événement.
 	void reinitialiser(evenement_t const &e);
+	// Fait de même pour TOUS les événements
+	void reinitialiserEvenements();
+
 	void definirQuitter(bool q);
 
 	// À placer dans une boucle while, pour que cette boucle ce poursuive tant que 'continuer' est vrai. Cela est requis car c'est dans cette fonction

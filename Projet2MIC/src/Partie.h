@@ -13,6 +13,7 @@
 
 class Niveau;
 class Joueur;
+class TableauDeBord;
 
 class Partie {
 public:
@@ -32,6 +33,7 @@ protected:
 	
 	Niveau *_niveau;
 	Joueur *_joueur;
+	TableauDeBord *_tableauDeBord;
 };
 
 #endif

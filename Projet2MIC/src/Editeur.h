@@ -16,6 +16,7 @@
 #include "Image.h"
 #include "ElementNiveau.h"
 #include "Geometrie.h"
+#include <list>
 
 class Editeur {
 public:
@@ -50,6 +51,9 @@ protected:
 	Rectangle const &cadreInventaire() const;
 	Rectangle const &cadreControles() const;
 	Rectangle const &cadreEditeur() const;
+	
+	void modifCouche();
+	void modifCategorie();
 	
 private:
 	struct ElementEditeur {
@@ -98,7 +102,9 @@ private:
 	NiveauEditeur *_niveau;
 	Coordonnees _origine;
 	Niveau::couche_t _coucheEdition;
+	ElementNiveau::elementNiveau_t _categorie;
 	Rectangle const *_ancienRectangle;
+	Rectangle _affichageSelection;
 	Rectangle _selection;
 	
 	static Rectangle _cadreEditeur;
@@ -108,6 +114,12 @@ private:
 	static void initCadres();
 	
 	static Editeur *_editeur;
+	
+	typedef void (Editeur::*fonctionEditeur_t)();
+	typedef std::list<std::pair<Rectangle, fonctionEditeur_t> > listeFonctions_t;
+	
+	listeFonctions_t _fonctionsControles;
+	listeFonctions_t _fonctionsInventaire;
 
 };
 

@@ -13,8 +13,9 @@
 #include "Personnage.h"
 #include "Joueur.h"
 #include "Editeur.h"
+#include "TableauDeBord.h"
 
-Partie::Partie() : _niveau(0), _joueur(0) {
+Partie::Partie() : _niveau(0), _joueur(0), _tableauDeBord(0) {
 	
 }
 
@@ -30,6 +31,7 @@ void Partie::commencer() {
 
 	_joueur->definirNiveau(_niveau);
 	_joueur->definirPosition(Coordonnees(200, 200));
+	_tableauDeBord = new TableauDeBord(_joueur);
 	
 	Ecran::definirPointeurAffiche(true);
 	while(Session::boucle(60, !Session::evenement(Session::QUITTER))) {
@@ -60,14 +62,16 @@ void Partie::commencer() {
 	}
 	
 	delete _niveau;
+	delete _tableauDeBord;
 	delete _joueur;
 	_niveau = 0;
 	_joueur = 0;
+	_tableauDeBord = 0;
 }
 
 void Partie::afficher() {
 	_niveau->afficher();
-	_niveau->Niveau::afficher();
+	_tableauDeBord->afficher();
 }
 
 void Partie::reinitialiser() {

@@ -38,7 +38,8 @@ public:
 		int total = 0;
 		for(ElementNiveau::elementNiveau_t e = ElementNiveau::premierTypeElement; e != ElementNiveau::nbTypesElement; ++e) {
 			int val = caractereVersBase64(s[e * CHIFFRES_VALEURS_PROBA_ENTITES]) * BASE_VALEURS_PROBA_ENTITES + caractereVersBase64(s[e * CHIFFRES_VALEURS_PROBA_ENTITES + 1]);
-			_probasCumulees[e] = total + val;
+			total += val;
+			_probasCumulees[e] = total;
 			_nbNonNuls += val != 0;
 		}
 	}

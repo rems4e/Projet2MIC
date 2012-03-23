@@ -69,6 +69,7 @@ void EntiteMobile::afficher(Coordonnees const &decalage, double zoom) const {
 	_image.redimensionner(zoom);
 	Rectangle const &cadre = this->cadre();
 	_image.afficher(this->positionAffichage() * zoom - decalage, cadre);
+	Ecran::afficherRectangle(Rectangle((this->positionAffichage() + this->origine()) * zoom - decalage, Coordonnees(10, 10)), Couleur::rouge);
 }
 
 bool EntiteMobile::collision() const {

@@ -24,6 +24,12 @@ struct Rectangle {
 	inline Rectangle(Coordonnees const &origine, Coordonnees const &taille) : gauche(origine.x), haut(origine.y), largeur(taille.x), hauteur(taille.y) { }
 	inline Rectangle(Rectangle const &r, int) : gauche(0), haut(0), largeur(r.largeur), hauteur(r.hauteur) { }
 	
+	inline Rectangle &definirOrigine(Coordonnees const &c) { gauche = c.x, haut = c.y; return *this; }
+	inline Rectangle &definirDimensions(Coordonnees const &c) { largeur = c.x, hauteur = c.y; return *this; }
+	
+	inline Coordonnees origine() const { return Coordonnees(gauche, haut); }
+	inline Coordonnees dimensions() const { return Coordonnees(largeur, hauteur); }
+
 	inline Rectangle operator+(Coordonnees const &c) const { return Rectangle(gauche + c.x, haut + c.y, largeur, hauteur); }
 	inline Rectangle operator+=(Coordonnees const &c) {
 		gauche += c.x;

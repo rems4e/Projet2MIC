@@ -25,10 +25,7 @@ struct Coordonnees {
 	
 	inline Coordonnees() : x(0), y(0) {}
 	inline Coordonnees(coordonnee_t const &_x, coordonnee_t const &_y) : x(_x), y(_y) {}
-		
-	Coordonnees(Rectangle const &r);
-	Coordonnees(Rectangle const &r, int);
-		
+				
 	inline virtual ~Coordonnees() {}
 	
 	inline bool operator==(Coordonnees const &c) const { return valeurNulle(x - c.x) && valeurNulle(y - c.y); }

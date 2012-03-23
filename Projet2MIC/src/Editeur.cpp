@@ -14,6 +14,7 @@
 #include "UtilitaireNiveau.h"
 #include <cstring>
 #include "Texte.h"
+#include "Menu.h"
 
 Editeur *Editeur::_editeur = 0;
 Rectangle Editeur::_cadreControles;
@@ -39,20 +40,33 @@ Editeur::~Editeur() {
 void Editeur::editerNiveau(std::string const &fichier) {
 	_niveau = new NiveauEditeur(fichier);
 	_continuer = true;
-	_origine = Coordonnees(0, 0);
+	_origine = -Coordonnees(0, Ecran::hauteur() / 2);
 	_coucheEdition = static_cast<Niveau::couche_t>(Niveau::nb_couches - 1);
 	_ancienRectangle = 0;
-	_selection = Rectangle::aucun;
+	_affichageSelection = Rectangle::aucun;
+	_categorie = ElementNiveau::entiteStatique;
+	
+	std::vector<Unichar> elemMenus;
+	elemMenus.push_back("Enregistrer le niveau");
+	elemMenus.push_back("Revenir à la version enregistrée");	
+	elemMenus.push_back("Quitter l'éditeur");
+	
+	Menu menuEditeur("Menu éditeur", elemMenus);
 	
 	bool sauvegarder = true;
 	while(Session::boucle(60, _continuer)) {
 		Ecran::effacer();
 		this->afficher();
-		Ecran::maj();
 		
+		if(Session::evenement(Session::T_ESC)) {
+			index_t retour = menuEditeur.afficher();
+			if(retour < elemMenus.size() && elemMenus[retour] == "Quitter l'éditeur") {
+				_continuer = false;
+			}
+		}
 		if(!Session::evenement(Session::B_GAUCHE)) {
 			_ancienRectangle = 0;
-			_selection = Rectangle::aucun;
+			_affichageSelection = Rectangle::aucun;
 		}
 		else if(_ancienRectangle == 0) {
 			if(Session::souris() < Editeur::cadreEditeur())
@@ -83,6 +97,8 @@ void Editeur::editerNiveau(std::string const &fichier) {
 			else if(Session::evenement(Session::T_BAS))
 				_origine.y += 10;
 		}
+
+		Ecran::maj();
 	}
 	
 	if(sauvegarder)
@@ -108,14 +124,33 @@ void Editeur::afficher() {
 }
 
 void Editeur::afficherCouche(Niveau::couche_t couche) {
+	static float teinteSelection = 0;
+	static int sensTeinte = 1;
+	teinteSelection += 1.0 / 400.0 * (60.0 / Ecran::frequenceInstantanee()) * sensTeinte;
+	if(teinteSelection > 1) {
+		teinteSelection = 1;
+		sensTeinte = -1;
+	}
+	else if(teinteSelection < 0) {
+		teinteSelection = 0;
+		sensTeinte = 1;
+	}
+
 	Coordonnees pos;
 	for(Ligne::iterator i = _niveau->_elements.begin(); i != _niveau->_elements.end(); ++i) {
 		pos.x = 0;
 		for(Colonne::iterator j = i->begin(); j != i->end(); ++j) {
 			ElementEditeur const *elem = (*j)[couche];
 			if(elem) {
-				Coordonnees posAffichage = referentielNiveauVersEcran(pos) - elem->origine() - _origine + Coordonnees(Editeur::cadreEditeur()) + Coordonnees(0, Ecran::hauteur() / 2);
+				Coordonnees posAffichage = referentielNiveauVersEcran(pos) - elem->origine() - _origine + Editeur::cadreEditeur().origine();
 				elem->image().afficher(posAffichage, elem->cadre());
+				if(couche == _coucheEdition && Rectangle(pos, (Coordonnees(elem->cadre().dimensions().x, 2 * elem->cadre().dimensions().y))).superposition(_selection)) {
+					Coordonnees p1 = referentielNiveauVersEcran(pos) - _origine + Editeur::cadreEditeur().origine();
+					Coordonnees p2 = referentielNiveauVersEcran(pos + Coordonnees(elem->cadre().dimensions().x, 0)) - _origine + Editeur::cadreEditeur().origine();
+					Coordonnees p3 = referentielNiveauVersEcran(pos + Coordonnees(elem->cadre().dimensions().x, 2 * elem->cadre().dimensions().y)) - _origine + Editeur::cadreEditeur().origine();
+					Coordonnees p4 = referentielNiveauVersEcran(pos + Coordonnees(0, 2 * elem->cadre().dimensions().y)) - _origine + Editeur::cadreEditeur().origine();
+					Ecran::afficherQuadrilatere(p1, p2, p3, p4, Couleur(teinteSelection * 255, teinteSelection * 255, teinteSelection * 255, 128));
+				}
 			}
 			pos.x += LARGEUR_CASE;
 		}
@@ -124,18 +159,17 @@ void Editeur::afficherCouche(Niveau::couche_t couche) {
 }
 
 void Editeur::afficherGrille() {
-	Coordonnees decalage = -Coordonnees(0, Ecran::hauteur() / 2);
 	for(index_t y = 0; y <= _niveau->_dimY; ++y) {
-		Ecran::afficherLigne(referentielNiveauVersEcran(Coordonnees(0, y) * LARGEUR_CASE) - _origine + Coordonnees(Editeur::cadreEditeur()) - decalage, referentielNiveauVersEcran(Coordonnees(_niveau->_dimX, y) * LARGEUR_CASE) - _origine + Coordonnees(Editeur::cadreEditeur()) - decalage, Couleur::rouge, 1.0);
+		Ecran::afficherLigne(referentielNiveauVersEcran(Coordonnees(0, y) * LARGEUR_CASE) - _origine + Editeur::cadreEditeur().origine(), referentielNiveauVersEcran(Coordonnees(_niveau->_dimX, y) * LARGEUR_CASE) - _origine + Editeur::cadreEditeur().origine(), Couleur::rouge, 1.0);
 	}
 	for(index_t x = 0; x <= _niveau->_dimX; ++x) {
-		Ecran::afficherLigne(referentielNiveauVersEcran(Coordonnees(x, 0) * LARGEUR_CASE) - _origine + Coordonnees(Editeur::cadreEditeur()) - decalage, referentielNiveauVersEcran(Coordonnees(x, _niveau->_dimY) * LARGEUR_CASE) - _origine + Coordonnees(Editeur::cadreEditeur()) - decalage, Couleur::rouge, 1.0);
+		Ecran::afficherLigne(referentielNiveauVersEcran(Coordonnees(x, 0) * LARGEUR_CASE) - _origine + Editeur::cadreEditeur().origine(), referentielNiveauVersEcran(Coordonnees(x, _niveau->_dimY) * LARGEUR_CASE) - _origine + Editeur::cadreEditeur().origine(), Couleur::rouge, 1.0);
 	}	
 }
 
 void Editeur::afficherInterface() {
-	if(_selection != Rectangle::aucun) {
-		Rectangle r = _selection;
+	if(_affichageSelection != Rectangle::aucun) {
+		Rectangle r = _affichageSelection;
 		if(r.largeur < 0) {
 			r.gauche += r.largeur;
 			r.largeur *= -1;
@@ -145,14 +179,13 @@ void Editeur::afficherInterface() {
 			r.hauteur *= -1;
 		}
 		
-		Coordonnees dec = Coordonnees(cadreEditeur()) + Coordonnees(0, Ecran::hauteur() / 2);
-		
+		Coordonnees dec = cadreEditeur().origine() - _origine;
+
 		Coordonnees p1 = dec + referentielNiveauVersEcran(Coordonnees(r.gauche, r.haut));
 		Coordonnees p2 = dec + referentielNiveauVersEcran(Coordonnees(r.gauche + r.largeur, r.haut));
 		Coordonnees p3 = dec + referentielNiveauVersEcran(Coordonnees(r.gauche + r.largeur, r.haut + r.hauteur));
 		Coordonnees p4 = dec + referentielNiveauVersEcran(Coordonnees(r.gauche, r.haut + r.hauteur));
 		
-		//std::cout << _selection << std::endl;
 		Ecran::afficherQuadrilatere(p1, p2, p3, p4, Couleur(200, 205, 220, 128));
 	}
 	
@@ -161,44 +194,106 @@ void Editeur::afficherInterface() {
 }
 
 void Editeur::afficherInventaire() {
+	_fonctionsInventaire.clear();
+
 	Rectangle cadre = Editeur::cadreInventaire();
 	Ecran::afficherRectangle(cadre, Couleur::noir);
 	Ecran::afficherRectangle(Rectangle(cadre.gauche + 1, cadre.haut + 1, cadre.largeur - 2, cadre.hauteur - 2), Couleur(220, 225, 240));
+	
+	Rectangle rectCat(Editeur::cadreInventaire().origine() + Coordonnees(10, 10), Coordonnees());
+	
+	Texte cc(ElementNiveau::nomCategorie(_categorie));
+	cc.definir(Couleur::noir);
+	rectCat.definirDimensions(cc.dimensions());
+	cc.afficher(rectCat.origine());
+	
+	_fonctionsInventaire.push_back(std::make_pair(rectCat, &Editeur::modifCategorie));
 }
 
 void Editeur::afficherControles() {
+	_fonctionsControles.clear();
 	Rectangle cadre = Editeur::cadreControles();
 	Ecran::afficherRectangle(cadre, Couleur::noir);
 	Ecran::afficherRectangle(Rectangle(cadre.gauche + 1, cadre.haut + 1, cadre.largeur - 2, cadre.hauteur - 2), Couleur(220, 225, 240));
 	
+	Rectangle rectCouche(Editeur::cadreControles().origine() + Coordonnees(10, 10), Coordonnees());
+	
 	Texte cc(Niveau::nomCouche(_coucheEdition));
 	cc.definir(Couleur::noir);
-	cc.afficher(Coordonnees(Editeur::cadreControles()) + Coordonnees(10, 10));
+	rectCouche.definirDimensions(cc.dimensions());
+	cc.afficher(rectCouche.origine());
+	
+	_fonctionsControles.push_back(std::make_pair(rectCouche, &Editeur::modifCouche));
 }
 
 void Editeur::sourisEditeur() {
-	Coordonnees point(Session::souris() - Editeur::cadreEditeur() - _origine - Coordonnees(0, Ecran::hauteur() / 2));
+	Coordonnees point(Session::souris() - Editeur::cadreEditeur().origine() + _origine);
 	Coordonnees pointNiveau(referentielEcranVersNiveau(point));
-	//std::cout << pointNiveau << std::endl;
-	if(_selection == Rectangle::aucun) {
-		_selection = Rectangle(pointNiveau, Coordonnees());
+
+	if(_affichageSelection == Rectangle::aucun) {
+		_affichageSelection = Rectangle(pointNiveau, Coordonnees());
 	}
 	else {
-		_selection.largeur = pointNiveau.x - _selection.gauche;		
-		_selection.hauteur = pointNiveau.y - _selection.haut;
+		_affichageSelection.largeur = pointNiveau.x - _affichageSelection.gauche;		
+		_affichageSelection.hauteur = pointNiveau.y - _affichageSelection.haut;
+	}
+	_selection = _affichageSelection;
+	if(_selection.largeur < 0) {
+		_selection.gauche += _selection.largeur;
+		_selection.largeur *= -1;
+	}
+	if(_selection.hauteur < 0) {
+		_selection.haut += _selection.hauteur;
+		_selection.hauteur *= -1;
 	}
 }
 
 void Editeur::sourisControles() {
-	
+	for(listeFonctions_t::iterator i = _fonctionsControles.begin(); i != _fonctionsControles.end(); ++i) {
+		if(Session::souris() < i->first) {
+			(this->*(i->second))();
+		}
+	}
 }
 
 void Editeur::sourisInventaire() {
-	
+	for(listeFonctions_t::iterator i = _fonctionsInventaire.begin(); i != _fonctionsInventaire.end(); ++i) {
+		if(Session::souris() < i->first) {
+			(this->*(i->second))();
+		}
+	}
 }
 
 void Editeur::enregistrer() {
 	
+}
+
+void Editeur::modifCouche() {
+	std::vector<Unichar> couches;
+	for(Niveau::couche_t c = Niveau::premierCouche; c != Niveau::nb_couches; ++c) {
+		couches.push_back(Niveau::nomCouche(c));
+	}
+	
+	Menu choixCouche("Choisissez une couche :", couches);
+	index_t elem = choixCouche.afficher();
+	
+	if(elem != couches.size()) {
+		_coucheEdition = static_cast<Niveau::couche_t>(elem);
+	}
+}
+
+void Editeur::modifCategorie() {
+	std::vector<Unichar> cat;
+	for(ElementNiveau::elementNiveau_t c = ElementNiveau::premierTypeElement; c != ElementNiveau::nbTypesElement; ++c) {
+		cat.push_back(ElementNiveau::nomCategorie(c));
+	}
+	
+	Menu choixCat("Choisissez une catégorie :", cat);
+	index_t elem = choixCat.afficher();
+	
+	if(elem != cat.size()) {
+		_categorie = static_cast<ElementNiveau::elementNiveau_t>(elem);
+	}
 }
 
 Rectangle const &Editeur::cadreEditeur() const {
@@ -224,7 +319,7 @@ Rectangle const &Editeur::cadreInventaire() const {
 
 void Editeur::initCadres() {
 	_cadreControles = Rectangle(0, 0, Ecran::largeur(), 100);
-	_cadreInventaire = Rectangle(0, 0, 200, Ecran::hauteur() - _cadreControles.hauteur);
+	_cadreInventaire = Rectangle(0, 0, 128, Ecran::hauteur() - _cadreControles.hauteur);
 	_cadreControles.haut = _cadreInventaire.hauteur;
 	_cadreEditeur = Rectangle(_cadreInventaire.largeur, 0, Ecran::largeur() - _cadreInventaire.largeur, Ecran::hauteur() - _cadreControles.hauteur);
 }
