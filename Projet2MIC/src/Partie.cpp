@@ -24,30 +24,21 @@ Partie::~Partie() {
 }
 
 void Partie::commencer() {
-	int tabId[] = {0, 1, 2, 3, 4};
-	int idId = 0;
-	_joueur = ElementNiveau::elementNiveau<Joueur>(0, tabId[idId]);
+	_joueur = ElementNiveau::elementNiveau<Joueur>(0, 0);
 	_niveau = new Niveau(_joueur, "niveau1.xml");
 
 	_joueur->definirNiveau(_niveau);
 	_joueur->definirPosition(Coordonnees(200, 200));
 	_tableauDeBord = new TableauDeBord(_joueur);
-	
+
 	Ecran::definirPointeurAffiche(true);
-	while(Session::boucle(60, !Session::evenement(Session::QUITTER))) {
+	while(Session::boucle(100, !Session::evenement(Session::QUITTER))) {
 		Ecran::effacer();
 		if(Session::evenement(Session::T_r)) {
 			this->reinitialiser();
 			Session::reinitialiser(Session::T_r);
 		}
-		if(Session::evenement(Session::T_t)) {
-			idId = (idId + 1) % (sizeof(tabId) / sizeof(*tabId));
-			Joueur *j = ElementNiveau::elementNiveau<Joueur>(_niveau, tabId[idId]);
-			_niveau->definirJoueur(j);
-			delete _joueur;
-			_joueur = j;
-		}
-		else if(Session::evenement(Session::T_e)) {
+		if(Session::evenement(Session::T_e)) {
 			Editeur *e = Editeur::editeur();
 			
 			e->editerNiveau("niveau1.xml");
@@ -71,7 +62,7 @@ void Partie::commencer() {
 
 void Partie::afficher() {
 	_niveau->afficher();
-	_tableauDeBord->afficher();
+	//_tableauDeBord->afficher();
 }
 
 void Partie::reinitialiser() {

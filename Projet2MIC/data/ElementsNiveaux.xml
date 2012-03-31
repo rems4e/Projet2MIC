@@ -1,36 +1,36 @@
 <?xml version="1.0" standalone="no" ?>
 <ElementsNiveau>
 	<EntiteStatique>
-		<Element0 image="dirt2.png" multi=1 x=0 y=16 />
-		<Element1 image="dirt.png"multi=1 x=0 y=64/>
-		<Element2 image="herbe.png"multi=1 x=0 y=128 />
-		<Element3 image="bleu.png" multi=1 x=0 y=16 />
-		<Element4 image="lac.png" multi=1 x=0 y=128 />
+		<Element0 image="dirt2.png" multi=1 x=0 y=16 dimX=1 dimY=1 />
+		<Element1 image="dirt.png"multi=1 x=0 y=64 dimX=4 dimY=4 />
+		<Element2 image="herbe.png"multi=1 x=0 y=128 dimX=8 dimY=8 />
+		<Element3 image="bleu.png" multi=1 x=0 y=16 dimX=1 dimY=1 />
+		<Element4 image="lac.png" multi=1 x=0 y=128 dimX=8 dimY=8 />
 	</EntiteStatique>
 	<EntiteStatiqueAnimee>
-		<Element0 image="torche.png" nbPoses=20 tempsAttente=60 x=16 y=100 centrage=1/>
+		<Element0 image="torche.png" nbPoses=20 tempsAttente=60 x=16 y=100 centrage=1 dimX=1 dimY=1 />
 	</EntiteStatiqueAnimee>
 	<Arbre>
-		<Element0 image="a1.png" x=57 y=96 centrage=1 />
-		<Element1 image="a2.png" x=49 y=95 centrage=1 />
-		<Element2 image="a3.png" x=51 y=95 centrage=1 />
-		<Element3 image="a4.png" x=42 y=114 centrage=1 />
-		<Element4 image="a5.png" x=41 y=107 centrage=1 />
-		<Element5 image="a6.png" x=37 y=110 centrage=1 />
-		<Element6 image="a7.png" x=42 y=109 centrage=1 />
-		<Element7 image="a8.png" x=38 y=111 centrage=1 />
-		<Element8 image="a9.png" x=38 y=115 centrage=1 />
-		<Element9 image="a10.png" x=41 y=107 centrage=1 />
-		<Element10 image="a11.png" x=55 y=111 centrage=1 />
-		<Element11 image="a12.png" x=51 y=109 centrage=1 />
-		<Element12 image="a13.png" x=57 y=114 centrage=1 />
-		<Element13 image="a14.png" x=31 y=103 centrage=1 />
-		<Element14 image="a15.png" x=32 y=108 centrage=1 />
-		<Element15 image="a16.png" x=36 y=102 centrage=1 />
-		<Element16 image="a17.png" x=50 y=90 centrage=1 />
-		<Element17 image="a18.png" x=41 y=90 centrage=1 />
-		<Element18 image="a19.png" x=42 y=92 centrage=1 />
-		<Element19 image="a20.png" x=50 y=100 centrage=1 />
+		<Element0 image="a1.png" x=57 y=96 centrage=1 dimX=1 dimY=1 />
+		<Element1 image="a2.png" x=49 y=95 centrage=1 dimX=1 dimY=1 />
+		<Element2 image="a3.png" x=51 y=95 centrage=1 dimX=1 dimY=1 />
+		<Element3 image="a4.png" x=42 y=114 centrage=1 dimX=1 dimY=1 />
+		<Element4 image="a5.png" x=41 y=107 centrage=1 dimX=1 dimY=1 />
+		<Element5 image="a6.png" x=37 y=110 centrage=1 dimX=1 dimY=1 />
+		<Element6 image="a7.png" x=42 y=109 centrage=1 dimX=1 dimY=1 />
+		<Element7 image="a8.png" x=38 y=111 centrage=1 dimX=1 dimY=1 />
+		<Element8 image="a9.png" x=38 y=115 centrage=1 dimX=1 dimY=1 />
+		<Element9 image="a10.png" x=41 y=107 centrage=1 dimX=1 dimY=1 />
+		<Element10 image="a11.png" x=55 y=111 centrage=1 dimX=1 dimY=1 />
+		<Element11 image="a12.png" x=51 y=109 centrage=1 dimX=1 dimY=1 />
+		<Element12 image="a13.png" x=57 y=114 centrage=1 dimX=1 dimY=1 />
+		<Element13 image="a14.png" x=31 y=103 centrage=1 dimX=1 dimY=1 />
+		<Element14 image="a15.png" x=32 y=108 centrage=1 dimX=1 dimY=1 />
+		<Element15 image="a16.png" x=36 y=102 centrage=1 dimX=1 dimY=1 />
+		<Element16 image="a17.png" x=50 y=90 centrage=1 dimX=1 dimY=1 />
+		<Element17 image="a18.png" x=41 y=90 centrage=1 dimX=1 dimY=1 />
+		<Element18 image="a19.png" x=42 y=92 centrage=1 dimX=1 dimY=1 />
+		<Element19 image="a20.png" x=50 y=100 centrage=1 dimX=1 dimY=1 />
 	</Arbre>
 	<Personnage>
 		<Element0 image="perso.png">

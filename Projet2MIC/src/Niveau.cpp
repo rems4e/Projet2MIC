@@ -19,10 +19,6 @@
 #include "tinyxml.h"
 #include "UtilitaireNiveau.h"
 
-#define NB_VALEURS_PROBA_ENTITES 64 * 64
-#define BASE_VALEURS_PROBA_ENTITES 64
-#define CHIFFRES_VALEURS_PROBA_ENTITES 2
-
 class GenerateurElementAleatoire {
 public:
 	class Exc_ProbaInvalide : public std::exception {
@@ -72,8 +68,8 @@ Niveau::couche_t operator+(Niveau::couche_t c, int i) { return static_cast<Nivea
 ElementNiveau * const Niveau::aucunElement = 0;
 
 Niveau::Case::Case() : _entites(), _entiteExterieure() {
-	std::memset(_entites, 0, nb_couches * sizeof(EntiteStatique *));
-	std::memset(_entiteExterieure, 0, nb_couches * sizeof(bool));
+	std::memset(_entites, 0, nbCouches * sizeof(EntiteStatique *));
+	std::memset(_entiteExterieure, 0, nbCouches * sizeof(bool));
 }
 
 Niveau::Niveau(Joueur *j, std::string const &nomFichier) : _elements(0), _dimX(0), _dimY(0), _zoom(1.0), _entitesMobiles(), _perso(), _bordures() {
@@ -112,14 +108,17 @@ Niveau::Niveau(Joueur *j, std::string const &nomFichier) : _elements(0), _dimX(0
 		}
 	}
 	
-	for(couche_t couche = premierCouche; couche < nb_couches; ++couche) {
+	for(couche_t couche = premiereCouche; couche < nbCouches; ++couche) {
 		TiXmlElement *cc = n->FirstChildElement(Niveau::nomCouche(couche));
 		if(!cc)
 			continue;
+
 		char const *texte = cc->GetText();
 		size_t tailleAttendue = _dimY * (_dimX * 4 + 1) - 1; // chaque ligne contient 4 chiffres hexa par colonne et un saut de ligne, sauf pour la dernière ligne.
 		if(!texte || std::strlen(texte) != tailleAttendue) {
-			throw Exc_CreationNiveau(std::string() + "Erreur : dimensions de la couche " + nombreVersTexte(couche) + " invalides (" + nombreVersTexte(std::strlen(texte)) + " au lieu de " + nombreVersTexte(tailleAttendue) +  " attendus) !");
+			std::string err((std::string() + "Erreur : dimensions de la couche " + nombreVersTexte(couche) + " invalides (" + nombreVersTexte(std::strlen(texte)) + " au lieu de " + nombreVersTexte(tailleAttendue) +  " attendus) !"));
+			std::cerr << err << std::endl;
+			throw Exc_CreationNiveau(err);
 		}
 
 		index_t pos = 0;
@@ -195,7 +194,7 @@ Niveau::Niveau(Joueur *j) : _elements(0), _dimX(0), _dimY(0), _zoom(1.0), _entit
 					this->definirContenuCase(x, y, cn_objet, e);
 				}
 			}
-			for(couche_t couche = premierCouche; couche != nb_couches; ++couche) {
+			for(couche_t couche = premiereCouche; couche != nbCouches; ++couche) {
 				if(c._entites[couche] && !c._entiteExterieure[couche]) {
 					c._entites[couche]->definirPosition(Coordonnees(x, y) * LARGEUR_CASE);
 				}
@@ -243,7 +242,7 @@ void Niveau::remplissageBordures() {
 					_bordures[cote][i][j]._entites[cn_sol] = e;
 				}
 				
-				for(couche_t c = premierCouche; c != nb_couches; ++c) {
+				for(couche_t c = premiereCouche; c != nbCouches; ++c) {
 					ElementNiveau *ee = _bordures[cote][i][j]._entites[c];
 					if(!ee)
 						continue;
@@ -276,7 +275,7 @@ ssize_t Niveau::epaisseurBordure() {
 Niveau::~Niveau() {
 	for(uindex_t y = 0; y != this->dimY(); ++y) {
 		for(uindex_t x = 0; x != this->dimX(); ++x) {
-			for(Niveau::couche_t c = premierCouche; c != nb_couches; ++c) {
+			for(Niveau::couche_t c = premiereCouche; c != nbCouches; ++c) {
 				if(!_elements[y][x]._entiteExterieure[c])
 					delete _elements[y][x]._entites[c];
 			}
@@ -289,7 +288,7 @@ Niveau::~Niveau() {
 		for(size_t i = 0; i < Niveau::epaisseurBordure(); ++i) {
 			ssize_t dim = ((cote == GAUCHE || cote == DROITE) ? _dimX + 2 * Niveau::epaisseurBordure() : _dimY);
 			for(uindex_t j = 0; j != dim; ++j) {
-				for(Niveau::couche_t c = premierCouche; c != nb_couches; ++c) {
+				for(Niveau::couche_t c = premiereCouche; c != nbCouches; ++c) {
 					delete _bordures[cote][i][j]._entites[c];
 				}
 			}
@@ -310,7 +309,7 @@ ElementNiveau const *Niveau::element(index_t x, index_t y, Niveau::couche_t couc
 bool Niveau::collision(index_t x, index_t y) const {
 	if(x < 0 || y < 0 || x >= _dimX || y >= _dimY)
 		return true;
-	for(couche_t c = premierCouche; c < nb_couches; ++c) {
+	for(couche_t c = premiereCouche; c < nbCouches; ++c) {
 		if(!Niveau::collision(c))
 			continue;
 		ElementNiveau const *e = this->element(x, y, c);
@@ -331,7 +330,7 @@ bool Niveau::collision(couche_t couche) {
 			return false;
 		case cn_objet:
 			return true;
-		case nb_couches:
+		case nbCouches:
 			return false;
 	}
 }
@@ -363,7 +362,7 @@ void Niveau::animer(horloge_t tempsEcoule) {
 		this->definirZoom(this->zoom() / 1.2);
 	}
 	
-	for(couche_t c = premierCouche; c != nb_couches; ++c) {
+	for(couche_t c = premiereCouche; c != nbCouches; ++c) {
 		for(size_t y = 0; y < _dimY; ++y) {
 			for(size_t x = 0; x < _dimX; ++x) {			
 				ElementNiveau *entite = _elements[y][_dimX - x - 1]._entites[c];
@@ -400,7 +399,7 @@ void Niveau::afficher() {
 	}*/
 	
 	
-	for(Niveau::couche_t c = premierCouche + 1; c != nb_couches; ++c) {
+	for(Niveau::couche_t c = premiereCouche + 1; c != nbCouches; ++c) {
 		this->afficherCouche(c, cam, persoX, persoY);
 	}
 	
@@ -411,7 +410,7 @@ void Niveau::afficher() {
 void Niveau::afficherCouche(couche_t c, Coordonnees const &cam, index_t persoX, index_t persoY) {
 	for(size_t y = 0; y < _dimY; ++y) {
 		for(size_t x = 0; x < _dimX; ++x) {
-			if(y == persoY && (_dimX - x - 1) == persoX && c == nb_couches - 1) {
+			if(y == persoY && (_dimX - x - 1) == persoX && c == nbCouches - 1) {
 				_perso->afficher(cam * this->zoom(), this->zoom());
 			}
 			ElementNiveau *entite = _elements[y][_dimX - x - 1]._entites[c];
@@ -424,7 +423,7 @@ void Niveau::afficherCouche(couche_t c, Coordonnees const &cam, index_t persoX, 
 
 void Niveau::afficherBordure(int cote, Coordonnees const &cam) {
 	ssize_t dim = ((cote == GAUCHE || cote == DROITE) ? _dimX + 2 * Niveau::epaisseurBordure() : _dimY);
-	for(Niveau::couche_t c = premierCouche; c != nb_couches; ++c) {
+	for(Niveau::couche_t c = premiereCouche; c != nbCouches; ++c) {
 		for(uindex_t i = 0; i < Niveau::epaisseurBordure(); ++i) {
 			for(uindex_t j = 0; j < dim; ++j) {
 				if(_bordures[cote][i][j]._entites[c] && !_bordures[cote][i][j]._entiteExterieure[c]) {
@@ -469,7 +468,7 @@ char const *Niveau::nomCouche(couche_t couche) {
 			return "coucheSol2";			
 		case cn_transitionSol:
 			return "coucheTransitionSol";			
-		case nb_couches:
+		case nbCouches:
 			return 0;			
 	}
 }

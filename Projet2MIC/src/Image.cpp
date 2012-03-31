@@ -29,6 +29,8 @@ struct ImageBase {
 	ImageBase *charger(std::string const &fichier);
 	ImageBase *charger(unsigned char *pixels, int largeur, int hauteur, int profondeur, bool retourner);
 	
+	unsigned char const *pixels() const;
+
 	virtual ~ImageBase();
 	
 	void detruire();
@@ -194,6 +196,12 @@ ImageBase *ImageBase::charger(unsigned char *img, int largeur, int hauteur, int 
 	return this;
 }
 
+unsigned char const *ImageBase::pixels() const {
+	unsigned char *pix = new unsigned char[size_t(_dimensions.x * _dimensions.y * 4)];
+	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pix);
+
+	return pix;
+}
 
 
 
@@ -261,6 +269,10 @@ Coordonnees Image::dimensions() const {
 
 Coordonnees Image::dimensionsReelles() const {
 	return _base->_dimensions;
+}
+
+unsigned char const *Image::pixels() const {
+	return _base ? _base->pixels() : 0;
 }
 
 std::string const &Image::fichier() const {
@@ -354,3 +366,16 @@ void Image::afficher(Coordonnees const &position, Rectangle const &filtre) const
 	glEnd();
 #endif
 }
+
+Image Image::flou(int rayon) const {
+	unsigned char const *pix = this->pixels();
+	unsigned char *flou = new unsigned char[size_t(this->dimensions().x * this->dimensions().y * 4)];
+	flouterImage(pix, flou, this->dimensions().x, this->dimensions().y, rayon);
+	delete[] pix;
+
+	Image retour(flou, this->dimensions().x, this->dimensions().y, 4);
+	delete[] flou;
+	
+	return retour;
+}
+

@@ -23,6 +23,8 @@
 #include "Constantes.h"
 #include "Geometrie.h"
 
+#include <algorithm>
+
 int nombreAleatoire(int nombreMax) {
 	if(nombreMax == 0)
 		return 0;
@@ -65,6 +67,13 @@ int caractereVersHexa(char c) {
 	}
 }
 
+char hexaVersCaractere(int c) {
+	if(c < 10)
+		return c + '0';
+	else
+		return c - 10 + 'A';
+}
+
 int caractereVersBase64(char c) {
 	if(c >= 'A' && c <= 'Z')
 		return c - 'A';
@@ -79,6 +88,24 @@ int caractereVersBase64(char c) {
 	
 	return 0;
 }
+
+char base64VersCaractere(int c) {
+	if(c < 0)
+		return 0;
+	if(c < 26)
+		return 'A' + c;
+	if(c < 26 * 2)
+		return 'a' + c;
+	if(c < 26 * 2 + 10)
+		return '0' + c;
+	if(c == 26 * 2 + 10)
+		return '+';
+	if(c == 26 * 2 + 10 + 1)
+		return '/';
+	
+	return 0;
+}
+
 double texteVersNombre(char const *texte) {
 	long l = std::strlen(texte);
 	char *txt = (char *)std::malloc(l + 1);
@@ -128,3 +155,26 @@ void quitter(int code) {
 	//SDL_Quit();
 	exit(code);
 }
+
+void flouterImage(unsigned char const *source, unsigned char *destination, int largeur, int hauteur, int rayon) {
+	for(int y = 0; y < hauteur; ++y) {
+		for(int x = 0; x < largeur; ++x) {
+			int sommeR = 0, sommeV = 0, sommeB = 0;
+			for(int dX = -rayon; dX <= rayon; ++dX) {
+				for(int dY = -rayon; dY <= rayon; ++dY) {
+					int pX = std::min(std::max(0, x + dX), largeur - 1);
+					int pY = std::min(std::max(0, y + dY), hauteur - 1);
+					sommeR += source[(pY * largeur + pX) * 4 + 0];
+					sommeV += source[(pY * largeur + pX) * 4 + 1];
+					sommeB += source[(pY * largeur + pX) * 4 + 2];
+				}
+			}
+			int facteur = ((2 * rayon + 1) * (2 * rayon + 1));
+			destination[(y * largeur + x) * 4 + 0] = sommeR / facteur;
+			destination[(y * largeur + x) * 4 + 1] = sommeV / facteur;
+			destination[(y * largeur + x) * 4 + 2] = sommeB / facteur;
+			destination[(y * largeur + x) * 4 + 3] = 255;
+		}
+	}
+}
+

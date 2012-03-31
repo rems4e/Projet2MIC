@@ -15,6 +15,7 @@
 #define INTERVALLE_DEFILEMENT 0.150f
 #define TAILLE_TITRE_MENU 42
 #define TAILLE_ELEMENTS_MENU 30
+#define ECART_ELEM 5
 
 Menu::element_t::element_t(Unichar const &u) : _texte(u), _cadre() {
 	_texte.definir(POLICE_DECO, TAILLE_ELEMENTS_MENU);
@@ -22,30 +23,51 @@ Menu::element_t::element_t(Unichar const &u) : _texte(u), _cadre() {
 	_texte.definir(Couleur::grisClair);
 }
 
-Menu::Menu(Unichar const &titre, std::vector<Unichar> const &elements) : _titre(titre, POLICE_DECO, TAILLE_TITRE_MENU, Couleur::blanc), _elements(elements.begin(), elements.end()) {	
+struct Menu::TestNul {
+	bool operator()(Menu::element_t const &e) {
+		return !e._texte.texte().size();
+	}
+};
+
+Menu::Menu(Unichar const &titre, std::vector<Unichar> const &elements) : _titre(titre, POLICE_DECO, TAILLE_TITRE_MENU, Couleur::blanc), _elements(elements.begin(), elements.end()), _premierElementAffiche(0), _nbElementsAffiches(0) {	
+	std::remove_if(_elements.begin(), _elements.end(), Menu::TestNul());
 	_elements.push_back(element_t("Retour"));
+	size_t dim = 0;
+	for(std::vector<element_t>::iterator i = _elements.begin(); i != _elements.end(); ++i) {
+		dim += i->_texte.dimensions().y;
+		if(dim > Menu::tailleMax())
+			break;
+		
+		dim += ECART_ELEM;
+		++ _nbElementsAffiches;
+	}
 }
 
 Menu::~Menu() {
 
 }
 
-index_t Menu::afficher() {
+index_t Menu::afficher(Image *fond) {
 	bool continuer = true;
 	index_t retour = 0;
 	index_t elementSelectionne = 0;
 	horloge_t ancienDefilement = 0;
 	
-	Image *apercu = Ecran::apercu();
+	Image *apercu = fond;
+	if(apercu == 0)
+		apercu = Ecran::apercu();
+	
+	Image apercuFlou = apercu->flou(1);
+	
 	Session::reinitialiserEvenements();
 	
 	while(Session::boucle(60, continuer)) {
 		Ecran::effacer();
-		apercu->afficher(Coordonnees());
+		apercuFlou.afficher(Coordonnees());
 		Ecran::afficherRectangle(Ecran::ecran(), Couleur(0, 0, 0, 160));
 		this->afficherElements(elementSelectionne);
 				
-		if(Session::evenement(Session::QUITTER) || Session::evenement(Session::T_ESC)) {
+		if(Session::evenement(Session::T_ESC)) {
 			retour = _elements.size() - 1;
 			continuer = false;
 		}
@@ -54,22 +76,34 @@ index_t Menu::afficher() {
 			continuer = false;
 		}
 		else if(Session::evenement(Session::T_HAUT) && horloge() - ancienDefilement > INTERVALLE_DEFILEMENT) {
-			if(elementSelectionne > 0)
+			if(elementSelectionne > 0) {
 				--elementSelectionne;
-			else
+				if(elementSelectionne < _premierElementAffiche)
+					--_premierElementAffiche;
+			}
+			else {
 				elementSelectionne = _elements.size() - 1;
+				if(_elements.size() > _nbElementsAffiches)
+					_premierElementAffiche = _elements.size() - _nbElementsAffiches;
+			}
 			
 			ancienDefilement = horloge();
 		}
 		else if(Session::evenement(Session::T_BAS) && horloge() - ancienDefilement > INTERVALLE_DEFILEMENT) {
-			if(elementSelectionne < _elements.size() - 1)
+			if(elementSelectionne < _elements.size() - 1) {
 				++elementSelectionne;
-			else
+				if(elementSelectionne >= _premierElementAffiche + _nbElementsAffiches)
+					++_premierElementAffiche;
+			}
+			else {
 				elementSelectionne = 0;
+				_premierElementAffiche = 0;
+			}
+			
 			ancienDefilement = horloge();
 		}
 		else if(Session::evenement(Session::SOURIS)) {
-			for(std::vector<element_t>::iterator i = _elements.begin(); i != _elements.end(); ++i) {
+			for(std::vector<element_t>::iterator i = _elements.begin() + _premierElementAffiche; i != _elements.end() && i != _elements.begin() + _premierElementAffiche + _nbElementsAffiches; ++i) {
 				if(Session::souris() < i->_cadre) {
 					elementSelectionne = i - _elements.begin();
 				}
@@ -79,8 +113,9 @@ index_t Menu::afficher() {
 		Ecran::maj();
 	}
 	
-	delete apercu;
-	
+	if(fond == 0)
+		delete apercu;
+
 	return retour;
 }
 
@@ -91,11 +126,16 @@ void Menu::afficherElements(index_t elementSelectionne) {
 	
 	_elements[elementSelectionne]._texte.definir(Couleur::blanc);
 	
-	for(std::vector<element_t>::iterator i = _elements.begin(); i != _elements.end(); ++i) {
+	for(std::vector<element_t>::iterator i = _elements.begin() + _premierElementAffiche; i != _elements.end() && i != _elements.begin() + _premierElementAffiche + _nbElementsAffiches; ++i) {
 		i->_cadre.definirOrigine(Coordonnees((Ecran::largeur() - i->_texte.dimensions().x) / 2, ordonnee));
 		i->_texte.afficher(i->_cadre.origine());
-		ordonnee += i->_cadre.hauteur + 5;
+		ordonnee += i->_cadre.hauteur + ECART_ELEM;
 	}
 	
 	_elements[elementSelectionne]._texte.definir(Couleur::grisClair);
 }
+
+size_t Menu::tailleMax() {
+	return Ecran::hauteur() * 2 / 3;
+}
+

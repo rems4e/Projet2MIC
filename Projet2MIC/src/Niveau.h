@@ -25,10 +25,14 @@ class Joueur;
 #define LARGEUR_CASE 64
 #define HAUTEUR_CASE 32
 
+#define NB_VALEURS_PROBA_ENTITES 64 * 64
+#define BASE_VALEURS_PROBA_ENTITES 64
+#define CHIFFRES_VALEURS_PROBA_ENTITES 2
+
 class Niveau {
 	friend class Editeur;
 public:
-	enum couche_t {premierCouche, cn_sol = premierCouche, cn_sol2, cn_transitionSol, cn_objet, nb_couches};
+	enum couche_t {premiereCouche, cn_sol = premiereCouche, cn_sol2, cn_transitionSol, cn_objet, nbCouches};
 
 	class Exc_CreationNiveau : public std::exception {
 	public:
@@ -42,8 +46,8 @@ public:
 	struct Case {
 		Case();
 		
-		ElementNiveau *_entites[nb_couches];
-		bool _entiteExterieure[nb_couches];
+		ElementNiveau *_entites[nbCouches];
+		bool _entiteExterieure[nbCouches];
 	};
 	
 	static ElementNiveau * const aucunElement;

@@ -26,7 +26,10 @@ T nombreAleatoire(T nombreMax) {
 }
 
 int caractereVersHexa(char c);
+char hexaVersCaractere(int c);
 int caractereVersBase64(char c);
+char base64VersCaractere(int c);
+
 double texteVersNombre(char const *texte);
 double texteVersNombre(std::string const &texte);
 std::string nombreVersTexte(double nombre, int decimales);
@@ -40,5 +43,7 @@ inline std::string nombreVersTexte(unsigned long nombre) { return nombreVersText
 int nombreDecimales(double nombre);
 
 void quitter(int code);
+
+void flouterImage(unsigned char const *source, unsigned char *destination, int largeur, int hauteur, int rayon);
 
 #endif

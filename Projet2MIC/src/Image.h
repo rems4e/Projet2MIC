@@ -34,6 +34,8 @@ public:
 	Image &operator=(Image const &img);
 	virtual ~Image();
 	
+	Image flou(int rayon) const;
+	
 	// L'image a été chargée correctement
 	inline bool valide() const { return _base; }
 	
@@ -41,6 +43,9 @@ public:
 	Coordonnees dimensions() const;
 	// Dimensions de l'image zommée à 100 %
 	Coordonnees dimensionsReelles() const;
+	
+	// Pixels de l'image. Coûteux à obtenir. Le pointeur doit être passé à delete[] après utilisation.
+	unsigned char const *pixels() const;
 	
 	// Transformations de l'image
 	Image const &tourner(float angle) const;

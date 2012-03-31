@@ -15,6 +15,13 @@
 #include <cstring>
 #include "Texte.h"
 #include "Menu.h"
+#include <tr1/functional>
+#include <algorithm>
+#include <numeric>
+
+#define TAILLE_MAX_NIVEAU 1000
+
+static char const *probaVierge = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
 Editeur *Editeur::_editeur = 0;
 Rectangle Editeur::_cadreControles;
@@ -30,7 +37,7 @@ Editeur *Editeur::editeur() {
 }
 
 Editeur::Editeur() {
-	
+	_sauve = Image(Session::cheminRessources() + "save.png");
 }
 
 Editeur::~Editeur() {
@@ -41,10 +48,11 @@ void Editeur::editerNiveau(std::string const &fichier) {
 	_niveau = new NiveauEditeur(fichier);
 	_continuer = true;
 	_origine = -Coordonnees(0, Ecran::hauteur() / 2);
-	_coucheEdition = static_cast<Niveau::couche_t>(Niveau::nb_couches - 1);
+	_coucheEdition = static_cast<Niveau::couche_t>(Niveau::nbCouches - 1);
 	_ancienRectangle = 0;
 	_affichageSelection = Rectangle::aucun;
-	_categorie = ElementNiveau::entiteStatique;
+	_selection.clear();
+	_modifie = false;
 	
 	std::vector<Unichar> elemMenus;
 	elemMenus.push_back("Enregistrer le niveau");
@@ -53,18 +61,37 @@ void Editeur::editerNiveau(std::string const &fichier) {
 	
 	Menu menuEditeur("Menu éditeur", elemMenus);
 	
-	bool sauvegarder = true;
-	while(Session::boucle(60, _continuer)) {
+	while(Session::boucle(100, _continuer)) {
 		Ecran::effacer();
 		this->afficher();
 		
 		if(Session::evenement(Session::T_ESC)) {
 			index_t retour = menuEditeur.afficher();
-			if(retour < elemMenus.size() && elemMenus[retour] == "Quitter l'éditeur") {
-				_continuer = false;
+			if(retour < elemMenus.size()) {
+				if(retour == 2) {
+					_continuer = false;
+				}
+				else if(retour == 0) {
+					this->enregistrer();
+				}
+				else if(retour == 1) {
+					std::string f = _niveau->_fichier;
+					delete _niveau;
+					_niveau = new NiveauEditeur(f);
+				}
 			}
 		}
 		if(!Session::evenement(Session::B_GAUCHE)) {
+			if(_ancienRectangle == &Editeur::cadreEditeur()) {
+				for(selection_t::iterator i = _selection.begin(); i != _selection.end();) {
+					if(i->_etat == es_sup)
+						i = _selection.erase(i);
+					else {
+						i->_etat = es_ok;
+						++i;
+					}
+				}
+			}
 			_ancienRectangle = 0;
 			_affichageSelection = Rectangle::aucun;
 		}
@@ -96,19 +123,48 @@ void Editeur::editerNiveau(std::string const &fichier) {
 				_origine.y -= 10;
 			else if(Session::evenement(Session::T_BAS))
 				_origine.y += 10;
+			
+			if(Session::evenement(Session::T_EFFACER)) {
+				for(selection_t::iterator i = _selection.begin(); i != _selection.end(); ++i) {
+					delete i->_e;
+					_niveau->_elements[i->_posY][i->_posX][_coucheEdition] = 0;
+				}
+				
+				if(!_selection.empty())
+					this->modification();
+				
+				_selection.clear();
+				_cadreSelection = Rectangle::aucun;
+			}
+		}
+		
+		if(!_continuer && _modifie) {
+			std::vector<Unichar> txt;
+			txt.push_back("Enregistrer");
+			txt.push_back("Ne pas enregistrer");
+			
+			Menu m("Niveau modifié. Enregistrer ?", txt);
+			index_t retour = m.afficher();
+			if(retour == 0) {
+				this->enregistrer();
+			}
+			else if(retour == 1) {
+				_modifie = false;
+			}
+			else {
+				Session::reinitialiserEvenements();
+				_continuer = true;
+			}
 		}
 
 		Ecran::maj();
 	}
-	
-	if(sauvegarder)
-		this->enregistrer();
-	
+		
 	delete _niveau;
 }
 
 void Editeur::afficher() {
-	for(Niveau::couche_t c = Niveau::premierCouche; c != Niveau::nb_couches; ++c) {
+	for(Niveau::couche_t c = Niveau::premiereCouche; c != Niveau::nbCouches; ++c) {
 		if(c == _coucheEdition)
 			continue;
 		this->afficherCouche(c);
@@ -138,23 +194,36 @@ void Editeur::afficherCouche(Niveau::couche_t couche) {
 
 	Coordonnees pos;
 	for(Ligne::iterator i = _niveau->_elements.begin(); i != _niveau->_elements.end(); ++i) {
-		pos.x = 0;
-		for(Colonne::iterator j = i->begin(); j != i->end(); ++j) {
+		pos.x = (_niveau->_dimX - 1) * LARGEUR_CASE;
+		for(Colonne::reverse_iterator j = i->rbegin(); j != i->rend(); ++j) {
 			ElementEditeur const *elem = (*j)[couche];
 			if(elem) {
 				Coordonnees posAffichage = referentielNiveauVersEcran(pos) - elem->origine() - _origine + Editeur::cadreEditeur().origine();
+				Image::definirTeinte(elem->teinte());
 				elem->image().afficher(posAffichage, elem->cadre());
-				if(couche == _coucheEdition && Rectangle(pos, (Coordonnees(elem->cadre().dimensions().x, 2 * elem->cadre().dimensions().y))).superposition(_selection)) {
-					Coordonnees p1 = referentielNiveauVersEcran(pos) - _origine + Editeur::cadreEditeur().origine();
-					Coordonnees p2 = referentielNiveauVersEcran(pos + Coordonnees(elem->cadre().dimensions().x, 0)) - _origine + Editeur::cadreEditeur().origine();
-					Coordonnees p3 = referentielNiveauVersEcran(pos + Coordonnees(elem->cadre().dimensions().x, 2 * elem->cadre().dimensions().y)) - _origine + Editeur::cadreEditeur().origine();
-					Coordonnees p4 = referentielNiveauVersEcran(pos + Coordonnees(0, 2 * elem->cadre().dimensions().y)) - _origine + Editeur::cadreEditeur().origine();
-					Ecran::afficherQuadrilatere(p1, p2, p3, p4, Couleur(teinteSelection * 255, teinteSelection * 255, teinteSelection * 255, 128));
-				}
 			}
-			pos.x += LARGEUR_CASE;
+			pos.x -= LARGEUR_CASE;
 		}
 		pos.y += LARGEUR_CASE;
+	}
+	Image::definirTeinte(Couleur::blanc);
+	
+	if(couche == _coucheEdition) {
+		for(selection_t::iterator i = _selection.begin(); i != _selection.end(); ++i) {
+			if(i->_etat == es_sup)
+				continue;
+			dimension_t dimX = LARGEUR_CASE, dimY = LARGEUR_CASE;
+			if(i->_e) {
+				dimX = i->_e->dimensions().x;
+				dimY = i->_e->dimensions().y;
+			}
+			Coordonnees pos(i->_posX * LARGEUR_CASE, i->_posY * LARGEUR_CASE);
+			Coordonnees p1 = referentielNiveauVersEcran(pos) - _origine + Editeur::cadreEditeur().origine();
+			Coordonnees p2 = referentielNiveauVersEcran(pos + Coordonnees(dimX, 0)) - _origine + Editeur::cadreEditeur().origine();
+			Coordonnees p3 = referentielNiveauVersEcran(pos + Coordonnees(dimX, dimY)) - _origine + Editeur::cadreEditeur().origine();
+			Coordonnees p4 = referentielNiveauVersEcran(pos + Coordonnees(0, dimY)) - _origine + Editeur::cadreEditeur().origine();
+			Ecran::afficherQuadrilatere(p1, p2, p3, p4, Couleur(teinteSelection * 255, teinteSelection * 255, teinteSelection * 255, 128));
+		}
 	}
 }
 
@@ -196,18 +265,166 @@ void Editeur::afficherInterface() {
 void Editeur::afficherInventaire() {
 	_fonctionsInventaire.clear();
 
-	Rectangle cadre = Editeur::cadreInventaire();
+	Rectangle const &cadre = Editeur::cadreInventaire();
 	Ecran::afficherRectangle(cadre, Couleur::noir);
 	Ecran::afficherRectangle(Rectangle(cadre.gauche + 1, cadre.haut + 1, cadre.largeur - 2, cadre.hauteur - 2), Couleur(220, 225, 240));
 	
 	Rectangle rectCat(Editeur::cadreInventaire().origine() + Coordonnees(10, 10), Coordonnees());
 	
-	Texte cc(ElementNiveau::nomCategorie(_categorie));
+	Texte cc;
 	cc.definir(Couleur::noir);
+		
+	size_t tailleSelection = 0;
+	if(_ancienRectangle == &Editeur::cadreEditeur()) {
+		for(selection_t::iterator i = _selection.begin(); i != _selection.end(); ++i) {
+			if(i->_etat != es_sup)
+				++tailleSelection;
+		}
+	}
+	else {
+		tailleSelection = _selection.size();
+	}
+
+	if(tailleSelection > 1) {
+		cc.definir("Entités sélectionnées :");
+	}
+	else if(tailleSelection == 1) {
+		cc.definir("Entité sélectionnée :");
+	}
+	else {
+		cc.definir("Aucune sélection");
+	}
 	rectCat.definirDimensions(cc.dimensions());
 	cc.afficher(rectCat.origine());
+
 	
-	_fonctionsInventaire.push_back(std::make_pair(rectCat, &Editeur::modifCategorie));
+	if(tailleSelection) {
+		if(tailleSelection == 1) {
+			rectCat.haut += rectCat.dimensions().y + 10;
+			cc.definir("Sélectionner les entités identiques");
+			rectCat.definirDimensions(cc.dimensions());
+			cc.afficher(rectCat.origine());
+			
+			_fonctionsInventaire.push_back(std::make_pair(rectCat, &Editeur::selectionnerSemblables));
+		}
+		
+		selection_t::iterator i = _selection.begin();
+		for(; i != _selection.end(); ++i) {
+			if(i->_etat != es_sup)
+				break;
+		}
+		bool diffProba = !i->_e, diffIndex = false, diffCategorie = false, diffIndexProba = false;
+		bool proba;
+		index_t index, indexProba;
+		ElementNiveau::elementNiveau_t cat;
+		uint16_t idEntite;
+		if(i->_e) {
+			idEntite = i->_e->operator()();
+			obtenirInfosEntites(idEntite, proba, indexProba, cat, index);
+			++i;
+		}
+		else
+			i = _selection.end();
+		
+		for(; i != _selection.end(); ++i) {
+			if(i->_etat == es_sup)
+				continue;
+			
+			if(!i->_e) {
+				diffProba = true;
+				break;
+			}
+			idEntite = i->_e->operator()();
+			bool proba1;
+			index_t index1, indexProba1;
+			ElementNiveau::elementNiveau_t cat1;
+			obtenirInfosEntites(idEntite, proba1, indexProba1, cat1, index1);
+			if(proba1 != proba) {
+				diffProba = true;
+				break;
+			}
+			else if(proba) {
+				if(indexProba1 != indexProba) {
+					diffIndexProba = true;
+				}
+			}
+			else {
+				if(index1 != index) {
+					diffIndex = true;
+				}
+				if(cat1 != cat) {
+					diffCategorie = true;
+				}				
+			}
+		}
+		
+		if(diffProba) {
+			rectCat.haut += rectCat.dimensions().y + 10;
+			cc.definir("Sélection hétérogène");
+			rectCat.definirDimensions(cc.dimensions());
+			cc.afficher(rectCat.origine());
+			
+			_fonctionsInventaire.push_back(std::make_pair(rectCat, &Editeur::modifProba));
+		}
+		else {
+			if(proba) {
+				rectCat.haut += rectCat.dimensions().y + 10;
+				cc.definir("Loi de probabilité");
+				rectCat.definirDimensions(cc.dimensions());
+				cc.afficher(rectCat.origine());
+				_fonctionsInventaire.push_back(std::make_pair(rectCat, &Editeur::modifProba));
+				
+				if(diffIndexProba) {
+					rectCat.haut += rectCat.dimensions().y + 10;
+					cc.definir("Lois différentes");
+					rectCat.definirDimensions(cc.dimensions());
+					cc.afficher(rectCat.origine());
+				}
+				else {
+					rectCat.haut += rectCat.dimensions().y + 10;
+					cc.definir("Loi n°" + nombreVersTexte(indexProba));
+					rectCat.definirDimensions(cc.dimensions());
+					cc.afficher(rectCat.origine());
+				}
+				_fonctionsInventaire.push_back(std::make_pair(rectCat, &Editeur::modifIndexProba));
+			}
+			else {
+				rectCat.haut += rectCat.dimensions().y + 10;
+				cc.definir("Catégorie + index");
+				rectCat.definirDimensions(cc.dimensions());
+				cc.afficher(rectCat.origine());
+				_fonctionsInventaire.push_back(std::make_pair(rectCat, &Editeur::modifProba));
+
+				if(diffCategorie) {
+					rectCat.haut += rectCat.dimensions().y + 10;
+					cc.definir("Catégories différentes ");
+					rectCat.definirDimensions(cc.dimensions());
+					cc.afficher(rectCat.origine());
+				}
+				else {
+					rectCat.haut += rectCat.dimensions().y + 10;
+					cc.definir("Catégorie " + nombreVersTexte(cat));
+					rectCat.definirDimensions(cc.dimensions());
+					cc.afficher(rectCat.origine());
+				}
+				_fonctionsInventaire.push_back(std::make_pair(rectCat, &Editeur::modifCategorie));
+				
+				if(diffIndex) {
+					rectCat.haut += rectCat.dimensions().y + 10;
+					cc.definir("Index différents");
+					rectCat.definirDimensions(cc.dimensions());
+					cc.afficher(rectCat.origine());
+				}
+				else {
+					rectCat.haut += rectCat.dimensions().y + 10;
+					cc.definir("Index " + nombreVersTexte(index));
+					rectCat.definirDimensions(cc.dimensions());
+					cc.afficher(rectCat.origine());
+				}
+				_fonctionsInventaire.push_back(std::make_pair(rectCat, &Editeur::modifIndex));
+			}
+		}
+	}
 }
 
 void Editeur::afficherControles() {
@@ -216,14 +433,31 @@ void Editeur::afficherControles() {
 	Ecran::afficherRectangle(cadre, Couleur::noir);
 	Ecran::afficherRectangle(Rectangle(cadre.gauche + 1, cadre.haut + 1, cadre.largeur - 2, cadre.hauteur - 2), Couleur(220, 225, 240));
 	
-	Rectangle rectCouche(Editeur::cadreControles().origine() + Coordonnees(10, 10), Coordonnees());
+	Rectangle rect(Editeur::cadreControles().origine() + Coordonnees(10, 10), Coordonnees());
 	
-	Texte cc(Niveau::nomCouche(_coucheEdition));
+	_sauve.afficher(rect.origine());
+	rect.definirDimensions(_sauve.dimensions());
+	_fonctionsControles.push_back(std::make_pair(rect, &Editeur::enregistrer));
+	
+	rect.haut += rect.hauteur + 10;
+	
+	Texte cc(std::string("Afficher la couche : \n") + Niveau::nomCouche(_coucheEdition));
 	cc.definir(Couleur::noir);
-	rectCouche.definirDimensions(cc.dimensions());
-	cc.afficher(rectCouche.origine());
+	rect.definirDimensions(cc.dimensions());
+	cc.afficher(rect.origine());
+	_fonctionsControles.push_back(std::make_pair(rect, &Editeur::modifCouche));
 	
-	_fonctionsControles.push_back(std::make_pair(rectCouche, &Editeur::modifCouche));
+	rect.haut += rect.hauteur + 10;
+	cc.definir("Éditer les lois de proba");
+	rect.definirDimensions(cc.dimensions());
+	cc.afficher(rect.origine());
+	_fonctionsControles.push_back(std::make_pair(rect, &Editeur::modifLoisProbas));
+
+	rect.haut += rect.hauteur + 10;
+	cc.definir("Éditer les dimensions\ndu niveau");
+	rect.definirDimensions(cc.dimensions());
+	cc.afficher(rect.origine());
+	_fonctionsControles.push_back(std::make_pair(rect, &Editeur::modifDimensions));
 }
 
 void Editeur::sourisEditeur() {
@@ -237,14 +471,47 @@ void Editeur::sourisEditeur() {
 		_affichageSelection.largeur = pointNiveau.x - _affichageSelection.gauche;		
 		_affichageSelection.hauteur = pointNiveau.y - _affichageSelection.haut;
 	}
-	_selection = _affichageSelection;
-	if(_selection.largeur < 0) {
-		_selection.gauche += _selection.largeur;
-		_selection.largeur *= -1;
+	_cadreSelection = _affichageSelection;
+	if(_cadreSelection.largeur < 0) {
+		_cadreSelection.gauche += _cadreSelection.largeur;
+		_cadreSelection.largeur *= -1;
 	}
-	if(_selection.hauteur < 0) {
-		_selection.haut += _selection.hauteur;
-		_selection.hauteur *= -1;
+	if(_cadreSelection.hauteur < 0) {
+		_cadreSelection.haut += _cadreSelection.hauteur;
+		_cadreSelection.hauteur *= -1;
+	}
+	
+	if(!Session::modificateurTouches(Session::M_MAJ) && !Session::modificateurTouches(Session::M_COMMANDE) && !Session::modificateurTouches(Session::M_CONTROLE)) {
+		_selection.clear();
+	}
+	for(selection_t::iterator i = _selection.begin(); i != _selection.end();) {
+		if(i->_etat == es_aj)
+			i = _selection.erase(i);
+		else {
+			if(i->_etat == es_sup)
+				i->_etat = es_ok;
+			++i;
+		}
+	}
+	
+	Coordonnees pos;
+	for(Ligne::iterator i = _niveau->_elements.begin(); i != _niveau->_elements.end(); ++i) {
+		pos.x = 0;
+		for(Colonne::iterator j = i->begin(); j != i->end(); ++j) {
+			ElementEditeur const *elem = (*j)[_coucheEdition];
+			Coordonnees dim(elem ? elem->dimensions().x : LARGEUR_CASE, elem ? elem->dimensions().y : LARGEUR_CASE);
+			if(Rectangle(pos, (Coordonnees(dim.x, dim.y))).superposition(_cadreSelection)) {
+				ElementSelection elemS(elem, std::distance(i->begin(), j), std::distance(_niveau->_elements.begin(), i), es_aj);
+				selection_t::iterator fnd = std::find(_selection.begin(), _selection.end(), elemS);
+				if(fnd == _selection.end()) {
+					_selection.push_back(elemS);
+				}
+				else
+					fnd->_etat = es_sup;
+			}
+			pos.x += LARGEUR_CASE;
+		}
+		pos.y += LARGEUR_CASE;
 	}
 }
 
@@ -252,6 +519,7 @@ void Editeur::sourisControles() {
 	for(listeFonctions_t::iterator i = _fonctionsControles.begin(); i != _fonctionsControles.end(); ++i) {
 		if(Session::souris() < i->first) {
 			(this->*(i->second))();
+			Session::reinitialiser(Session::B_GAUCHE);
 		}
 	}
 }
@@ -260,17 +528,84 @@ void Editeur::sourisInventaire() {
 	for(listeFonctions_t::iterator i = _fonctionsInventaire.begin(); i != _fonctionsInventaire.end(); ++i) {
 		if(Session::souris() < i->first) {
 			(this->*(i->second))();
+			Session::reinitialiser(Session::B_GAUCHE);
 		}
 	}
 }
 
 void Editeur::enregistrer() {
+	std::string valeurTexte;
+	char const *documentBase = 
+	"<?xml version=\"1.0\" standalone='no' >\n"
+	"<Niveau>\n"
+	"<proba>\n"
+	"</proba>\n"
+	"</Niveau>";
+	TiXmlDocument *document = new TiXmlDocument(Session::cheminRessources() + _niveau->_fichier);
+	document->Parse(documentBase);
 	
+	TiXmlElement* n = document->FirstChildElement("Niveau");// niveau
+	
+	n->SetAttribute("dimX", _niveau->_dimX);
+	n->SetAttribute("dimY", _niveau->_dimY);
+		
+	
+	TiXmlElement *probas = n->FirstChildElement("proba");
+		
+	for(std::vector<LoiProba>::iterator i = _niveau->_probas.begin(); i != _niveau->_probas.end(); ++i) {
+		TiXmlElement p("proba");
+		p.SetAttribute("nom", i->_nom);
+		std::string valeur;
+		for(ElementNiveau::elementNiveau_t cat = ElementNiveau::premierTypeElement; cat < ElementNiveau::nbTypesElement; ++cat) {
+			valeur += base64VersCaractere(i->operator[](cat) / 64);
+			valeur += base64VersCaractere(i->operator[](cat) % 64);
+		}
+		p.SetAttribute("valeur", valeur);
+		
+		probas->InsertEndChild(p);
+	}
+	
+	for(Niveau::couche_t couche = Niveau::premiereCouche; couche < Niveau::nbCouches; ++couche) {
+		TiXmlElement cc(Niveau::nomCouche(couche));
+		std::string texte;
+		texte.reserve(_niveau->_dimY * (_niveau->_dimX * 4 + 1) - 1);
+		for(Ligne::iterator i = _niveau->_elements.begin(); i != _niveau->_elements.end(); ++i) {
+			for(Colonne::iterator j = i->begin(); j != i->end(); ++j) {
+				uint16_t val = 0;
+				if(j->operator[](couche)) {
+					val = j->operator[](couche)->operator()();
+					bool proba;
+					index_t indexProba, index;
+					ElementNiveau::elementNiveau_t cat;
+					obtenirInfosEntites(val, proba, indexProba, cat, index);
+					if(proba)
+						++val;
+				}
+				texte.push_back(hexaVersCaractere(val >> 12));
+				texte.push_back(hexaVersCaractere((val >> 8) % 16));
+				texte.push_back(hexaVersCaractere((val >> 4) % 16));
+				texte.push_back(hexaVersCaractere(val % 16));
+			}
+			if(i != _niveau->_elements.end() - 1) {
+				texte.push_back('\n');
+			}
+		}
+
+		TiXmlText t(texte);
+		cc.InsertEndChild(t);
+		n->InsertEndChild(cc);
+	}
+	
+	if(!document->SaveFile(Session::cheminRessources() + _niveau->_fichier))
+		std::cout << "La sauvegarde du fichier de niveau " << Session::cheminRessources() + _niveau->_fichier << " a échoué. Vérifiez le chemin du fichier." << std::endl;
+	delete document;
+	
+	_modifie = false;
 }
 
 void Editeur::modifCouche() {
 	std::vector<Unichar> couches;
-	for(Niveau::couche_t c = Niveau::premierCouche; c != Niveau::nb_couches; ++c) {
+	for(Niveau::couche_t c = Niveau::premiereCouche; c != Niveau::nbCouches; ++c) {
 		couches.push_back(Niveau::nomCouche(c));
 	}
 	
@@ -280,20 +615,611 @@ void Editeur::modifCouche() {
 	if(elem != couches.size()) {
 		_coucheEdition = static_cast<Niveau::couche_t>(elem);
 	}
+	
+	_selection.clear();
+	_cadreSelection = Rectangle::aucun;
+}
+
+void Editeur::modifProba() {
+	if(_selection.empty())
+		return;
+	
+	std::vector<Unichar> txt;
+	txt.push_back("Loi de probabilité");
+	txt.push_back("Catégorie + index");
+	
+	char const *titre = 0;
+	if(_selection.size() == 1)
+		titre = "L'entité est définie par:";
+	else
+		titre = "Les entités sont définies par :";
+	Menu menu(titre, txt);
+	index_t elem = menu.afficher();
+	
+	if(elem != txt.size()) {
+		bool modif = false;
+		
+		if(elem == 0) { // Proba
+			bool proba;
+			index_t indexProba, index;
+			ElementNiveau::elementNiveau_t cat;
+			for(selection_t::iterator i = _selection.begin(); i != _selection.end(); ++i) {
+				if(!i->_e)
+					proba = false;
+				else
+					obtenirInfosEntites(i->_e->operator()(), proba, indexProba, cat, index);
+				if(!proba) {
+					ElementEditeur *nouveau = new ElementEditeur(0); // loi de proba 0
+					_niveau->_elements[i->_posY][i->_posX][_coucheEdition] = nouveau;
+					delete i->_e;
+					i->_e = nouveau;
+					modif = true;
+				}
+			}
+		}
+		else if(elem == 1) { // Catégorie + index
+			bool proba;
+			index_t indexProba, index;
+			ElementNiveau::elementNiveau_t cat;
+			for(selection_t::iterator i = _selection.begin(); i != _selection.end(); ++i) {
+				if(!i->_e)
+					proba = true;
+				else
+					obtenirInfosEntites(i->_e->operator()(), proba, indexProba, cat, index);
+				if(proba) {
+					ElementEditeur *nouveau = new ElementEditeur(ElementNiveau::premierTypeElement, 0); // catégorie 1, index 1
+					_niveau->_elements[i->_posY][i->_posX][_coucheEdition] = nouveau;
+					delete i->_e;
+					i->_e = nouveau;
+					modif = true;
+				}
+			}
+		}
+		if(modif)
+			this->modification();
+
+	}
+}
+
+void Editeur::modifIndexProba() {
+	if(_selection.empty())
+		return;
+	
+	std::vector<Unichar> cat;
+	for(std::vector<LoiProba>::iterator i = _niveau->_probas.begin(); i != _niveau->_probas.end(); ++i) {
+		cat.push_back(i->_nom);
+	}
+	
+	Menu choixCat("Choisissez une loi de probabilité :", cat);
+	index_t elem = choixCat.afficher();
+	
+	if(elem != cat.size()) {
+		bool modif = false;
+		
+		bool proba;
+		index_t indexProba, index;
+		ElementNiveau::elementNiveau_t cat;
+		for(selection_t::iterator i = _selection.begin(); i != _selection.end(); ++i) {
+			if(!i->_e)
+				indexProba = elem + 1;
+			else
+				obtenirInfosEntites(i->_e->operator()(), proba, indexProba, cat, index);
+			if(indexProba != elem) {
+				ElementEditeur *nouveau = new ElementEditeur(elem);
+				_niveau->_elements[i->_posY][i->_posX][_coucheEdition] = nouveau;
+				delete i->_e;
+				i->_e = nouveau;
+				modif = true;
+			}
+		}
+		
+		if(modif)
+			this->modification();
+	}
 }
 
 void Editeur::modifCategorie() {
+	if(_selection.empty())
+		return;
+
 	std::vector<Unichar> cat;
 	for(ElementNiveau::elementNiveau_t c = ElementNiveau::premierTypeElement; c != ElementNiveau::nbTypesElement; ++c) {
-		cat.push_back(ElementNiveau::nomCategorie(c));
+		if(ElementNiveau::nombreEntites(c))
+			cat.push_back(ElementNiveau::nomCategorie(c));
 	}
 	
 	Menu choixCat("Choisissez une catégorie :", cat);
 	index_t elem = choixCat.afficher();
 	
 	if(elem != cat.size()) {
-		_categorie = static_cast<ElementNiveau::elementNiveau_t>(elem);
+		bool modif = false;
+		
+		ElementNiveau::elementNiveau_t nCat = static_cast<ElementNiveau::elementNiveau_t>(elem);
+		bool proba;
+		index_t indexProba, index;
+		ElementNiveau::elementNiveau_t cat;
+		for(selection_t::iterator i = _selection.begin(); i != _selection.end(); ++i) {
+			if(!i->_e)
+				cat = nCat + 1;
+			else
+				obtenirInfosEntites(i->_e->operator()(), proba, indexProba, cat, index);
+			if(cat != nCat) {
+				ElementEditeur *nouveau = new ElementEditeur(nCat, 0); // index 1
+				_niveau->_elements[i->_posY][i->_posX][_coucheEdition] = nouveau;
+				delete i->_e;
+				i->_e = nouveau;
+				modif = true;
+			}
+		}
+		
+		if(modif)
+			this->modification();
 	}
+}
+
+void Editeur::modifIndex() {
+	if(_selection.empty())
+		return;
+
+	ElementNiveau::elementNiveau_t catSel;
+	std::vector<Unichar> index;
+	{
+		bool proba;
+		index_t indexProba, indx;
+		selection_t::iterator deb = _selection.begin();
+		while(deb != _selection.end()) {
+			if(deb->_e) {
+				obtenirInfosEntites(deb->_e->operator()(), proba, indexProba, catSel, indx);
+				break;
+			}
+		}
+		for(index_t i = 0; i != ElementNiveau::nombreEntites(catSel); ++i) {
+			index.push_back(nombreVersTexte(i));
+		}
+	}
+	
+	Menu choixIndex("Choisissez un index :", index);
+	index_t elem = choixIndex.afficher();
+	
+	if(elem != index.size()) {
+		bool modif = false;
+		
+		bool proba;
+		index_t indexProba, index;
+		ElementNiveau::elementNiveau_t cat;
+		for(selection_t::iterator i = _selection.begin(); i != _selection.end(); ++i) {
+			if(!i->_e)
+				index = elem + 1;
+			else
+				obtenirInfosEntites(i->_e->operator()(), proba, indexProba, cat, index);
+			if(index != elem) {
+				ElementEditeur *nouveau = new ElementEditeur(catSel, elem);
+				_niveau->_elements[i->_posY][i->_posX][_coucheEdition] = nouveau;
+				delete i->_e;
+				i->_e = nouveau;
+				modif = true;
+			}
+		}
+		
+		if(modif)
+			this->modification();
+	}
+}
+
+void Editeur::modifLoisProbas() {
+	std::vector<Unichar> lois;
+	for(std::vector<LoiProba>::iterator i = _niveau->_probas.begin(); i != _niveau->_probas.end(); ++i) {
+		lois.push_back("Loi " + nombreVersTexte(std::distance(_niveau->_probas.begin(), i)) + " (" + i->_nom + ")");
+	}
+	lois.push_back("Ajouter une loi");
+	
+	Image *fond = Ecran::apercu();
+	Menu prob("Choisissez une loi à modifier :", lois);
+	index_t elem = prob.afficher(fond);
+	
+	if(elem == lois.size() - 1) {
+		_niveau->_probas.push_back(LoiProba("proba" + nombreVersTexte(lois.size()), probaVierge));
+		this->modification();
+		this->editerLoiProba(_niveau->_probas.size() - 1, fond);
+	}
+	else if(elem != lois.size()) {
+		this->editerLoiProba(elem, fond);
+	}
+	
+	delete fond;
+}
+
+struct hauteurTexte_t {
+	hauteurTexte_t(dimension_t ecart) : _ecart(ecart) {
+		
+	}
+	
+	dimension_t operator()(dimension_t somme, Texte const &t) {
+		return somme + t.dimensions().y + _ecart;
+	}
+	
+	dimension_t _ecart;
+};
+
+struct largeurTexte_t {
+	bool operator()(Texte const &t1, Texte const &t2) {
+		return t1.dimensions().x < t2.dimensions().x;
+	}
+};
+
+struct afficheurTexte_t {
+	afficheurTexte_t(Rectangle &cadre, dimension_t ecart) : _cadre(cadre), _ecart(ecart) {
+		
+	}
+	
+	void operator()(Texte const &t) {
+		t.afficher(_cadre.origine());
+		_cadre.hauteur = t.dimensions().y;
+		_cadre.haut += _cadre.hauteur + _ecart;
+	}
+	
+	Rectangle &_cadre;
+	dimension_t _ecart;
+};
+
+struct initCadres_t {
+	initCadres_t(std::vector<Rectangle> &cadres, Rectangle &cadre, dimension_t ecart) : _cadres(cadres), _cadre(cadre), _ecart(ecart) {
+		
+	}
+	
+	void operator()(Texte const &t) {
+		_cadre.hauteur = t.dimensions().y;
+		_cadres.push_back(_cadre);
+		_cadre.haut += _cadre.hauteur + _ecart;
+	}
+	
+	std::vector<Rectangle> &_cadres;
+	Rectangle &_cadre;
+	dimension_t _ecart;
+};
+
+struct trouveSouris_t {
+	bool operator()(Rectangle const &r) {
+		return Session::souris() < r;
+	}
+};
+
+void Editeur::editerLoiProba(index_t loi, Image *fond) {
+	bool continuer = true, supprimer = false;
+	
+	Texte titre("Édition de la loi " + nombreVersTexte(loi) + " (" + _niveau->_probas[loi]._nom + ")", POLICE_NORMALE, 20);
+	Texte sup("Supprimer la loi", POLICE_NORMALE, 16);
+	std::vector<Texte> categories;
+	categories.reserve(ElementNiveau::nbTypesElement);
+	for(ElementNiveau::elementNiveau_t i = ElementNiveau::premierTypeElement; i != ElementNiveau::nbTypesElement; ++i) {
+		char const *cat = ElementNiveau::nomCategorie(i);
+		if(!cat)
+			break;
+		categories.push_back(Texte(cat + std::string(" : "), POLICE_NORMALE, 16));
+	}
+	
+	std::vector<Texte> probas;
+	probas.reserve(categories.size());
+	for(ElementNiveau::elementNiveau_t i = ElementNiveau::premierTypeElement; i != categories.size(); ++i) {
+		int proba = _niveau->_probas[loi][i];
+		probas.push_back(Texte(nombreVersTexte(proba), POLICE_NORMALE, 16));
+	}
+	
+	std::vector<Rectangle> cadres;
+	cadres.reserve(categories.size());
+
+	ElementNiveau::elementNiveau_t selection = ElementNiveau::premierTypeElement;
+	index_t premierAffiche = 0;
+	size_t nbAffiches = std::min(size_t(10), categories.size());
+	
+	Image flou(fond->flou(1));
+
+	float teinteSelection = 0;
+	int sensTeinte = 1;
+
+	while(Session::boucle(100.0f, continuer)) {
+		teinteSelection += 1.0 / 50 * (60.0 / Ecran::frequenceInstantanee()) * sensTeinte;
+		if(teinteSelection > 0.7) {
+			teinteSelection = 0.7;
+			sensTeinte = -1;
+		}
+		else if(teinteSelection < 0) {
+			teinteSelection = 0;
+			sensTeinte = 1;
+		}
+		
+		
+		categories[selection].definir(Couleur(teinteSelection * 255));
+		probas[selection].definir(Couleur(teinteSelection * 255));
+
+		Ecran::effacer();
+		flou.afficher(Coordonnees());
+		Ecran::afficherRectangle(Ecran::ecran(), Couleur(255, 255, 255, 200));
+		
+		Rectangle cadre(Coordonnees(80, 80), titre.dimensions()), cadreSup(Coordonnees(), sup.dimensions());
+		titre.afficher(cadre.origine());
+		
+		cadre.haut += cadre.hauteur + 20;
+		cadre.gauche += 20;
+		
+		dimension_t largeurCat = std::max_element(categories.begin() + premierAffiche, categories.begin() + premierAffiche + nbAffiches, largeurTexte_t())->dimensions().x;
+		dimension_t largeurProba = std::max_element(probas.begin() + premierAffiche, probas.begin() + premierAffiche + nbAffiches, largeurTexte_t())->dimensions().x;
+
+		dimension_t hauteur = std::accumulate(categories.begin() + premierAffiche, categories.begin() + premierAffiche + nbAffiches, dimension_t(0), hauteurTexte_t(10)) - 10;
+		
+		Ecran::afficherRectangle(Rectangle(cadre.gauche, cadre.haut, largeurCat + largeurProba + 20, hauteur + 20), Couleur(200, 205, 220, 128));
+		
+		cadre += Coordonnees(10, 10);
+		coordonnee_t sauveHaut = cadre.haut;
+		afficheurTexte_t afficheur(cadre, 10);
+		for_each(categories.begin() + premierAffiche, categories.begin() + premierAffiche + nbAffiches, afficheur);
+		cadre.haut = sauveHaut;
+		cadre.gauche += largeurCat;
+		for_each(probas.begin() + premierAffiche, probas.begin() + premierAffiche + nbAffiches, afficheur);
+		
+		cadres.clear();
+		cadre.gauche -= largeurCat;
+		cadre.largeur = largeurCat + largeurProba;
+		cadre.haut = sauveHaut;
+		initCadres_t initCadres(cadres, cadre, 10);
+		for_each(categories.begin() + premierAffiche, categories.begin() + premierAffiche + nbAffiches, initCadres);
+
+		cadre -= Coordonnees(10, -10);
+		
+		sup.afficher(cadre.origine());
+		cadreSup.definirOrigine(cadre.origine());
+
+		if(Session::evenement(Session::T_ESC) || Session::evenement(Session::QUITTER) || Session::evenement(Session::T_ENTREE)) {
+			continuer = false;
+		}
+		else {
+			if(Session::evenement(Session::B_GAUCHE)) {
+				std::vector<Rectangle>::iterator souris = std::find_if(cadres.begin(), cadres.end(), trouveSouris_t());
+				if(souris != cadres.end()) {
+					selection = static_cast<ElementNiveau::elementNiveau_t>(std::distance(cadres.begin(), souris));
+				}
+				else if(Session::souris() < cadreSup) {
+					continuer = false;
+					supprimer = true;
+				}
+			}
+			if(Session::evenement(Session::T_EFFACER)) {
+				_niveau->_probas[loi][selection] /= 10;
+				probas[selection].definir(nombreVersTexte(_niveau->_probas[loi][selection]));
+				Session::reinitialiser(Session::T_EFFACER);
+				this->modification();
+			}
+			else {
+				int nb = -1;
+				for(Session::evenement_t e = Session::T_0; e <= Session::T_9; ++e) {
+					if(Session::evenement(e)) {
+						nb = e - Session::T_0;
+						Session::reinitialiser(e);
+						break;
+					}
+				}
+				if(nb != -1) {
+					int &p = _niveau->_probas[loi][selection];
+					int p1 = p;
+					p1 = p1 * 10 + nb;
+					if(p1 < NB_VALEURS_PROBA_ENTITES) {
+						p = p1;
+						probas[selection].definir(nombreVersTexte(p));
+						this->modification();
+					}
+				}
+			}
+		}
+		
+		Ecran::maj();
+	}
+	
+	if(supprimer) {
+		uint16_t idProba = entite(loi);
+		for(Niveau::couche_t c = Niveau::premiereCouche; c != Niveau::nbCouches; ++c) {
+			for(Ligne::iterator i = _niveau->_elements.begin(); i != _niveau->_elements.end(); ++i) {
+				for(Colonne::iterator j = i->begin(); j != i->end(); ++j) {
+					if(j->_contenu[c] && j->_contenu[c]->operator()() == idProba) {
+						supprimer = false;
+						goto finRecherche;
+					}
+				}
+			}
+		}
+	finRecherche:
+		if(supprimer) {
+			_niveau->_probas.erase(_niveau->_probas.begin() + loi);
+			this->modification();
+		}
+		else {
+			std::vector<Unichar> elem;
+			elem.push_back("OK");
+			Menu m("La loi de probabilité est utilisée", elem);
+			m.afficher(fond);
+		}
+	}
+}
+
+void Editeur::modifDimensions() {
+	bool continuer = true;
+	
+	Texte titre("Redimensionnement du niveau", POLICE_NORMALE, 20);
+	Texte ok("OK", POLICE_NORMALE, 16);
+	std::vector<Texte> enTetes;
+	enTetes.push_back(Texte("Largeur (X) : ", POLICE_NORMALE, 16));
+	enTetes.push_back(Texte("Hauteur (Y) : ", POLICE_NORMALE, 16));
+	
+	std::vector<Texte> valeurs;
+	valeurs.push_back(Texte(nombreVersTexte(_niveau->_dimX), POLICE_NORMALE, 16));
+	valeurs.push_back(Texte(nombreVersTexte(_niveau->_dimY), POLICE_NORMALE, 16));
+	
+	std::vector<Rectangle> cadres;
+	
+	index_t selection = 0;
+	
+	Image *ap = Ecran::apercu();
+	Image flou(ap->flou(1));
+	
+	float teinteSelection = 0;
+	int sensTeinte = 1;
+	
+	size_t dimX = _niveau->_dimX, dimY = _niveau->_dimY;
+	
+	while(Session::boucle(100.0f, continuer)) {
+		teinteSelection += 1.0 / 50 * (60.0 / Ecran::frequenceInstantanee()) * sensTeinte;
+		if(teinteSelection > 0.7) {
+			teinteSelection = 0.7;
+			sensTeinte = -1;
+		}
+		else if(teinteSelection < 0) {
+			teinteSelection = 0;
+			sensTeinte = 1;
+		}
+		
+		
+		enTetes[selection].definir(Couleur(teinteSelection * 255));
+		valeurs[selection].definir(Couleur(teinteSelection * 255));
+		
+		Ecran::effacer();
+		flou.afficher(Coordonnees());
+		Ecran::afficherRectangle(Ecran::ecran(), Couleur(255, 255, 255, 200));
+		
+		Rectangle cadre(Coordonnees(80, 80), titre.dimensions()), cadreOk(Coordonnees(), ok.dimensions());
+		titre.afficher(cadre.origine());
+		
+		cadre.haut += cadre.hauteur + 20;
+		cadre.gauche += 20;
+		
+		dimension_t largeurCat = std::max_element(enTetes.begin(), enTetes.end(), largeurTexte_t())->dimensions().x;
+		dimension_t largeurProba = std::max_element(valeurs.begin(), valeurs.end(), largeurTexte_t())->dimensions().x;
+		
+		dimension_t hauteur = std::accumulate(enTetes.begin(), enTetes.end(), dimension_t(0), hauteurTexte_t(10)) - 10;
+		
+		Ecran::afficherRectangle(Rectangle(cadre.gauche, cadre.haut, largeurCat + largeurProba + 20, hauteur + 20), Couleur(200, 205, 220, 128));
+		
+		cadre += Coordonnees(10, 10);
+		coordonnee_t sauveHaut = cadre.haut;
+		afficheurTexte_t afficheur(cadre, 10);
+		for_each(enTetes.begin(), enTetes.end(), afficheur);
+		cadre.haut = sauveHaut;
+		cadre.gauche += largeurCat;
+		for_each(valeurs.begin(), valeurs.end(), afficheur);
+		
+		cadres.clear();
+		cadre.gauche -= largeurCat;
+		cadre.largeur = largeurCat + largeurProba;
+		cadre.haut = sauveHaut;
+		initCadres_t initCadres(cadres, cadre, 10);
+		for_each(enTetes.begin(), enTetes.end(), initCadres);
+		
+		cadre -= Coordonnees(10, -10);
+		
+		ok.afficher(cadre.origine());
+		cadreOk.definirOrigine(cadre.origine());
+		
+		if(Session::evenement(Session::T_ESC) || Session::evenement(Session::QUITTER) || Session::evenement(Session::T_ENTREE)) {
+			continuer = false;
+		}
+		else {
+			if(Session::evenement(Session::B_GAUCHE)) {
+				std::vector<Rectangle>::iterator souris = std::find_if(cadres.begin(), cadres.end(), trouveSouris_t());
+				if(souris != cadres.end()) {
+					selection = static_cast<ElementNiveau::elementNiveau_t>(std::distance(cadres.begin(), souris));
+				}
+				else if(Session::souris() < cadreOk) {
+					continuer = false;
+				}
+			}
+			if(Session::evenement(Session::T_EFFACER)) {
+				switch(selection) {
+					case 0:
+						dimX /= 10;
+						valeurs[selection].definir(nombreVersTexte(dimX));
+						break;
+					case 1:	
+						dimY /= 10;
+						valeurs[selection].definir(nombreVersTexte(dimY));
+						break;
+					default:
+						break;
+				}
+				Session::reinitialiser(Session::T_EFFACER);
+			}
+			else {
+				int nb = -1;
+				for(Session::evenement_t e = Session::T_0; e <= Session::T_9; ++e) {
+					if(Session::evenement(e)) {
+						nb = e - Session::T_0;
+						Session::reinitialiser(e);
+						break;
+					}
+				}
+				if(nb != -1) {
+					size_t &p = selection ? dimY : dimX;
+					size_t p1 = p;
+					p1 = p1 * 10 + nb;
+					if(p1 <= TAILLE_MAX_NIVEAU) {
+						p = p1;
+						valeurs[selection].definir(nombreVersTexte(p));
+					}
+				}
+			}
+		}
+		
+		Ecran::maj();
+	}
+	
+	if(dimX != _niveau->_dimX || dimY != _niveau->_dimY) {
+		bool redim = true;
+		if(dimX < _niveau->_dimX || dimY < _niveau->_dimY) {
+			std::vector<Unichar> elem;
+			elem.push_back("Continuer");
+			Menu m("Les éléments situés en dehors de la nouvelle zone seront supprimés", elem);
+			index_t reponse = m.afficher(ap);
+			if(reponse != 0)
+				redim = false;
+		}
+		
+		if(redim) {
+			for(Ligne::iterator i = _niveau->_elements.begin(); i != _niveau->_elements.end(); ++i) {
+				for(Colonne::iterator j = i->begin(); j != i->end(); ++j) {
+					for(Niveau::couche_t c = Niveau::premiereCouche; c != Niveau::nbCouches; ++c) {
+						if(std::distance(_niveau->_elements.begin(), i) >= dimY || std::distance(i->begin(), j) >= dimX) {
+							delete j->operator[](c);
+						}
+					}
+				}
+			}
+			_niveau->_elements.resize(dimY);
+			for(Ligne::iterator i = _niveau->_elements.begin(); i != _niveau->_elements.end(); ++i) {
+				i->resize(dimX);
+			}
+			_niveau->_dimX = dimX;
+			_niveau->_dimY = dimY;
+			
+			this->modification();
+		}
+	}
+}
+
+void Editeur::selectionnerSemblables() {
+	ElementEditeur const *modele = _selection.front()._e;
+	index_t pX = _selection.front()._posX, pY = _selection.front()._posY;
+	Coordonnees pos;
+	for(Ligne::iterator i = _niveau->_elements.begin(); i != _niveau->_elements.end(); ++i) {
+		pos.x = 0;
+		for(Colonne::iterator j = i->begin(); j != i->end(); ++j) {
+			if((modele == 0 && j->operator[](_coucheEdition) == 0 && (std::distance(_niveau->_elements.begin(), i) != pY || std::distance(i->begin(), j) != pX)) || (modele && j->operator[](_coucheEdition) && modele != j->operator[](_coucheEdition) && j->operator[](_coucheEdition)->operator()() == modele->operator()())) {
+				_selection.push_back(ElementSelection(j->operator[](_coucheEdition), std::distance(i->begin(), j), std::distance(_niveau->_elements.begin(), i), es_ok));
+			}
+			pos.x += LARGEUR_CASE;
+		}
+		pos.y += LARGEUR_CASE;
+	}
+}
+
+void Editeur::modification() {
+	_modifie = true;
 }
 
 Rectangle const &Editeur::cadreEditeur() const {
@@ -318,10 +1244,9 @@ Rectangle const &Editeur::cadreInventaire() const {
 }
 
 void Editeur::initCadres() {
-	_cadreControles = Rectangle(0, 0, Ecran::largeur(), 100);
-	_cadreInventaire = Rectangle(0, 0, 128, Ecran::hauteur() - _cadreControles.hauteur);
-	_cadreControles.haut = _cadreInventaire.hauteur;
-	_cadreEditeur = Rectangle(_cadreInventaire.largeur, 0, Ecran::largeur() - _cadreInventaire.largeur, Ecran::hauteur() - _cadreControles.hauteur);
+	_cadreControles = Rectangle(0, 0, 200, 160);
+	_cadreInventaire = Rectangle(0, _cadreControles.haut + _cadreControles.hauteur, _cadreControles.largeur, Ecran::hauteur() - _cadreControles.hauteur);
+	_cadreEditeur = Rectangle(_cadreControles.gauche + _cadreControles.largeur, 0, Ecran::largeur() - _cadreControles.largeur, Ecran::hauteur());
 }
 
 Editeur::NiveauEditeur::NiveauEditeur(std::string const &fichier) : _fichier(fichier), _dimX(0), _dimY(0) {
@@ -343,7 +1268,20 @@ Editeur::NiveauEditeur::NiveauEditeur(std::string const &fichier) : _fichier(fic
 		throw Exc_ChargementEditeur("Dimensions du niveau invalides !");
 	}
 
-	for(Niveau::couche_t couche = Niveau::premierCouche; couche < Niveau::nb_couches; ++couche) {
+
+	{
+		TiXmlElement *probas = n->FirstChildElement("proba");
+
+		for(TiXmlElement *proba = probas->FirstChildElement(); proba; proba = proba->NextSiblingElement()) {			
+			std::string valeur = proba->Attribute("valeur");
+			std::string nom;
+			if(proba->Attribute("nom"))
+				nom = proba->Attribute("nom");
+			_probas.push_back(LoiProba(nom, valeur));
+		}
+	}
+
+	for(Niveau::couche_t couche = Niveau::premiereCouche; couche < Niveau::nbCouches; ++couche) {
 		TiXmlElement *cc = n->FirstChildElement(Niveau::nomCouche(couche));
 		if(!cc)
 			continue;
@@ -366,7 +1304,7 @@ Editeur::NiveauEditeur::NiveauEditeur(std::string const &fichier) : _fichier(fic
 				ElementEditeur *e = 0;
 				if(!proba) { // Valeur déterminée de la case
 					try {
-						e = new ElementEditeur(index, categorie);
+						e = new ElementEditeur(categorie, index);
 					}
 					catch(ElementNiveau::Exc_EntiteIndefinie &e) {
 						std::cerr << "L'entité (cat : " << categorie << " ; index : " << index << ") appelée dans le fichier de niveau \"" << fichier << "\" (couche : " << Niveau::nomCouche(couche) << " ; x : " << x << " ; y : " << y << ") n'est pas définie !" << std::endl;
@@ -395,7 +1333,7 @@ Editeur::NiveauEditeur::NiveauEditeur(std::string const &fichier) : _fichier(fic
 }
 
 Editeur::NiveauEditeur::~NiveauEditeur() {
-	for(Niveau::couche_t c = Niveau::premierCouche; c != Niveau::nb_couches; ++c) {
+	for(Niveau::couche_t c = Niveau::premiereCouche; c != Niveau::nbCouches; ++c) {
 		for(Ligne::iterator i = _elements.begin(); i != _elements.end(); ++i) {
 			for(Colonne::iterator j = i->begin(); j != i->end(); ++j) {
 				delete (*j)[c];
@@ -406,28 +1344,53 @@ Editeur::NiveauEditeur::~NiveauEditeur() {
 
 
 Editeur::Case::Case() {
-	std::memset(_contenu, 0, sizeof(ElementEditeur *) * Niveau::nb_couches);
+	std::memset(_contenu, 0, sizeof(ElementEditeur *) * Niveau::nbCouches);
 }
 
 Editeur::ElementEditeur * &Editeur::Case::operator[](Niveau::couche_t c) {
 	return _contenu[c];
 }
 
-Editeur::ElementEditeur::ElementEditeur(index_t index, ElementNiveau::elementNiveau_t cat) : _proba(false), _index(index), _categorie(cat), _image(), _cadre() {
+int &Editeur::LoiProba::operator[](ElementNiveau::elementNiveau_t c) {
+	return _proba[c];
+}
+
+Editeur::ElementEditeur::ElementEditeur(ElementNiveau::elementNiveau_t cat, index_t index) : _proba(false), _index(index), _categorie(cat), _image(), _cadre(), _teinte(Couleur::blanc) {
 	TiXmlElement *e = ElementNiveau::description(index, cat);
 	_image = Image(Session::cheminRessources() + e->Attribute("image"));
-	_cadre = Rectangle(Coordonnees(), _image.dimensions());
 	
+	_cadre = Rectangle(Coordonnees(), _image.dimensions());
+
 	if(e->Attribute("x"))
 		e->Attribute("x", &_origine.x);
 	if(e->Attribute("y"))
 		e->Attribute("y", &_origine.y);
+	
+	if(e->Attribute("dimX")) {
+		e->Attribute("dimX", &_dimensions.x);
+		_dimensions.x *= LARGEUR_CASE;
+	}
+	if(e->Attribute("dimY")) {
+		e->Attribute("dimY", &_dimensions.y);
+		_dimensions.y *= LARGEUR_CASE;
+	}
+	
+	if(e->Attribute("centrage")) {
+		int tmp;
+		e->Attribute("centrage", &tmp);
+		if(tmp)
+			_origine -= Coordonnees(LARGEUR_CASE, 0) / 2;
+	}
 }
 
-Editeur::ElementEditeur::ElementEditeur(index_t loiProba) : _proba(true), _indexProba(loiProba), _image(Session::cheminRessources() + "alea.png"), _cadre() {
+Editeur::ElementEditeur::ElementEditeur(index_t loiProba) : _proba(true), _indexProba(loiProba), _image(Session::cheminRessources() + "alea.png"), _cadre(), _teinte() {
 	_cadre = Rectangle(Coordonnees(), _image.dimensions());
+	_dimensions = Coordonnees(1, 1) * LARGEUR_CASE;
 	_origine.x = 0;
-	_origine.y = _cadre.hauteur / 2;
+	_origine.y = _image.dimensions().y / 2;
+
+	std::tr1::hash<double> h;
+	_teinte = Couleur(h(_indexProba + 20) % 255, h(_indexProba * 100 + 20) % 255, h(_indexProba * 100000 + 20) % 255, 160);
 }
 
 uint16_t Editeur::ElementEditeur::operator()() const {
@@ -447,7 +1410,21 @@ Rectangle Editeur::ElementEditeur::cadre() const {
 	return _cadre;
 }
 
+Coordonnees Editeur::ElementEditeur::dimensions() const {
+	return _dimensions;
+}
+
 Coordonnees Editeur::ElementEditeur::origine() const {
 	return _origine;
 }
 
+Couleur Editeur::ElementEditeur::teinte() const {
+	return _teinte;
+}
+
+Editeur::LoiProba::LoiProba(std::string const &nom, std::string const &proba) : _nom(nom), _proba() {
+	for(ElementNiveau::elementNiveau_t e = ElementNiveau::premierTypeElement; e != ElementNiveau::nbTypesElement; ++e) {
+		int val = caractereVersBase64(proba[e * CHIFFRES_VALEURS_PROBA_ENTITES]) * BASE_VALEURS_PROBA_ENTITES + caractereVersBase64(proba[e * CHIFFRES_VALEURS_PROBA_ENTITES + 1]);
+		_proba[e] = val;
+	}
+}
