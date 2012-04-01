@@ -118,14 +118,17 @@ protected:
 	void afficherInterface();
 	void afficherInventaire();
 	void afficherControles();
+	void afficherCarte();
 	
 	void sourisInventaire();
 	void sourisControles();
 	void sourisEditeur();
+	void sourisCarte();
 	
 	Rectangle const &cadreInventaire() const;
 	Rectangle const &cadreControles() const;
 	Rectangle const &cadreEditeur() const;
+	Rectangle const &cadreCarte() const;
 	
 	void modifCouche();
 	void modifProba();
@@ -154,6 +157,7 @@ private:
 	static Rectangle _cadreEditeur;
 	static Rectangle _cadreControles;
 	static Rectangle _cadreInventaire;
+	static Rectangle _cadreCarte;
 
 	static void initCadres();
 	

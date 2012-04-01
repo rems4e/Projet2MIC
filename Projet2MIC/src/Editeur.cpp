@@ -27,6 +27,7 @@ Editeur *Editeur::_editeur = 0;
 Rectangle Editeur::_cadreControles;
 Rectangle Editeur::_cadreEditeur;
 Rectangle Editeur::_cadreInventaire;
+Rectangle Editeur::_cadreCarte;
 
 Editeur *Editeur::editeur() {
 	if(_editeur == 0) {
@@ -102,6 +103,8 @@ void Editeur::editerNiveau(std::string const &fichier) {
 				_ancienRectangle = &Editeur::cadreControles();
 			else if(Session::souris() < Editeur::cadreInventaire())
 				_ancienRectangle = &Editeur::cadreInventaire();
+			else if(Session::souris() < Editeur::cadreCarte())
+				_ancienRectangle = &Editeur::cadreCarte();
 		}
 		
 		if(_ancienRectangle == &Editeur::cadreInventaire())
@@ -110,6 +113,8 @@ void Editeur::editerNiveau(std::string const &fichier) {
 			this->sourisControles();
 		else if(_ancienRectangle == &Editeur::cadreEditeur())
 			this->sourisEditeur();
+		else if(_ancienRectangle == &Editeur::cadreCarte())
+			this->sourisCarte();
 		
 		if(Session::evenement(Session::QUITTER)) {
 			_continuer = false;
@@ -260,6 +265,7 @@ void Editeur::afficherInterface() {
 	
 	this->afficherControles();
 	this->afficherInventaire();
+	this->afficherCarte();
 }
 
 void Editeur::afficherInventaire() {
@@ -301,7 +307,7 @@ void Editeur::afficherInventaire() {
 	if(tailleSelection) {
 		if(tailleSelection == 1) {
 			rectCat.haut += rectCat.dimensions().y + 10;
-			cc.definir("Sélectionner les entités identiques");
+			cc.definir("Sélectionner les entités\nidentiques");
 			rectCat.definirDimensions(cc.dimensions());
 			cc.afficher(rectCat.origine());
 			
@@ -369,7 +375,7 @@ void Editeur::afficherInventaire() {
 		else {
 			if(proba) {
 				rectCat.haut += rectCat.dimensions().y + 10;
-				cc.definir("Loi de probabilité");
+				cc.definir("Défini par :\nLoi de probabilité");
 				rectCat.definirDimensions(cc.dimensions());
 				cc.afficher(rectCat.origine());
 				_fonctionsInventaire.push_back(std::make_pair(rectCat, &Editeur::modifProba));
@@ -390,7 +396,7 @@ void Editeur::afficherInventaire() {
 			}
 			else {
 				rectCat.haut += rectCat.dimensions().y + 10;
-				cc.definir("Catégorie + index");
+				cc.definir("Défini par :\nCatégorie + index");
 				rectCat.definirDimensions(cc.dimensions());
 				cc.afficher(rectCat.origine());
 				_fonctionsInventaire.push_back(std::make_pair(rectCat, &Editeur::modifProba));
@@ -458,6 +464,41 @@ void Editeur::afficherControles() {
 	rect.definirDimensions(cc.dimensions());
 	cc.afficher(rect.origine());
 	_fonctionsControles.push_back(std::make_pair(rect, &Editeur::modifDimensions));
+}
+
+void Editeur::afficherCarte() {
+	Rectangle cadre = Editeur::cadreCarte();
+	Ecran::afficherRectangle(cadre, Couleur::noir);
+	Ecran::afficherRectangle(Rectangle(cadre.gauche + 1, cadre.haut + 1, cadre.largeur - 2, cadre.hauteur - 2), Couleur(220, 225, 240));
+
+	dimension_t max = std::max(_niveau->_dimX, _niveau->_dimY);
+	
+	dimension_t dimX = cadre.largeur * _niveau->_dimX / max;
+	dimension_t dimY = cadre.largeur * _niveau->_dimY / max;
+	Coordonnees p1;
+	Coordonnees p2(dimX, 0);
+	Coordonnees p3(dimX, dimY);
+	Coordonnees p4(0, dimY);
+	p1 = referentielNiveauVersEcran(p1) + Coordonnees(cadre.gauche, cadre.haut + dimX / 4);
+	p2 = referentielNiveauVersEcran(p2) + Coordonnees(cadre.gauche, cadre.haut + dimX / 4);
+	p3 = referentielNiveauVersEcran(p3) + Coordonnees(cadre.gauche, cadre.haut + dimX / 4);
+	p4 = referentielNiveauVersEcran(p4) + Coordonnees(cadre.gauche, cadre.haut + dimX / 4);
+	
+	Coordonnees dimensions(p3.x - p1.x, p4.y - p2.y);
+	Coordonnees decalage = (cadre.dimensions() - dimensions) / 2;
+	p1 += decalage;
+	p2 += decalage;
+	p3 += decalage;
+	p4 += decalage;
+	
+	Ecran::afficherQuadrilatere(p1, p2, p3, p4, Couleur::gris);
+	
+	Rectangle aff;
+	aff.definirOrigine(decalage + Coordonnees(cadre.gauche, cadre.haut + dimX / 4) + Coordonnees(_origine.x / (max * LARGEUR_CASE), _origine.y / (max * LARGEUR_CASE)) * cadre.largeur);
+	aff.definirDimensions(Coordonnees(Editeur::cadreEditeur().largeur / (max * LARGEUR_CASE) * cadre.largeur, Editeur::cadreEditeur().hauteur / (max * LARGEUR_CASE) * cadre.largeur));
+	aff = cadre.intersection(aff);
+	
+	Ecran::afficherRectangle(aff, Couleur(255, 0, 0, 128));
 }
 
 void Editeur::sourisEditeur() {
@@ -531,6 +572,28 @@ void Editeur::sourisInventaire() {
 			Session::reinitialiser(Session::B_GAUCHE);
 		}
 	}
+}
+
+void Editeur::sourisCarte() {
+	Rectangle cadre = Editeur::cadreCarte();
+	dimension_t max = std::max(_niveau->_dimX, _niveau->_dimY);
+	
+	dimension_t dimX = cadre.largeur * _niveau->_dimX / max;
+	dimension_t dimY = cadre.largeur * _niveau->_dimY / max;
+	Coordonnees p1;
+	Coordonnees p2(dimX, 0);
+	Coordonnees p3(dimX, dimY);
+	Coordonnees p4(0, dimY);
+	p1 = referentielNiveauVersEcran(p1) + Coordonnees(cadre.gauche, cadre.haut + dimX / 4);
+	p2 = referentielNiveauVersEcran(p2) + Coordonnees(cadre.gauche, cadre.haut + dimX / 4);
+	p3 = referentielNiveauVersEcran(p3) + Coordonnees(cadre.gauche, cadre.haut + dimX / 4);
+	p4 = referentielNiveauVersEcran(p4) + Coordonnees(cadre.gauche, cadre.haut + dimX / 4);
+	
+	Coordonnees dimensions(p3.x - p1.x, p4.y - p2.y);
+	Coordonnees decalage = (cadre.dimensions() - dimensions) / 2;
+
+	Coordonnees pos = Session::souris() - cadre.origine() - decalage - Coordonnees(0, (p1.y - p2.y));
+	_origine = pos / cadre.largeur * max * LARGEUR_CASE;
 }
 
 void Editeur::enregistrer() {
@@ -976,6 +1039,8 @@ void Editeur::editerLoiProba(index_t loi, Image *fond) {
 			if(Session::evenement(Session::B_GAUCHE)) {
 				std::vector<Rectangle>::iterator souris = std::find_if(cadres.begin(), cadres.end(), trouveSouris_t());
 				if(souris != cadres.end()) {
+					categories[selection].definir(Couleur::noir);
+					probas[selection].definir(Couleur::noir);
 					selection = static_cast<ElementNiveau::elementNiveau_t>(std::distance(cadres.begin(), souris));
 				}
 				else if(Session::souris() < cadreSup) {
@@ -1124,6 +1189,8 @@ void Editeur::modifDimensions() {
 			if(Session::evenement(Session::B_GAUCHE)) {
 				std::vector<Rectangle>::iterator souris = std::find_if(cadres.begin(), cadres.end(), trouveSouris_t());
 				if(souris != cadres.end()) {
+					enTetes[selection].definir(Couleur::noir);
+					valeurs[selection].definir(Couleur::noir);
 					selection = static_cast<ElementNiveau::elementNiveau_t>(std::distance(cadres.begin(), souris));
 				}
 				else if(Session::souris() < cadreOk) {
@@ -1174,7 +1241,7 @@ void Editeur::modifDimensions() {
 		if(dimX < _niveau->_dimX || dimY < _niveau->_dimY) {
 			std::vector<Unichar> elem;
 			elem.push_back("Continuer");
-			Menu m("Les éléments situés en dehors de la nouvelle zone seront supprimés", elem);
+			Menu m("Des éléments seront supprimés", elem);
 			index_t reponse = m.afficher(ap);
 			if(reponse != 0)
 				redim = false;
@@ -1243,10 +1310,19 @@ Rectangle const &Editeur::cadreInventaire() const {
 	return _cadreInventaire;
 }
 
+Rectangle const &Editeur::cadreCarte() const {
+	if(_cadreCarte.estVide())
+		Editeur::initCadres();
+	
+	return _cadreCarte;
+}
+
 void Editeur::initCadres() {
 	_cadreControles = Rectangle(0, 0, 200, 160);
-	_cadreInventaire = Rectangle(0, _cadreControles.haut + _cadreControles.hauteur, _cadreControles.largeur, Ecran::hauteur() - _cadreControles.hauteur);
+	_cadreCarte = Rectangle(0, 0, _cadreControles.largeur * 3 / 2, _cadreControles.largeur * 3 / 4);
+	_cadreInventaire = Rectangle(0, _cadreControles.haut + _cadreControles.hauteur - 1, _cadreControles.largeur, Ecran::hauteur() - _cadreControles.hauteur - _cadreCarte.hauteur + 2);
 	_cadreEditeur = Rectangle(_cadreControles.gauche + _cadreControles.largeur, 0, Ecran::largeur() - _cadreControles.largeur, Ecran::hauteur());
+	_cadreCarte.haut = _cadreInventaire.haut + _cadreInventaire.hauteur - 1;
 }
 
 Editeur::NiveauEditeur::NiveauEditeur(std::string const &fichier) : _fichier(fichier), _dimX(0), _dimY(0) {
@@ -1381,6 +1457,12 @@ Editeur::ElementEditeur::ElementEditeur(ElementNiveau::elementNiveau_t cat, inde
 		if(tmp)
 			_origine -= Coordonnees(LARGEUR_CASE, 0) / 2;
 	}
+	if(e->Attribute("nbPoses")) {
+		int tmp;
+		e->Attribute("nbPoses", &tmp);
+		_cadre.definirDimensions(Coordonnees(_cadre.largeur / tmp, _cadre.hauteur));
+	}
+
 }
 
 Editeur::ElementEditeur::ElementEditeur(index_t loiProba) : _proba(true), _indexProba(loiProba), _image(Session::cheminRessources() + "alea.png"), _cadre(), _teinte() {

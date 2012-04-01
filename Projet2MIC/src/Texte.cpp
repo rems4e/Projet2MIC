@@ -117,7 +117,7 @@ void Texte::afficher(Unichar const &txt, police_t police, taillePolice_t taille,
 
 		if(c == '\n') {
 			pos.x = posInitiale.x;
-			pos.y += 5.0 / 4 * hauteur * rapportTaille;
+			pos.y += 4.0 / 4.0 * hauteur * rapportTaille;
 		}
 		else {
 			uindex_t p = std::find(caracteres, caracteres + nbCaracteres, c) - caracteres;
