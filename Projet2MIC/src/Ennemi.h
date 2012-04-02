@@ -19,6 +19,9 @@ public:
 	
 	virtual void animer(horloge_t tempsEcoule);
 	virtual void interagir(Personnage *p);
+	
+	virtual index_t porteeVision() const;
+	virtual double vitesse() const;
 
 protected:
 	static ElementNiveau::elementNiveau_t categorie() { return ElementNiveau::ennemi; }
@@ -26,6 +29,8 @@ protected:
 	Ennemi(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
 	Ennemi(Ennemi const &);
 	Ennemi &operator=(Ennemi const &);
+	
+	Coordonnees _cible;
 };
 
 #endif

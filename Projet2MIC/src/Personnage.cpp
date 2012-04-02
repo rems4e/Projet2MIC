@@ -26,7 +26,7 @@ Personnage::Personnage(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t
 		_delaisAction[a]._cdAbsolu = 0;
 		_delaisAction[a]._cooldown = 0;
 	}
-	_delaisAction[a_attaquer]._cooldown = 3    ;
+	_delaisAction[a_attaquer]._cooldown = .5;
 }
 
 void Personnage::animer(horloge_t tempsEcoule) {
@@ -63,3 +63,8 @@ bool Personnage::definirAction(action_t a) {
 	
 	return false;
 }
+
+Niveau::couche_t Personnage::couche() const {
+	return Niveau::cn_objet;
+}
+

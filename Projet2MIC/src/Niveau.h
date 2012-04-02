@@ -42,14 +42,7 @@ public:
 	private:
 		std::string _valeur;
 	};
-	
-	struct Case {
-		Case();
 		
-		ElementNiveau *_entites[nbCouches];
-		bool _entiteExterieure[nbCouches];
-	};
-	
 	static ElementNiveau * const aucunElement;
 
 	Niveau(Joueur *j, std::string const &nomFichier);
@@ -62,8 +55,8 @@ public:
 	
 	// Obtention du contenu d'une case en un point donné. Si ce point est en dehors du niveau, retourne Niveau::aucunElement.
 	//ElementNiveau *element(index_t x, index_t y, couche_t couche = cn_sol);
-	ElementNiveau const *element(index_t x, index_t y, couche_t couche = cn_sol) const;
-	bool collision(index_t x, index_t y) const;
+	ElementNiveau const *element(index_t x, index_t y, couche_t couche) const;
+	bool collision(index_t x, index_t y, couche_t couche, ElementNiveau *e) const;
 	
 	double zoom() const;
 	void definirZoom(double z);
@@ -71,23 +64,13 @@ public:
 	void animer(horloge_t tempsEcoule);
 	void afficher();
 	
-	void definirJoueur(Joueur *j);
 	static char const *nomCouche(couche_t couche);
 		
 protected:
-	Case **_elements;
-	Case **_bordures[4];
-	size_t _dimX, _dimY;
-	double _zoom;
-	std::list<EntiteMobile *> _entitesMobiles;
-	Joueur *_perso;
-	Image _b1;
-	Image _b2;
-	
 	Niveau(Joueur *p, Niveau const &niveau);
 	Niveau &operator=(Niveau const &);
 	
-	void afficherCouche(couche_t couche, Coordonnees const &cam, index_t pX, index_t pY);
+	void afficherCouche(couche_t couche, Coordonnees const &cam);
 	void afficherBordure(int cote, Coordonnees const &cam);
 	
 	void definirContenuCase(index_t x, index_t y, couche_t couche, ElementNiveau *e);
@@ -96,6 +79,28 @@ protected:
 	void remplissageBordures();
 	static ssize_t epaisseurBordure();
 	static bool collision(couche_t couche);
+	void definirJoueur(Joueur *j);
+
+private:
+	struct Case {
+		Case();
+		
+		ElementNiveau *_entites[nbCouches];
+		bool _entiteExterieure[nbCouches];
+	};
+	struct CaseMobile {
+		EntiteMobile *_e;
+		Case *_pos;
+	};
+
+	Case **_elements;
+	Case **_bordures[4];
+	size_t _dimX, _dimY;
+	double _zoom;
+	std::list<CaseMobile> _entitesMobiles;
+	Joueur *_perso;
+	Image _b1;
+	Image _b2;
 };
 
 Niveau::couche_t &operator++(Niveau::couche_t &c);

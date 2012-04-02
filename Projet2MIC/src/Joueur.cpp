@@ -17,6 +17,11 @@ Joueur::~Joueur() {
 	
 }
 
+void Joueur::afficher(Coordonnees const &decalage, double zoom) const {
+	this->Personnage::afficher(decalage);
+	Ecran::afficherRectangle(Rectangle((this->positionAffichage() + this->origine()) * zoom - decalage, Coordonnees(10, 10)), Couleur::rouge);
+}
+
 void Joueur::animer(horloge_t tempsEcoule) {
 	Personnage::animer(tempsEcoule);
 	
@@ -53,3 +58,8 @@ void Joueur::animer(horloge_t tempsEcoule) {
 void Joueur::interagir(Personnage *p) {
 	
 }
+
+bool Joueur::joueur() const {
+	return true;
+}
+

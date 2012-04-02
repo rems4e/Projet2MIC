@@ -23,7 +23,7 @@ class TiXmlDocument;
 
 class ElementNiveau {
 public:
-	enum elementNiveau_t {premierTypeElement = 0, entiteStatique = premierTypeElement, joueur, ennemi, arbre, entiteStatiqueAnimee, ndef6, ndef7, ndef8,
+	enum elementNiveau_t {premierTypeElement = 0, entiteStatique = premierTypeElement, ennemi, arbre, entiteStatiqueAnimee, ndef5, ndef6, ndef7, ndef8,
 		ndef9, ndef10, ndef11, ndef12, ndef13, ndef14, ndef15, ndef16, ndef17, ndef18, ndef19, ndef20, ndef21, ndef22, ndef23, ndef24,
 		ndef25, ndef26, ndef27, ndef28, ndef29, ndef30, ndef31, ndef32, ndef33, ndef34, ndef35, ndef36, ndef37, ndef38, ndef39, ndef40,
 		ndef41, ndef42, ndef43, ndef44, ndef45, ndef46, ndef47, ndef48, ndef49, ndef50, ndef51, ndef52, ndef53, ndef54, ndef55, ndef56,
@@ -81,17 +81,12 @@ public:
 	Coordonnees position() const;
 	void definirPosition(Coordonnees const &p);
 	
-	// Déplacer la position d'un vecteur donné
-	// ATTENTION : utiliser cette fonction va générer une détection des collisions. Pour décaler une entité sans tester les collisions, utiliser entité.definirPosition(entité.position() + dep);
-	virtual void deplacerPosition(Coordonnees const &dep);
-	
-	
 	// Dimensions de l'entité (de son image affichée).
 	virtual Coordonnees dimensions() const = 0;
 	// Si l'entité recouvre plusieurs cases ou non.
 	bool multi() const;
-
 	
+	Niveau *niveau();
 	void definirNiveau(Niveau *n);
 	// Position en pixels, après changement de repère depuis celui du niveau vers celui de l'écran.
 	Coordonnees positionAffichage() const;
@@ -100,13 +95,14 @@ public:
 	virtual Coordonnees origine() const;
 	// L'image est-elle centrée sur la cae où elle se trouve ?
 	virtual bool centrage() const;
+	
+	virtual bool mobile() const;
+	virtual bool joueur() const;
 
 	static TiXmlElement *description(uindex_t index, elementNiveau_t cat);
 	static char const *nomCategorie(elementNiveau_t cat);
 
-protected:	
-	bool testerDeplacement(Coordonnees const &dep);
-		
+protected:			
 	ElementNiveau(Niveau *n, uindex_t index, elementNiveau_t cat);
 	ElementNiveau(ElementNiveau const &);
 	ElementNiveau &operator=(ElementNiveau const &);
@@ -121,6 +117,7 @@ private:
 	static TiXmlDocument *_description;
 	
 	static void chargerDescription();
+	static char const *nomBalise(elementNiveau_t cat);
 };
 
 

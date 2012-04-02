@@ -58,7 +58,7 @@ namespace Session {
 	bool init = false;
 }
 
-#if defined(__MACOSX__)
+#if defined(__MACOSX__) && !defined(DEVELOPPEMENT)
 extern "C" {
 #include <CoreFoundation/CoreFoundation.h>
 }
@@ -71,6 +71,9 @@ std::string const &Session::cheminRessources() {
 	if(!init) {
 		init = true;
 #if defined(__MACOSX__)
+#if defined(DEVELOPPEMENT)
+		 chemin = "/Users/remi/Documents/INSA/2e année MIC/Projet/gitProjet/Projet2MIC/";
+#else
 		CFBundleRef bun = CFBundleGetMainBundle();		
 		CFURLRef r = CFBundleCopyResourcesDirectoryURL(bun);
 		CFURLRef res = CFURLCopyAbsoluteURL(r);
@@ -85,6 +88,7 @@ std::string const &Session::cheminRessources() {
 		CFRelease(str);
 		CFRelease(res);
 		CFRelease(r);
+#endif
 #elif defined(__LINUX__)
 		
 #elif defined(__WIN32__)

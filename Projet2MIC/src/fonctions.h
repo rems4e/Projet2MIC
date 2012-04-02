@@ -25,6 +25,9 @@ T nombreAleatoire(T nombreMax) {
 	return static_cast<T>(nombreAleatoire(static_cast<int>(nombreMax)));
 }
 
+double arrondi(double n);
+float arrondi(float n);
+
 int caractereVersHexa(char c);
 char hexaVersCaractere(int c);
 int caractereVersBase64(char c);

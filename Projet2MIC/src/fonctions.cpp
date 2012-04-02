@@ -35,6 +35,14 @@ int nombreAleatoire(int nombreMax) {
 	return nb;
 }
 
+double arrondi(double n) {
+	return n < 0.0 ? std::ceil(n - 0.5) : std::floor(n + 0.5);
+}
+
+float arrondi(float n) {
+	return n < 0.0f ? std::ceil(n - 0.5f) : floor(n + 0.5f);
+}
+
 int caractereVersHexa(char c) {
 	switch(c) {
 		case '0':

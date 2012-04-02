@@ -33,28 +33,28 @@
 		<Element19 image="a20.png" x=50 y=100 centrage=1 dimX=1 dimY=1 />
 	</Arbre>
 	<Personnage>
-		<Element0 image="perso.png">
+		<Element0 image="perso.png" dimX=128 dimY=128 >
 			<Immobile nbPoses=6 tempsAttente=100 />
 			<Deplacer nbPoses=8 tempsAttente=100 />
 			<Attaque nbPoses=5 tempsAttente=50 />
 			<Mourir nbPoses=4 tempsAttente=100 />
 		</Element0>
-		<Element1 image="perso1.png" vitesse=7>
+		<Element1 image="perso1.png" vitesse=7 dimX=128 dimY=128 >
 			<Immobile nbPoses=4 tempsAttente=100 />
 			<Deplacer nbPoses=8 tempsAttente=100 />
 			<Attaque nbPoses=5 tempsAttente=50 />
 		</Element1>
-		<Element2 image="werebear_0.png" vitesse=7>
+		<Element2 image="werebear_0.png" vitesse=7 dimX=128 dimY=128 >
 			<Immobile nbPoses=4 tempsAttente=100 />
 			<Deplacer nbPoses=8 tempsAttente=100 />
 			<Attaque nbPoses=5 tempsAttente=50 />
 		</Element2>
-		<Element3 image="orc_heavy_1.png">
+		<Element3 image="orc_heavy_1.png" dimX=128 dimY=128 >
 			<Immobile nbPoses=4 tempsAttente=100 />
 			<Deplacer nbPoses=8 tempsAttente=100 />
 			<Attaque nbPoses=5 tempsAttente=80 />
 		</Element3>
-		<Element4 image="spider_giant.png" vitesse=15 >
+		<Element4 image="spider_giant.png" vitesse=15 dimX=128 dimY=128 >
 			<Immobile nbPoses=4 tempsAttente=100 />
 			<Deplacer nbPoses=8 tempsAttente=50 />
 			<Attaque nbPoses=5 tempsAttente=80 />

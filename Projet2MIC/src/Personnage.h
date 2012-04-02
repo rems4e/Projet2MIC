@@ -29,6 +29,8 @@ public:
 	//non spécifié yet 
 	void modifierVieActuelle(int delta);     
 	virtual bool definirAction(action_t a);
+	virtual Niveau::couche_t couche() const;
+
 protected:
 	Personnage(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
 	Personnage(Personnage const &);

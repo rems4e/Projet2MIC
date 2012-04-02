@@ -12,7 +12,6 @@
 #include "Session.h"
 #include "Ecran.h"
 
-#define INTERVALLE_DEFILEMENT 0.150f
 #define TAILLE_TITRE_MENU 42
 #define TAILLE_ELEMENTS_MENU 30
 #define ECART_ELEM 5

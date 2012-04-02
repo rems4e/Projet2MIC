@@ -21,6 +21,8 @@
 
 #define TAILLE_MAX_NIVEAU 1000
 
+static index_t choisirElement(std::vector<Unichar> const &elements, index_t selection, Unichar const &titre, Image *apercu = 0);
+
 static char const *probaVierge = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
 Editeur *Editeur::_editeur = 0;
@@ -79,6 +81,8 @@ void Editeur::editerNiveau(std::string const &fichier) {
 					std::string f = _niveau->_fichier;
 					delete _niveau;
 					_niveau = new NiveauEditeur(f);
+					_selection.clear();
+					_modifie = false;
 				}
 			}
 		}
@@ -388,7 +392,7 @@ void Editeur::afficherInventaire() {
 				}
 				else {
 					rectCat.haut += rectCat.dimensions().y + 10;
-					cc.definir("Loi n°" + nombreVersTexte(indexProba));
+					cc.definir("Loi n°" + nombreVersTexte(indexProba) + " (" + _niveau->_probas[indexProba]._nom + ")");
 					rectCat.definirDimensions(cc.dimensions());
 					cc.afficher(rectCat.origine());
 				}
@@ -561,6 +565,7 @@ void Editeur::sourisControles() {
 		if(Session::souris() < i->first) {
 			(this->*(i->second))();
 			Session::reinitialiser(Session::B_GAUCHE);
+			break;
 		}
 	}
 }
@@ -570,6 +575,7 @@ void Editeur::sourisInventaire() {
 		if(Session::souris() < i->first) {
 			(this->*(i->second))();
 			Session::reinitialiser(Session::B_GAUCHE);
+			break;
 		}
 	}
 }
@@ -666,84 +672,6 @@ void Editeur::enregistrer() {
 	_modifie = false;
 }
 
-void Editeur::modifCouche() {
-	std::vector<Unichar> couches;
-	for(Niveau::couche_t c = Niveau::premiereCouche; c != Niveau::nbCouches; ++c) {
-		couches.push_back(Niveau::nomCouche(c));
-	}
-	
-	Menu choixCouche("Choisissez une couche :", couches);
-	index_t elem = choixCouche.afficher();
-	
-	if(elem != couches.size()) {
-		_coucheEdition = static_cast<Niveau::couche_t>(elem);
-	}
-	
-	_selection.clear();
-	_cadreSelection = Rectangle::aucun;
-}
-
-void Editeur::modifProba() {
-	if(_selection.empty())
-		return;
-	
-	std::vector<Unichar> txt;
-	txt.push_back("Loi de probabilité");
-	txt.push_back("Catégorie + index");
-	
-	char const *titre = 0;
-	if(_selection.size() == 1)
-		titre = "L'entité est définie par:";
-	else
-		titre = "Les entités sont définies par :";
-	Menu menu(titre, txt);
-	index_t elem = menu.afficher();
-	
-	if(elem != txt.size()) {
-		bool modif = false;
-		
-		if(elem == 0) { // Proba
-			bool proba;
-			index_t indexProba, index;
-			ElementNiveau::elementNiveau_t cat;
-			for(selection_t::iterator i = _selection.begin(); i != _selection.end(); ++i) {
-				if(!i->_e)
-					proba = false;
-				else
-					obtenirInfosEntites(i->_e->operator()(), proba, indexProba, cat, index);
-				if(!proba) {
-					ElementEditeur *nouveau = new ElementEditeur(0); // loi de proba 0
-					_niveau->_elements[i->_posY][i->_posX][_coucheEdition] = nouveau;
-					delete i->_e;
-					i->_e = nouveau;
-					modif = true;
-				}
-			}
-		}
-		else if(elem == 1) { // Catégorie + index
-			bool proba;
-			index_t indexProba, index;
-			ElementNiveau::elementNiveau_t cat;
-			for(selection_t::iterator i = _selection.begin(); i != _selection.end(); ++i) {
-				if(!i->_e)
-					proba = true;
-				else
-					obtenirInfosEntites(i->_e->operator()(), proba, indexProba, cat, index);
-				if(proba) {
-					ElementEditeur *nouveau = new ElementEditeur(ElementNiveau::premierTypeElement, 0); // catégorie 1, index 1
-					_niveau->_elements[i->_posY][i->_posX][_coucheEdition] = nouveau;
-					delete i->_e;
-					i->_e = nouveau;
-					modif = true;
-				}
-			}
-		}
-		if(modif)
-			this->modification();
-
-	}
-}
-
 void Editeur::modifIndexProba() {
 	if(_selection.empty())
 		return;
@@ -753,8 +681,7 @@ void Editeur::modifIndexProba() {
 		cat.push_back(i->_nom);
 	}
 	
-	Menu choixCat("Choisissez une loi de probabilité :", cat);
-	index_t elem = choixCat.afficher();
+	index_t elem = choisirElement(cat, 0, "Choisissez une loi de probabilité :");
 	
 	if(elem != cat.size()) {
 		bool modif = false;
@@ -780,95 +707,6 @@ void Editeur::modifIndexProba() {
 			this->modification();
 	}
 }
-
-void Editeur::modifCategorie() {
-	if(_selection.empty())
-		return;
-
-	std::vector<Unichar> cat;
-	for(ElementNiveau::elementNiveau_t c = ElementNiveau::premierTypeElement; c != ElementNiveau::nbTypesElement; ++c) {
-		if(ElementNiveau::nombreEntites(c))
-			cat.push_back(ElementNiveau::nomCategorie(c));
-	}
-	
-	Menu choixCat("Choisissez une catégorie :", cat);
-	index_t elem = choixCat.afficher();
-	
-	if(elem != cat.size()) {
-		bool modif = false;
-		
-		ElementNiveau::elementNiveau_t nCat = static_cast<ElementNiveau::elementNiveau_t>(elem);
-		bool proba;
-		index_t indexProba, index;
-		ElementNiveau::elementNiveau_t cat;
-		for(selection_t::iterator i = _selection.begin(); i != _selection.end(); ++i) {
-			if(!i->_e)
-				cat = nCat + 1;
-			else
-				obtenirInfosEntites(i->_e->operator()(), proba, indexProba, cat, index);
-			if(cat != nCat) {
-				ElementEditeur *nouveau = new ElementEditeur(nCat, 0); // index 1
-				_niveau->_elements[i->_posY][i->_posX][_coucheEdition] = nouveau;
-				delete i->_e;
-				i->_e = nouveau;
-				modif = true;
-			}
-		}
-		
-		if(modif)
-			this->modification();
-	}
-}
-
-void Editeur::modifIndex() {
-	if(_selection.empty())
-		return;
-
-	ElementNiveau::elementNiveau_t catSel;
-	std::vector<Unichar> index;
-	{
-		bool proba;
-		index_t indexProba, indx;
-		selection_t::iterator deb = _selection.begin();
-		while(deb != _selection.end()) {
-			if(deb->_e) {
-				obtenirInfosEntites(deb->_e->operator()(), proba, indexProba, catSel, indx);
-				break;
-			}
-		}
-		for(index_t i = 0; i != ElementNiveau::nombreEntites(catSel); ++i) {
-			index.push_back(nombreVersTexte(i));
-		}
-	}
-	
-	Menu choixIndex("Choisissez un index :", index);
-	index_t elem = choixIndex.afficher();
-	
-	if(elem != index.size()) {
-		bool modif = false;
-		
-		bool proba;
-		index_t indexProba, index;
-		ElementNiveau::elementNiveau_t cat;
-		for(selection_t::iterator i = _selection.begin(); i != _selection.end(); ++i) {
-			if(!i->_e)
-				index = elem + 1;
-			else
-				obtenirInfosEntites(i->_e->operator()(), proba, indexProba, cat, index);
-			if(index != elem) {
-				ElementEditeur *nouveau = new ElementEditeur(catSel, elem);
-				_niveau->_elements[i->_posY][i->_posX][_coucheEdition] = nouveau;
-				delete i->_e;
-				i->_e = nouveau;
-				modif = true;
-			}
-		}
-		
-		if(modif)
-			this->modification();
-	}
-}
-
 void Editeur::modifLoisProbas() {
 	std::vector<Unichar> lois;
 	for(std::vector<LoiProba>::iterator i = _niveau->_probas.begin(); i != _niveau->_probas.end(); ++i) {
@@ -877,8 +715,7 @@ void Editeur::modifLoisProbas() {
 	lois.push_back("Ajouter une loi");
 	
 	Image *fond = Ecran::apercu();
-	Menu prob("Choisissez une loi à modifier :", lois);
-	index_t elem = prob.afficher(fond);
+	index_t elem = choisirElement(lois, 0, "Choisissez une loi à modifier :", fond);
 	
 	if(elem == lois.size() - 1) {
 		_niveau->_probas.push_back(LoiProba("proba" + nombreVersTexte(lois.size()), probaVierge));
@@ -950,6 +787,8 @@ struct trouveSouris_t {
 void Editeur::editerLoiProba(index_t loi, Image *fond) {
 	bool continuer = true, supprimer = false;
 	
+	horloge_t ancienDefilement = 0;
+	
 	Texte titre("Édition de la loi " + nombreVersTexte(loi) + " (" + _niveau->_probas[loi]._nom + ")", POLICE_NORMALE, 20);
 	Texte sup("Supprimer la loi", POLICE_NORMALE, 16);
 	std::vector<Texte> categories;
@@ -1019,7 +858,9 @@ void Editeur::editerLoiProba(index_t loi, Image *fond) {
 		cadre.haut = sauveHaut;
 		cadre.gauche += largeurCat;
 		for_each(probas.begin() + premierAffiche, probas.begin() + premierAffiche + nbAffiches, afficheur);
-		
+		categories[selection].definir(Couleur::noir);
+		probas[selection].definir(Couleur::noir);
+	
 		cadres.clear();
 		cadre.gauche -= largeurCat;
 		cadre.largeur = largeurCat + largeurProba;
@@ -1036,11 +877,36 @@ void Editeur::editerLoiProba(index_t loi, Image *fond) {
 			continuer = false;
 		}
 		else {
+			if(Session::evenement(Session::T_HAUT) && horloge() - ancienDefilement > INTERVALLE_DEFILEMENT) {
+				if(selection > 0) {
+					--selection;
+					if(selection < premierAffiche)
+						--premierAffiche;
+				}
+				else {
+					selection = static_cast<ElementNiveau::elementNiveau_t>(categories.size() - 1);
+					if(categories.size() > nbAffiches)
+						premierAffiche = categories.size() - nbAffiches;
+				}
+				
+				ancienDefilement = horloge();
+			}
+			else if(Session::evenement(Session::T_BAS) && horloge() - ancienDefilement > INTERVALLE_DEFILEMENT) {
+				if(selection < categories.size() - 1) {
+					++selection;
+					if(selection >= premierAffiche + nbAffiches)
+						++premierAffiche;
+				}
+				else {
+					selection = ElementNiveau::premierTypeElement;
+					premierAffiche = 0;
+				}
+				
+				ancienDefilement = horloge();
+			}
 			if(Session::evenement(Session::B_GAUCHE)) {
 				std::vector<Rectangle>::iterator souris = std::find_if(cadres.begin(), cadres.end(), trouveSouris_t());
 				if(souris != cadres.end()) {
-					categories[selection].definir(Couleur::noir);
-					probas[selection].definir(Couleur::noir);
 					selection = static_cast<ElementNiveau::elementNiveau_t>(std::distance(cadres.begin(), souris));
 				}
 				else if(Session::souris() < cadreSup) {
@@ -1267,6 +1133,407 @@ void Editeur::modifDimensions() {
 			this->modification();
 		}
 	}
+	
+	delete ap;
+}
+
+void Editeur::modifIndex() {
+	if(_selection.empty())
+		return;
+
+	bool continuer = true;
+	
+	horloge_t ancienDefilement = 0;
+	
+	index_t selection = 0;
+	ElementNiveau::elementNiveau_t catSel;
+	{
+		bool proba;
+		index_t indexProba;
+		selection_t::iterator deb = _selection.begin();
+		while(deb != _selection.end()) {
+			if(deb->_e) {
+				obtenirInfosEntites(deb->_e->operator()(), proba, indexProba, catSel, selection);
+				break;
+			}
+		}
+	}
+	
+	Texte titre("Choisissez un index :", POLICE_NORMALE, 20);
+	std::vector<Texte> index;
+	index.reserve(ElementNiveau::nbTypesElement);
+	for(index_t i = 0; i != ElementNiveau::nombreEntites(catSel); ++i) {
+		index.push_back(Texte(nombreVersTexte(i), POLICE_NORMALE, 16));
+	}
+	
+	std::vector<Rectangle> cadres;
+	cadres.reserve(index.size());
+	
+	index_t premierAffiche = 0;
+	size_t nbAffiches = std::min(size_t(10), index.size());
+	
+	Image *ap = Ecran::apercu();
+	Image flou(ap->flou(1));
+	
+	float teinteSelection = 0;
+	int sensTeinte = 1;
+	
+	while(Session::boucle(100.0f, continuer)) {
+		teinteSelection += 1.0 / 50 * (60.0 / Ecran::frequenceInstantanee()) * sensTeinte;
+		if(teinteSelection > 0.7) {
+			teinteSelection = 0.7;
+			sensTeinte = -1;
+		}
+		else if(teinteSelection < 0) {
+			teinteSelection = 0;
+			sensTeinte = 1;
+		}
+		
+		
+		index[selection].definir(Couleur(teinteSelection * 255));
+		
+		Ecran::effacer();
+		flou.afficher(Coordonnees());
+		Ecran::afficherRectangle(Ecran::ecran(), Couleur(255, 255, 255, 200));
+		
+		Rectangle cadre(Coordonnees(80, 80), titre.dimensions());
+		titre.afficher(cadre.origine());
+		
+		cadre.haut += cadre.hauteur + 20;
+		cadre.gauche += 20;
+		
+		dimension_t largeur = std::max_element(index.begin() + premierAffiche, index.begin() + premierAffiche + nbAffiches, largeurTexte_t())->dimensions().x;
+		
+		dimension_t hauteur = std::accumulate(index.begin() + premierAffiche, index.begin() + premierAffiche + nbAffiches, dimension_t(0), hauteurTexte_t(10)) - 10;
+		
+		Coordonnees pCadre(cadre.gauche + cadre.largeur + 20, cadre.haut);
+		Ecran::afficherRectangle(Rectangle(cadre.gauche, cadre.haut, largeur + 20, hauteur + 20), Couleur(200, 205, 220, 128));
+		
+		cadre += Coordonnees(10, 10);
+		coordonnee_t sauveHaut = cadre.haut;
+		afficheurTexte_t afficheur(cadre, 10);
+		for_each(index.begin() + premierAffiche, index.begin() + premierAffiche + nbAffiches, afficheur);
+		cadre.haut = sauveHaut;
+		index[selection].definir(Couleur::noir);
+		
+		cadres.clear();
+		cadre.largeur = largeur;
+		cadre.haut = sauveHaut;
+		initCadres_t initCadres(cadres, cadre, 10);
+		for_each(index.begin() + premierAffiche, index.begin() + premierAffiche + nbAffiches, initCadres);
+		
+		cadre -= Coordonnees(10, -10);
+		
+		ElementEditeur *apercu = new ElementEditeur(catSel, selection);
+		apercu->image().afficher(pCadre, apercu->cadre());
+		delete apercu;
+		
+				
+		if(Session::evenement(Session::T_ESC) || Session::evenement(Session::QUITTER) || Session::evenement(Session::T_ENTREE)) {
+			continuer = false;
+		}
+		else {
+			if(Session::evenement(Session::T_HAUT) && horloge() - ancienDefilement > INTERVALLE_DEFILEMENT) {
+				if(selection > 0) {
+					--selection;
+					if(selection < premierAffiche)
+						--premierAffiche;
+				}
+				else {
+					selection = index.size() - 1;
+					if(index.size() > nbAffiches)
+						premierAffiche = index.size() - nbAffiches;
+				}
+				
+				ancienDefilement = horloge();
+			}
+			else if(Session::evenement(Session::T_BAS) && horloge() - ancienDefilement > INTERVALLE_DEFILEMENT) {
+				if(selection < index.size() - 1) {
+					++selection;
+					if(selection >= premierAffiche + nbAffiches)
+						++premierAffiche;
+				}
+				else {
+					selection = ElementNiveau::premierTypeElement;
+					premierAffiche = 0;
+				}
+				
+				ancienDefilement = horloge();
+			}
+			if(Session::evenement(Session::B_GAUCHE)) {
+				std::vector<Rectangle>::iterator souris = std::find_if(cadres.begin(), cadres.end(), trouveSouris_t());
+				if(souris != cadres.end()) {
+					selection = std::distance(cadres.begin(), souris);
+				}
+			}
+		}
+		
+		Ecran::maj();
+	}
+		
+	bool modif = false;
+	
+	bool proba;
+	index_t indexProba, idx;
+	ElementNiveau::elementNiveau_t cat;
+	for(selection_t::iterator i = _selection.begin(); i != _selection.end(); ++i) {
+		if(!i->_e)
+			idx = selection + 1;
+		else
+			obtenirInfosEntites(i->_e->operator()(), proba, indexProba, cat, idx);
+		if(idx != selection) {
+			ElementEditeur *nouveau = new ElementEditeur(catSel, selection);
+			_niveau->_elements[i->_posY][i->_posX][_coucheEdition] = nouveau;
+			delete i->_e;
+			i->_e = nouveau;
+			modif = true;
+		}
+	}
+		
+	if(modif)
+		this->modification();
+
+		
+	delete ap;
+}
+
+static index_t choisirElement(std::vector<Unichar> const &el, index_t sel, Unichar const &tt, Image *apercu) {
+	bool continuer = true;
+	
+	horloge_t ancienDefilement = 0;
+	
+	index_t selection = sel;
+	
+	Texte titre(tt, POLICE_NORMALE, 20);
+	std::vector<Texte> elements;
+	elements.reserve(el.size());
+	for(index_t i = 0; i != el.size(); ++i) {
+		elements.push_back(Texte(el[i], POLICE_NORMALE, 16));
+	}
+	
+	std::vector<Rectangle> cadres;
+	cadres.reserve(elements.size());
+	
+	index_t premierAffiche = 0;
+	size_t nbAffiches = std::min(size_t(10), elements.size());
+	
+	Image *ap = apercu ? apercu : Ecran::apercu();
+	Image flou(ap->flou(1));
+	
+	float teinteSelection = 0;
+	int sensTeinte = 1;
+	
+	while(Session::boucle(100.0f, continuer)) {
+		teinteSelection += 1.0 / 50 * (60.0 / Ecran::frequenceInstantanee()) * sensTeinte;
+		if(teinteSelection > 0.7) {
+			teinteSelection = 0.7;
+			sensTeinte = -1;
+		}
+		else if(teinteSelection < 0) {
+			teinteSelection = 0;
+			sensTeinte = 1;
+		}
+		
+		
+		elements[selection].definir(Couleur(teinteSelection * 255));
+		
+		Ecran::effacer();
+		flou.afficher(Coordonnees());
+		Ecran::afficherRectangle(Ecran::ecran(), Couleur(255, 255, 255, 200));
+		
+		Rectangle cadre(Coordonnees(80, 80), titre.dimensions());
+		titre.afficher(cadre.origine());
+		
+		cadre.haut += cadre.hauteur + 20;
+		cadre.gauche += 20;
+		
+		dimension_t largeur = std::max_element(elements.begin() + premierAffiche, elements.begin() + premierAffiche + nbAffiches, largeurTexte_t())->dimensions().x;
+		
+		dimension_t hauteur = std::accumulate(elements.begin() + premierAffiche, elements.begin() + premierAffiche + nbAffiches, dimension_t(0), hauteurTexte_t(10)) - 10;
+		
+		Coordonnees pCadre(cadre.gauche + cadre.largeur + 20, cadre.haut);
+		Ecran::afficherRectangle(Rectangle(cadre.gauche, cadre.haut, largeur + 20, hauteur + 20), Couleur(200, 205, 220, 128));
+		
+		cadre += Coordonnees(10, 10);
+		coordonnee_t sauveHaut = cadre.haut;
+		afficheurTexte_t afficheur(cadre, 10);
+		for_each(elements.begin() + premierAffiche, elements.begin() + premierAffiche + nbAffiches, afficheur);
+		cadre.haut = sauveHaut;
+		elements[selection].definir(Couleur::noir);
+		
+		cadres.clear();
+		cadre.largeur = largeur;
+		cadre.haut = sauveHaut;
+		initCadres_t initCadres(cadres, cadre, 10);
+		for_each(elements.begin() + premierAffiche, elements.begin() + premierAffiche + nbAffiches, initCadres);
+		
+		cadre -= Coordonnees(10, -10);
+		
+		if(Session::evenement(Session::T_ESC) || Session::evenement(Session::QUITTER)) {
+			continuer = false;
+			selection = elements.size();
+		}
+		else if(Session::evenement(Session::T_ENTREE)) {
+			continuer = false;
+		}
+		else {
+			if(Session::evenement(Session::T_HAUT) && horloge() - ancienDefilement > INTERVALLE_DEFILEMENT) {
+				if(selection > 0) {
+					--selection;
+					if(selection < premierAffiche)
+						--premierAffiche;
+				}
+				else {
+					selection = elements.size() - 1;
+					if(elements.size() > nbAffiches)
+						premierAffiche = elements.size() - nbAffiches;
+				}
+				
+				ancienDefilement = horloge();
+			}
+			else if(Session::evenement(Session::T_BAS) && horloge() - ancienDefilement > INTERVALLE_DEFILEMENT) {
+				if(selection < elements.size() - 1) {
+					++selection;
+					if(selection >= premierAffiche + nbAffiches)
+						++premierAffiche;
+				}
+				else {
+					selection = ElementNiveau::premierTypeElement;
+					premierAffiche = 0;
+				}
+				
+				ancienDefilement = horloge();
+			}
+			if(Session::evenement(Session::B_GAUCHE)) {
+				std::vector<Rectangle>::iterator souris = std::find_if(cadres.begin(), cadres.end(), trouveSouris_t());
+				if(souris != cadres.end()) {
+					selection = std::distance(cadres.begin(), souris);
+					continuer = false;
+				}
+			}
+		}
+		
+		Ecran::maj();
+	}
+	
+	if(!apercu)
+		delete ap;
+	
+	return selection;
+}
+
+void Editeur::modifCouche() {	
+	std::vector<Unichar> couches;
+	for(Niveau::couche_t c = Niveau::premiereCouche; c != Niveau::nbCouches; ++c) {
+		couches.push_back(Niveau::nomCouche(c));
+	}
+	
+	index_t selection = choisirElement(couches, _coucheEdition, "Choisissez une couche :");
+	if(selection != couches.size()) {
+		_coucheEdition = static_cast<Niveau::couche_t>(selection);
+	}
+	
+	_selection.clear();
+	_cadreSelection = Rectangle::aucun;
+}
+
+void Editeur::modifProba() {
+	if(_selection.empty())
+		return;
+	
+	std::vector<Unichar> txt;
+	txt.push_back("Loi de probabilité");
+	txt.push_back("Catégorie + index");
+		
+	char const *titre = 0;
+	if(_selection.size() == 1)
+		titre = "L'entité est définie par:";
+	else
+		titre = "Les entités sont définies par :";
+
+	index_t selection = choisirElement(txt, 0, titre);
+
+	if(selection != txt.size()) {
+		bool modif = false;
+		
+		if(selection == 0) { // Proba
+			bool proba;
+			index_t indexProba, index;
+			ElementNiveau::elementNiveau_t cat;
+			for(selection_t::iterator i = _selection.begin(); i != _selection.end(); ++i) {
+				if(!i->_e)
+					proba = false;
+				else
+					obtenirInfosEntites(i->_e->operator()(), proba, indexProba, cat, index);
+				if(!proba) {
+					ElementEditeur *nouveau = new ElementEditeur(0); // loi de proba 0
+					_niveau->_elements[i->_posY][i->_posX][_coucheEdition] = nouveau;
+					delete i->_e;
+					i->_e = nouveau;
+					modif = true;
+				}
+			}
+		}
+		else if(selection == 1) { // Catégorie + index
+			bool proba;
+			index_t indexProba, index;
+			ElementNiveau::elementNiveau_t cat;
+			for(selection_t::iterator i = _selection.begin(); i != _selection.end(); ++i) {
+				if(!i->_e)
+					proba = true;
+				else
+					obtenirInfosEntites(i->_e->operator()(), proba, indexProba, cat, index);
+				if(proba) {
+					ElementEditeur *nouveau = new ElementEditeur(ElementNiveau::premierTypeElement, 0); // catégorie 1, index 1
+					_niveau->_elements[i->_posY][i->_posX][_coucheEdition] = nouveau;
+					delete i->_e;
+					i->_e = nouveau;
+					modif = true;
+				}
+			}
+		}
+		if(modif)
+			this->modification();
+		
+	}
+}
+
+void Editeur::modifCategorie() {
+	if(_selection.empty())
+		return;
+	
+	std::vector<Unichar> cat;
+	for(ElementNiveau::elementNiveau_t c = ElementNiveau::premierTypeElement; c != ElementNiveau::nbTypesElement; ++c) {
+		if(ElementNiveau::nombreEntites(c))
+			cat.push_back(ElementNiveau::nomCategorie(c));
+	}
+	
+	index_t selection = choisirElement(cat, 0, "Choisissez une catégorie :");
+		
+	if(selection != cat.size()) {
+		bool modif = false;
+		
+		ElementNiveau::elementNiveau_t nCat = static_cast<ElementNiveau::elementNiveau_t>(selection);
+		bool proba;
+		index_t indexProba, index;
+		ElementNiveau::elementNiveau_t cat;
+		for(selection_t::iterator i = _selection.begin(); i != _selection.end(); ++i) {
+			if(!i->_e)
+				cat = nCat + 1;
+			else
+				obtenirInfosEntites(i->_e->operator()(), proba, indexProba, cat, index);
+			if(cat != nCat) {
+				ElementEditeur *nouveau = new ElementEditeur(nCat, 0); // index 1
+				_niveau->_elements[i->_posY][i->_posX][_coucheEdition] = nouveau;
+				delete i->_e;
+				i->_e = nouveau;
+				modif = true;
+			}
+		}
+		
+		if(modif)
+			this->modification();
+	}
 }
 
 void Editeur::selectionnerSemblables() {
@@ -1442,27 +1709,46 @@ Editeur::ElementEditeur::ElementEditeur(ElementNiveau::elementNiveau_t cat, inde
 	if(e->Attribute("y"))
 		e->Attribute("y", &_origine.y);
 	
-	if(e->Attribute("dimX")) {
-		e->Attribute("dimX", &_dimensions.x);
-		_dimensions.x *= LARGEUR_CASE;
+	bool multi = false;
+	TiXmlElement *el = e->FirstChildElement();
+	if(el) {
+		if(el->Attribute("nbPoses"))
+			multi = true;
 	}
-	if(e->Attribute("dimY")) {
-		e->Attribute("dimY", &_dimensions.y);
-		_dimensions.y *= LARGEUR_CASE;
-	}
-	
-	if(e->Attribute("centrage")) {
-		int tmp;
-		e->Attribute("centrage", &tmp);
-		if(tmp)
-			_origine -= Coordonnees(LARGEUR_CASE, 0) / 2;
-	}
-	if(e->Attribute("nbPoses")) {
-		int tmp;
-		e->Attribute("nbPoses", &tmp);
-		_cadre.definirDimensions(Coordonnees(_cadre.largeur / tmp, _cadre.hauteur));
-	}
+	if(multi) {
+		if(e->Attribute("dimX")) {
+			e->Attribute("dimX", &_dimensions.x);
+		}
+		if(e->Attribute("dimY")) {
+			e->Attribute("dimY", &_dimensions.y);
+		}
+		_cadre.definirDimensions(_dimensions);
+		_dimensions = Coordonnees(LARGEUR_CASE, LARGEUR_CASE);
 
+		_origine = Coordonnees(_dimensions.x / 2, _cadre.hauteur * 3 / 4);
+	}
+	else {
+		if(e->Attribute("dimX")) {
+			e->Attribute("dimX", &_dimensions.x);
+			_dimensions.x *= LARGEUR_CASE;
+		}
+		if(e->Attribute("dimY")) {
+			e->Attribute("dimY", &_dimensions.y);
+			_dimensions.y *= LARGEUR_CASE;
+		}
+		
+		if(e->Attribute("centrage")) {
+			int tmp;
+			e->Attribute("centrage", &tmp);
+			if(tmp)
+				_origine -= Coordonnees(LARGEUR_CASE, 0) / 2;
+		}
+		if(e->Attribute("nbPoses")) {
+			int tmp;
+			e->Attribute("nbPoses", &tmp);
+			_cadre.definirDimensions(Coordonnees(_cadre.largeur / tmp, _cadre.hauteur));
+		}
+	}
 }
 
 Editeur::ElementEditeur::ElementEditeur(index_t loiProba) : _proba(true), _indexProba(loiProba), _image(Session::cheminRessources() + "alea.png"), _cadre(), _teinte() {

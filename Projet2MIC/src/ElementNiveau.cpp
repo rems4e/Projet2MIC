@@ -15,6 +15,7 @@
 #include "Niveau.h"
 #include "tinyxml.h"
 #include <cmath>
+#include "UtilitaireNiveau.h"
 
 TiXmlDocument *ElementNiveau::_description = 0;
 
@@ -27,13 +28,11 @@ ElementNiveau *ElementNiveau::elementNiveau(Niveau *n, uindex_t index, elementNi
 			return ElementNiveau::elementNiveau<EntiteStatique>(n, index);
 		case ennemi:
 			return ElementNiveau::elementNiveau<Ennemi>(n, index);
-		case joueur:
-			return ElementNiveau::elementNiveau<Joueur>(n, index);
 		case arbre:
 			return ElementNiveau::elementNiveau<EntiteStatique>(n, index, arbre);
 		case entiteStatiqueAnimee:
 			return ElementNiveau::elementNiveau<EntiteStatiqueAnimee>(n, index);
-		case ndef6:case ndef7:case ndef8:
+		case ndef5:case ndef6:case ndef7:case ndef8:
 		case ndef9:case ndef10:case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
 		case ndef17:case ndef18:case ndef19:case ndef20:case ndef21:case ndef22:case ndef23:case ndef24:
 		case ndef25:case ndef26:case ndef27:case ndef28:case ndef29:case ndef30:case ndef31:case ndef32:
@@ -76,7 +75,11 @@ void ElementNiveau::definirPosition(Coordonnees const &p) {
 }
 
 Coordonnees ElementNiveau::positionAffichage() const {
-	return Coordonnees(this->position().x + this->position().y, (this->position().y - this->position().x) / 2) / 2 - this->origine() + this->centrage() * Coordonnees(LARGEUR_CASE, 0) / 2;
+	return referentielNiveauVersEcran(this->position()) - this->origine() + this->centrage() * Coordonnees(LARGEUR_CASE, 0) / 2;
+}
+
+Niveau *ElementNiveau::niveau() {
+	return _niveau;
 }
 
 void ElementNiveau::definirNiveau(Niveau *n) {
@@ -93,46 +96,6 @@ bool ElementNiveau::centrage() const {
 
 bool ElementNiveau::multi() const {
 	return _multi;
-}
-
-void ElementNiveau::deplacerPosition(Coordonnees const &delta) {
-	if(delta.vecteurNul())
-		return;
-	
-	size_t const n = std::floor(delta.norme());
-	if(n == 0) {
-		if(testerDeplacement(delta))
-			this->definirPosition(this->position() + delta);
-	}
-	else {
-		Coordonnees const dep = delta / n;
-		for(index_t i = 0; i < n; ++i) {
-			if(testerDeplacement(dep)) {
-				this->definirPosition(this->position() + dep);
-			}
-			else
-				break;
-		}
-		if(!(delta - n * dep).vecteurNul() && testerDeplacement(delta - n * dep))
-			this->definirPosition(this->position() + delta - n * dep);
-	}
-}
-
-bool ElementNiveau::testerDeplacement(Coordonnees const &dep) {
-	index_t x = std::floor((this->position().x + dep.x) / LARGEUR_CASE), y = std::floor((this->position().y + dep.y) / LARGEUR_CASE);
-	//index_t x1 = std::floor((this->position().x) / LARGEUR_CASE), y1 = std::floor((this->position().y) / LARGEUR_CASE);
-
-	//std::cout << x1 << " " << y1 << " " << dep << std::endl;
-	
-	if(dep.x > 0)
-		++x;
-	if(dep.y > 0)
-		++y;
-
-	if(_niveau->collision(x, y))
-		return false;
-	
-	return true;
 }
 
 void ElementNiveau::chargerDescription() {
@@ -152,7 +115,7 @@ TiXmlElement *ElementNiveau::description(uindex_t index, elementNiveau_t cc) {
 		return 0;
 	}
 	
-	std::string const cat(ElementNiveau::nomCategorie(cc));
+	std::string const cat(ElementNiveau::nomBalise(cc));
 	element = element->FirstChildElement(cat);
 	if(!element) {
 		std::cout << "Catégorie \"" << cat << "\" indisponible." << std::endl;
@@ -172,7 +135,7 @@ size_t ElementNiveau::nombreEntites(elementNiveau_t categorie) {
 		TiXmlElement *element = _description->FirstChildElement("ElementsNiveau");
 		for(ElementNiveau::elementNiveau_t i = ElementNiveau::premierTypeElement; i != ElementNiveau::nbTypesElement; ++i) {
 			nb[i] = 0;
-			char const *nom = ElementNiveau::nomCategorie(i);
+			char const *nom = ElementNiveau::nomBalise(i);
 			if(nom) {
 				TiXmlElement *cat = element->FirstChildElement(nom);
 				for(TiXmlNode *n = cat->FirstChild(); n; n = n->NextSibling(), ++nb[i]);
@@ -183,19 +146,48 @@ size_t ElementNiveau::nombreEntites(elementNiveau_t categorie) {
 	return nb[categorie];
 }
 
+bool ElementNiveau::mobile() const {
+	return false;
+}
 
-char const *ElementNiveau::nomCategorie(elementNiveau_t cat) {
+bool ElementNiveau::joueur() const {
+	return false;
+}
+
+char const *ElementNiveau::nomBalise(elementNiveau_t cat) {
 	switch(cat) {
 		case entiteStatique:
 			return "EntiteStatique";
 		case ennemi:
-		case joueur:
 			return "Personnage";
 		case arbre:
 			return "Arbre";
 		case entiteStatiqueAnimee:
 			return "EntiteStatiqueAnimee";
-		case ndef6:case ndef7:case ndef8:
+		case ndef5:case ndef6:case ndef7:case ndef8:
+		case ndef9:case ndef10:case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
+		case ndef17:case ndef18:case ndef19:case ndef20:case ndef21:case ndef22:case ndef23:case ndef24:
+		case ndef25:case ndef26:case ndef27:case ndef28:case ndef29:case ndef30:case ndef31:case ndef32:
+		case ndef33:case ndef34:case ndef35:case ndef36:case ndef37:case ndef38:case ndef39:case ndef40:
+		case ndef41:case ndef42:case ndef43:case ndef44:case ndef45:case ndef46:case ndef47:case ndef48:
+		case ndef49:case ndef50:case ndef51:case ndef52:case ndef53:case ndef54:case ndef55:case ndef56:
+		case ndef57:case ndef58:case ndef59:case ndef60:case ndef61:case ndef62:case ndef63:case ndef64:
+		case nbTypesElement:
+			return 0;
+	}
+}
+
+char const *ElementNiveau::nomCategorie(elementNiveau_t cat) {
+	switch(cat) {
+		case entiteStatique:
+			return "Entité statique";
+		case ennemi:
+			return "Ennemi";
+		case arbre:
+			return "Arbre";
+		case entiteStatiqueAnimee:
+			return "Entite statique animée";
+		case ndef5:case ndef6:case ndef7:case ndef8:
 		case ndef9:case ndef10:case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
 		case ndef17:case ndef18:case ndef19:case ndef20:case ndef21:case ndef22:case ndef23:case ndef24:
 		case ndef25:case ndef26:case ndef27:case ndef28:case ndef29:case ndef30:case ndef31:case ndef32:

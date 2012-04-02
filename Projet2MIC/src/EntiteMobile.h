@@ -12,6 +12,7 @@
 #include "ElementNiveau.h"
 #include "Image.h"
 #include "Geometrie.h"
+#include "Niveau.h"
 
 class EntiteMobile : public ElementNiveau {
 public:
@@ -37,7 +38,12 @@ public:
 	// Met à jour la direction de l'entité en fonction de la direction du vecteur de déplacement.
 	// ATTENTION : utiliser cette fonction va générer une détection des collisions. Pour décaler une entité sans tester les collisions, utiliser entité.definirPosition(entité.position() + dep);
 	virtual void deplacerPosition(Coordonnees const &dep);
-		
+	virtual Niveau::couche_t couche() const = 0;
+	virtual bool mobile() const;
+	
+	index_t pX() const;
+	index_t pY() const;
+
 protected:	
 	Rectangle const &cadre() const;
 	bool actionDisponible(action_t a) const;
@@ -45,7 +51,8 @@ protected:
 	EntiteMobile(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
 	static char const *transcriptionAction(action_t a);
 	static bool actionInterruptible(action_t a);
-	
+	bool testerDeplacement(Coordonnees const &dep);
+		
 private:
 	size_t _nbImages[nbActions];
 	Image _image;

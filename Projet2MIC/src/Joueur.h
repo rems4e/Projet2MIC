@@ -19,8 +19,12 @@ public:
 	virtual void animer(horloge_t tempsEcoule);
 	virtual void interagir(Personnage *p);
 	
+	void afficher(Coordonnees const &d, double zoom = 1.0) const;
+	
+	virtual bool joueur() const;
+	
 protected:
-	static ElementNiveau::elementNiveau_t categorie() { return ElementNiveau::joueur; }
+	static ElementNiveau::elementNiveau_t categorie() { return ElementNiveau::ennemi; }
 
 	Joueur(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
 	Joueur(Joueur const &);

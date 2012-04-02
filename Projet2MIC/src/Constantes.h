@@ -34,6 +34,7 @@
 #define BAS 3
 
 #define TAILLE_TEXTE_CHARGEMENT 42
+#define INTERVALLE_DEFILEMENT 0.150f
 
 typedef size_t uindex_t;
 typedef ssize_t index_t;
