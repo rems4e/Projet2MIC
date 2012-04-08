@@ -14,6 +14,7 @@
 #include "Joueur.h"
 #include "Editeur.h"
 #include "TableauDeBord.h"
+#include "Inventaire.h"
 
 Partie::Partie() : _niveau(0), _joueur(0), _tableauDeBord(0) {
 	
@@ -31,9 +32,13 @@ void Partie::commencer() {
 	_joueur->definirPosition(Coordonnees(200, 200));
 	_tableauDeBord = new TableauDeBord(_joueur);
 
-	Ecran::definirPointeurAffiche(true);
-	while(Session::boucle(100, !Session::evenement(Session::QUITTER))) {
+	while(Session::boucle(VITESSE_RAFRAICHISSEMENT, !Session::evenement(Session::QUITTER))) {
+		Ecran::definirPointeurAffiche(false);
 		Ecran::effacer();
+		if(Session::evenement(Session::T_i)) {
+			_joueur->definirInventaireAffiche(!_joueur->inventaireAffiche());
+			Session::reinitialiser(Session::T_i);
+		}
 		if(Session::evenement(Session::T_r)) {
 			this->reinitialiser();
 			Session::reinitialiser(Session::T_r);
@@ -62,7 +67,10 @@ void Partie::commencer() {
 
 void Partie::afficher() {
 	_niveau->afficher();
-	//_tableauDeBord->afficher();
+	if(_joueur->inventaireAffiche()) {
+		_joueur->inventaire().afficher();
+	}
+	_tableauDeBord->afficher();
 }
 
 void Partie::reinitialiser() {

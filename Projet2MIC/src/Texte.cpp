@@ -26,6 +26,11 @@ static unsigned int const hauteurNormal = 20;
 static int const largeursNormal[][3] = {{0, 12, 0}, {13, 12, 0}, {26, 12, 0}, {39, 12, 0}, {52, 12, 0}, {65, 12, 0}, {78, 12, 0}, {91, 12, 0}, {104, 12, 0}, {117, 12, 0}, {130, 13, 0}, {144, 12, 0}, {157, 13, 0}, {171, 14, 0}, {186, 11, 0}, {198, 11, 0}, {210, 14, 0}, {225, 14, 0}, {240, 7, 0}, {248, 9, 0}, {258, 12, 0}, {271, 11, 0}, {283, 17, 0}, {301, 14, 0}, {316, 15, 0}, {332, 12, 0}, {345, 15, 0}, {361, 12, 0}, {374, 11, 0}, {386, 11, 0}, {398, 14, 0}, {413, 12, 0}, {426, 18, 0}, {445, 13, 0}, {459, 12, 0}, {472, 13, 0}, {486, 11, 0}, {498, 13, 0}, {512, 11, 0}, {524, 13, 0}, {538, 12, 0}, {551, 8, 0}, {560, 13, 0}, {574, 13, 0}, {588, 7, 0}, {596, 7, 0}, {604, 11, 0}, {616, 7, 0}, {624, 18, 0}, {643, 13, 0}, {657, 12, 0}, {670, 13, 0}, {684, 13, 0}, {698, 8, 0}, {707, 10, 0}, {718, 9, 0}, {728, 12, 0}, {741, 11, 0}, {753, 16, 0}, {770, 11, 0}, {782, 11, 0}, {794, 10, 0}, {805, 7, 0}, {813, 11, 0}, {825, 11, 0}, {837, 12, 0}, {850, 12, 0}, {863, 12, 0}, {876, 12, 0}, {889, 7, 0}, {897, 7, 0}, {905, 12, 0}, {918, 12, 0}, {931, 12, 0}, {944, 11, 0}, {956, 11, 0}, {968, 11, 0}, {980, 13, 0}, {0, 11, 20}, {12, 13, 20}, {26, 11, 20}, {38, 7, 20}, {46, 7, 20}, {54, 15, 20}, {70, 15, 20}, {86, 14, 20}, {101, 13, 20}, {115, 8, 20}, {124, 8, 20}, {133, 6, 20}, {140, 9, 20}, {150, 6, 20}, {157, 10, 20}, {168, 6, 20}, {175, 6, 20}, {182, 6, 20}, {189, 9, 20}, {199, 14, 20}, {214, 14, 20}, {229, 8, 20}, {238, 14, 20}, {253, 14, 20}, {268, 16, 20}, {285, 11, 20}, {297, 13, 20}, {311, 7, 20}, {319, 19, 20}, {339, 9, 20}, {349, 19, 20}, {369, 14, 20}, {384, 10, 20}, {395, 12, 20}, {408, 12, 20}, {421, 14, 20}, {436, 12, 20}, {449, 16, 20}, {466, 8, 20}, {475, 8, 20}, {484, 8, 20}, {493, 8, 20}, {502, 19, 20}, {522, 16, 20}, {539, 18, 20}, {558, 19, 20}, {578, 12, 20}, {591, 15, 20}, {607, -1, 20}, {611, -1, 20}, {615, 12, 20}, {628, 19, 20}, {648, 19, 20}, {668, 19, 20}, {688, 19, 20}, {708, 8, 20}, {717, -1, 20}, {721, 19, 20}, {741, 15, 20}, {757, 19, 20}, {777, 12, 20}, {790, 18, 20}, {809, 12, 20}, {822, 13, 20}, {836, 16, 20}, {853, 12, 20}, {866, 11, 20}, {878, 14, 20}, {893, 13, 20}, {907, 15, 20}};
 static float const tailleRenduNormal = 16;
 
+static Image *policeGrande = 0;
+static unsigned int const hauteurGrande = 49;
+static int const largeursGrande[][3] = {{0, 25, 0}, {26, 25, 0}, {52, 25, 0}, {78, 25, 0}, {104, 25, 0}, {130, 25, 0}, {156, 25, 0}, {182, 25, 0}, {208, 25, 0}, {234, 25, 0}, {260, 29, 0}, {290, 26, 0}, {317, 28, 0}, {346, 32, 0}, {379, 24, 0}, {404, 24, 0}, {429, 31, 0}, {461, 31, 0}, {493, 13, 0}, {507, 18, 0}, {526, 26, 0}, {553, 23, 0}, {577, 38, 0}, {616, 31, 0}, {648, 33, 0}, {682, 25, 0}, {708, 33, 0}, {742, 26, 0}, {769, 24, 0}, {794, 24, 0}, {819, 31, 0}, {851, 26, 0}, {878, 40, 0}, {919, 27, 0}, {947, 26, 0}, {0, 27, 49}, {28, 23, 49}, {52, 27, 49}, {80, 23, 49}, {104, 27, 49}, {132, 25, 49}, {158, 15, 49}, {174, 27, 49}, {202, 27, 49}, {230, 12, 49}, {243, 13, 49}, {257, 22, 49}, {280, 12, 49}, {293, 39, 49}, {333, 27, 49}, {361, 27, 49}, {389, 27, 49}, {417, 27, 49}, {445, 16, 49}, {462, 20, 49}, {483, 17, 49}, {501, 27, 49}, {529, 23, 49}, {553, 35, 49}, {589, 22, 49}, {612, 23, 49}, {636, 21, 49}, {658, 13, 49}, {672, 23, 49}, {696, 23, 49}, {720, 25, 49}, {746, 25, 49}, {772, 25, 49}, {798, 25, 49}, {824, 12, 49}, {837, 12, 49}, {850, 27, 49}, {878, 27, 49}, {906, 27, 49}, {934, 23, 49}, {958, 24, 49}, {0, 24, 98}, {25, 29, 98}, {55, 24, 98}, {80, 29, 98}, {110, 24, 98}, {135, 13, 98}, {149, 13, 98}, {163, 33, 98}, {197, 33, 98}, {231, 31, 98}, {263, 28, 98}, {292, 15, 98}, {308, 15, 98}, {324, 11, 98}, {336, 17, 98}, {354, 11, 98}, {366, 20, 98}, {387, 11, 98}, {399, 11, 98}, {411, 11, 98}, {423, 19, 98}, {443, 30, 98}, {474, 30, 98}, {505, 16, 98}, {522, 30, 98}, {553, 30, 98}, {584, 35, 98}, {620, 24, 98}, {645, 28, 98}, {674, 12, 98}, {687, 43, 98}, {731, 18, 98}, {750, 43, 98}, {794, 30, 98}, {825, 21, 98}, {847, 25, 98}, {873, 25, 98}, {899, 30, 98}, {930, 26, 98}, {957, 36, 98}, {0, 15, 147}, {16, 15, 147}, {32, 15, 147}, {48, 15, 147}, {64, 43, 147}, {108, 36, 147}, {145, 41, 147}, {187, 43, 147}, {231, 27, 147}, {259, 33, 147}, {293, -1, 147}, {297, -1, 147}, {301, 26, 147}, {328, 43, 147}, {372, 43, 147}, {416, 43, 147}, {460, 43, 147}, {504, 14, 147}, {519, -1, 147}, {523, 43, 147}, {567, 33, 147}, {601, 43, 147}, {645, 25, 147}, {671, 41, 147}, {713, 26, 147}, {740, 29, 147}, {770, 36, 147}, {807, 26, 147}, {834, 23, 147}, {858, 31, 147}, {890, 29, 147}, {920, 33, 147}};
+static float const tailleRenduGrande = 40;
+
 Texte::Texte(Unichar const &txt, police_t police, taillePolice_t taille, Couleur const &coul) : _texte(txt), _police(police), _taille(taille), _couleur(coul), _dimensions() {
 	_dimensions = Texte::dimensions(_texte, _police, _taille);
 }
@@ -103,6 +108,14 @@ void Texte::afficher(Unichar const &txt, police_t police, taillePolice_t taille,
 			}
 			image = policeNormale;
 			break;
+		case POLICE_GRANDE:
+			hauteur = hauteurGrande;
+			tailleRendu = tailleRenduGrande;
+			if(policeGrande == 0) {
+				policeGrande = new Image(Session::cheminRessources() + "policeGrande.png");
+			}
+			image = policeGrande;
+			break;
 	}
 
 	float rapportTaille = taille / tailleRendu;
@@ -124,11 +137,33 @@ void Texte::afficher(Unichar const &txt, police_t police, taillePolice_t taille,
 			if(p == nbCaracteres)
 				std::cerr << "Le caractère " << c << " n'est pas géré par le système de texte." << std::endl;
 
-			int l = (police == POLICE_DECO ? largeursDeco[p][1] : largeursNormal[p][1]);
+			int l;
+			switch(police) {
+				case POLICE_DECO:
+					l = largeursDeco[p][1];
+					break;
+				case POLICE_NORMALE:
+					l = largeursNormal[p][1];
+					break;
+				case POLICE_GRANDE:
+					l = largeursGrande[p][1];
+					break;
+			}
 			if(l == -1)
 				std::cerr << "Le caractère " << c << " n'est pas contenu dans la police " << police << "." << std::endl;
 			else {
-				Rectangle filtre = Rectangle(police == POLICE_DECO ? largeursDeco[p][0] : largeursNormal[p][0], police == POLICE_DECO ? largeursDeco[p][2] : largeursNormal[p][2], l, hauteur);
+				Rectangle filtre;
+				switch(police) {
+					case POLICE_DECO:
+						filtre = Rectangle(largeursDeco[p][0], largeursDeco[p][2], l, hauteur);
+						break;
+					case POLICE_NORMALE:
+						filtre = Rectangle(largeursNormal[p][0], largeursNormal[p][2], l, hauteur);
+						break;
+					case POLICE_GRANDE:
+						filtre = Rectangle(largeursGrande[p][0], largeursGrande[p][2], l, hauteur);
+						break;
+				}
 				image->afficher(pos, filtre);
 				pos.x += filtre.largeur * rapportTaille;
 			}
@@ -162,15 +197,22 @@ Coordonnees Texte::dimensions(Unichar const &texte, uindex_t p, size_t n, police
 	int const (*largeurs)[3] = 0;
 	unsigned int hauteur = 0;
 	float tailleRendu = 1;
-	if(police == POLICE_DECO) {
-		largeurs = largeursDeco;
-		hauteur = hauteurDeco;
-		tailleRendu = tailleRenduDeco;
-	}
-	else if(police == POLICE_NORMALE) {
-		largeurs = largeursNormal;
-		hauteur = hauteurNormal;
-		tailleRendu = tailleRenduNormal;
+	switch(police) {
+		case POLICE_DECO:
+			hauteur = hauteurDeco;
+			tailleRendu = tailleRenduDeco;
+			largeurs = largeursDeco;
+			break;
+		case POLICE_NORMALE:
+			hauteur = hauteurNormal;
+			tailleRendu = tailleRenduNormal;
+			largeurs = largeursNormal;
+			break;
+		case POLICE_GRANDE:
+			hauteur = hauteurGrande;
+			tailleRendu = tailleRenduGrande;
+			largeurs = largeursGrande;
+			break;
 	}
 	initialiserCaracteres();
 	
@@ -205,7 +247,6 @@ Coordonnees Texte::dimensions(Unichar const &texte, uindex_t p, size_t n, police
 }
 
 dimension_t Texte::hauteur(police_t police, taillePolice_t taille) {
-	assert(police == POLICE_DECO || police == POLICE_NORMALE);
 	unsigned int h;
 	float tailleRendu;
 	if(police == POLICE_DECO) {
@@ -216,11 +257,16 @@ dimension_t Texte::hauteur(police_t police, taillePolice_t taille) {
 		h = hauteurNormal;
 		tailleRendu = tailleRenduNormal;
 	}
+	else if(police == POLICE_GRANDE) {
+		h = hauteurGrande;
+		tailleRendu = tailleRenduGrande;
+	}
 	return h * taille / tailleRendu;
 }
 
 void Texte::nettoyer() {
 	delete policeDeco;
 	delete policeNormale;
-	delete caracteres;
+	delete policeGrande;
+	delete[] caracteres;
 }

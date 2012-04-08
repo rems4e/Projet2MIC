@@ -7,8 +7,9 @@
 //
 
 #include "Ennemi.h"
+#include "Joueur.h"
 
-Ennemi::Ennemi(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : Personnage(n, index, cat) {
+Ennemi::Ennemi(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : Personnage(n, index, cat), _recherche(false) {
 	
 }
 
@@ -18,30 +19,45 @@ Ennemi::~Ennemi() {
 
 void Ennemi::animer(horloge_t tempsEcoule) {
 	Personnage::animer(tempsEcoule);
-	index_t const pX = this->pX(), pY = this->pY();
+		
+	Joueur *j = this->niveau()->joueur();
+	if((j->position() - this->position()).norme() < this->porteeVision() * LARGEUR_CASE) {
+		_cible = j->position();
+		_recherche = true;
 
-	_cible = Coordonnees::aucun;
-	for(index_t x = pX - this->porteeVision(); x != pX + this->porteeVision(); ++x) {
-		for(index_t y = pY - this->porteeVision(); y != pY + this->porteeVision(); ++y) {
-			ElementNiveau const *el = this->niveau()->element(x, y, this->couche());
-			if(el && el->joueur()) {
-				_cible = el->position();
-				goto finRecherche;
-			}
-		}
-	}
-	
-finRecherche:
-	if(_cible != Coordonnees::aucun) {
+		bool suivre;
 		Coordonnees dep = _cible - this->position();
-		if(this->definirAction(EntiteMobile::a_deplacer)) {
+		if(dep.vecteurNul()) {
+			suivre = false;
+		}
+		else {
 			dep.normaliser();
 			dep *= this->vitesse();
-			this->deplacerPosition(dep);
+			index_t pX = this->pX(this->position().x + dep.x), pY = this->pY(this->position().y + dep.y);
+			suivre = j->pX() != pX || j->pY() != pY;
+			Niveau::listeElements_t liste = this->niveau()->elements(pX, pY, this->couche());
+			for(Niveau::elements_t::const_iterator el = liste.first; el != liste.second; ++el) {
+				if(*el != this && (*el)->mobile() && static_cast<EntiteMobile *>(*el)->type() == EntiteMobile::ennemi) {
+					Ennemi *e = static_cast<Ennemi *>(*el);
+					
+					if(e->_recherche) {
+						suivre = false;
+						break;
+					}
+				}
+			}
+		}
+		if(suivre && this->definirAction(EntiteMobile::a_deplacer) && this->deplacerPosition(dep)) {
+
+		}
+		else {
+			this->definirAction(EntiteMobile::a_immobile);
 		}
 	}
 	else {
 		this->definirAction(EntiteMobile::a_immobile);
+		_cible = Coordonnees::aucun;
+		_recherche = false;
 	}
 }
 
@@ -57,3 +73,6 @@ double Ennemi::vitesse() const {
 	return Personnage::vitesse() * 0.75;
 }
 
+EntiteMobile::categorie_t Ennemi::type() const {
+	return EntiteMobile::ennemi;
+}

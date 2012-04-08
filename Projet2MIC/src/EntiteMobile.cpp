@@ -12,6 +12,7 @@
 #include "tinyxml.h"
 #include "Niveau.h"
 #include <cmath>
+#include "fonctions.h"
 
 EntiteMobile::action_t &operator++(EntiteMobile::action_t &c) { return c = static_cast<EntiteMobile::action_t>(static_cast<int>(c + 1)); }
 
@@ -56,6 +57,7 @@ EntiteMobile::EntiteMobile(Niveau *n, uindex_t index, ElementNiveau::elementNive
 	}
 	
 	this->definirAction(EntiteMobile::a_immobile);
+	_direction = direction_t(nombreAleatoire(8));
 }
 
 EntiteMobile::~EntiteMobile() {
@@ -77,11 +79,20 @@ bool EntiteMobile::collision() const {
 }
 
 index_t EntiteMobile::pX() const {
-	return std::floor(this->position().x / LARGEUR_CASE);
+	return this->pX(this->position().x);
 }
 
 index_t EntiteMobile::pY() const {
-	return std::floor(this->position().y / LARGEUR_CASE);
+	return this->pY(this->position().y);
+}
+
+index_t EntiteMobile::pX(coordonnee_t pX) const {
+	return std::floor(pX / LARGEUR_CASE);
+
+}
+
+index_t EntiteMobile::pY(coordonnee_t pY) const {
+	return std::floor(pY / LARGEUR_CASE);
 }
 
 void EntiteMobile::animer(horloge_t tempsEcoule) {
@@ -135,7 +146,11 @@ bool EntiteMobile::actionInterruptible(action_t a) {
 
 
 void EntiteMobile::definirDirection(direction_t d) {
-	_direction = d;
+	++_compteurDirection;
+	if(_compteurDirection > 3) {
+		_direction = d;
+		_compteurDirection = 0;
+	}
 }
 
 bool EntiteMobile::definirAction(action_t a) {
@@ -144,6 +159,7 @@ bool EntiteMobile::definirAction(action_t a) {
 			if(_action != a) {
 				_action = a;
 				_imageActuelle = 0;
+				_compteurDirection = 0;
 			}
 			
 			return true;
@@ -153,9 +169,11 @@ bool EntiteMobile::definirAction(action_t a) {
 	return false;
 }
 
-void EntiteMobile::deplacerPosition(Coordonnees const &delta) {
+bool EntiteMobile::deplacerPosition(Coordonnees const &delta) {
 	if(delta.vecteurNul())
-		return;
+		return false;
+	
+	Coordonnees anciennePosition = this->position();
 
 	direction_t dir = EntiteMobile::gauche;
 	if(delta.x < 0) {
@@ -183,30 +201,32 @@ void EntiteMobile::deplacerPosition(Coordonnees const &delta) {
 	
 	this->definirDirection(dir);
 		
-	//index_t x = std::floor((this->position().x) / LARGEUR_CASE), y = std::floor((this->position().y) / LARGEUR_CASE);
+	index_t x = std::floor((this->position().x) / LARGEUR_CASE), y = std::floor((this->position().y) / LARGEUR_CASE);
 	//std::cout << "ancien : " << x << " " << y << std::endl;
 
 	size_t const n = std::floor(delta.norme());
 	if(n == 0) {
-		//if(testerDeplacement(delta))
-		//	this->definirPosition(this->position() + delta);
+		if(testerDeplacement(delta, x, y))
+			this->definirPosition(this->position() + delta);
 	}
 	else {
 		Coordonnees const dep = delta / n;
 		for(index_t i = 0; i < n; ++i) {
-			if(testerDeplacement(dep)) {
+			if(testerDeplacement(dep, x, y)) {
 				this->definirPosition(this->position() + dep);
 			}
 			else
 				break;
 		}
-		if(testerDeplacement(delta - n * dep))
+		if(testerDeplacement(delta - n * dep, x, y))
 			this->definirPosition(this->position() + delta - n * dep);
 	}
 	//x = std::floor((this->position().x) / LARGEUR_CASE), y = std::floor((this->position().y) / LARGEUR_CASE);
+	
+	return this->position() != anciennePosition;
 }
 
-bool EntiteMobile::testerDeplacement(Coordonnees const &dep) {
+bool EntiteMobile::testerDeplacement(Coordonnees const &dep, index_t pX, index_t pY) {
 	if(dep.vecteurNul())
 		return true;
 	
@@ -215,8 +235,9 @@ bool EntiteMobile::testerDeplacement(Coordonnees const &dep) {
 	
 	for(index_t x = x1; x <= x2; ++x) {
 		for(index_t y = y1; y <= y2; ++y) {
-			if(this->niveau()->collision(x, y, this->couche(), this))
+			if(this->niveau()->collision(x, y, this->couche(), this)) {
 				return false;
+			}
 		}
 	}
 		

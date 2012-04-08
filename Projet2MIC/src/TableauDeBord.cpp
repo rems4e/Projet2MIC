@@ -5,25 +5,28 @@
 #include "Texte.h"
 #include "fonctions.h"
 
-TableauDeBord::TableauDeBord(Joueur *j) : _joueur(j) {
-
+TableauDeBord::TableauDeBord(Joueur *j) : _joueur(j), _fond(Session::cheminRessources() + "clearedFont.png"){
+	
 }
 
 
 TableauDeBord::~TableauDeBord() {
-
+	
 }
-	
+
 void TableauDeBord::afficher() {
-	Rectangle rec(0,Ecran::hauteur()-100,Ecran::largeur(),100);
-	Ecran::afficherRectangle(rec, Couleur::noir);
+	Image::definirOpacite(220);
+	dimension_t posTab = Ecran::hauteur() - 150;
+	_fond.afficher(Coordonnees(0, posTab));
+	Image::definirOpacite(255);
 	
-	Rectangle barreVieTotale(Ecran::largeur()-280,Ecran::hauteur()-80,200,30);
-	Ecran::afficherRectangle(barreVieTotale, Couleur(255,0,0,150));
-	
-	Rectangle barreVieActuelle(Ecran::largeur()-280,Ecran::hauteur()-80,_joueur->vieActuelle()*200/_joueur->vieTotale(),30);
-	Ecran::afficherRectangle(barreVieActuelle, Couleur(230,0,0,255));
-	
-	Texte chiffresVie(nombreVersTexte(_joueur->vieActuelle())+"/"+nombreVersTexte(_joueur->vieTotale()), POLICE_NORMALE, 16, Couleur::blanc);
-	chiffresVie.afficher(barreVieTotale.origine()+(barreVieTotale.dimensions()-chiffresVie.dimensions())/2);
+	size_t lBarre = 200, hBarre = 30;
+
+	for(index_t i = 0; i != hBarre; ++i) {
+		Ecran::afficherRectangle(Rectangle(50, posTab + 100 + i, lBarre, 1), Couleur(255 - 6 * std::abs(15 - i), 80, 80));
+		Ecran::afficherRectangle(Rectangle(50, posTab + 100 + i, _joueur->vieActuelle() * 200 / _joueur->vieTotale(), 1), Couleur(230 - 8 * std::abs(15 - i), 0, 0));
+	}
+	 
+	Texte chiffresVie(nombreVersTexte(_joueur->vieActuelle()) + "/" + nombreVersTexte(_joueur->vieTotale()), POLICE_GRANDE, 16, Couleur::blanc);
+	chiffresVie.afficher(Coordonnees(50, posTab + 100) + (Coordonnees(lBarre, hBarre) - chiffresVie.dimensions()) / 2);
 }

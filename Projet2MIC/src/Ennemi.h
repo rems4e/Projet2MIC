@@ -22,6 +22,7 @@ public:
 	
 	virtual index_t porteeVision() const;
 	virtual double vitesse() const;
+	virtual categorie_t type() const;
 
 protected:
 	static ElementNiveau::elementNiveau_t categorie() { return ElementNiveau::ennemi; }
@@ -29,8 +30,10 @@ protected:
 	Ennemi(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
 	Ennemi(Ennemi const &);
 	Ennemi &operator=(Ennemi const &);
-	
+		
+private:
 	Coordonnees _cible;
+	bool _recherche;
 };
 
 #endif

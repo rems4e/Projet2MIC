@@ -65,6 +65,7 @@ void Editeur::editerNiveau(std::string const &fichier) {
 	Menu menuEditeur("Menu éditeur", elemMenus);
 	
 	while(Session::boucle(100, _continuer)) {
+		Ecran::definirPointeurAffiche(true);
 		Ecran::effacer();
 		this->afficher();
 		
@@ -879,7 +880,7 @@ void Editeur::editerLoiProba(index_t loi, Image *fond) {
 		else {
 			if(Session::evenement(Session::T_HAUT) && horloge() - ancienDefilement > INTERVALLE_DEFILEMENT) {
 				if(selection > 0) {
-					--selection;
+					selection = static_cast<ElementNiveau::elementNiveau_t>(selection - 1);
 					if(selection < premierAffiche)
 						--premierAffiche;
 				}

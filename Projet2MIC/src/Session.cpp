@@ -83,7 +83,7 @@ std::string const &Session::cheminRessources() {
 		CFStringGetCString(str, cStr, taille + 1, kCFStringEncodingUTF8);
 		chemin += cStr;
 		chemin += "/";
-		delete cStr;
+		delete[] cStr;
 		
 		CFRelease(str);
 		CFRelease(res);

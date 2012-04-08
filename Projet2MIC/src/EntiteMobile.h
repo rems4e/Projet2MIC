@@ -13,12 +13,14 @@
 #include "Image.h"
 #include "Geometrie.h"
 #include "Niveau.h"
+#include <functional>
 
 class EntiteMobile : public ElementNiveau {
 public:
 	enum action_t {premiereAction, a_immobile = premiereAction, a_deplacer, a_attaquer, a_mourir, nbActions};
 	enum direction_t {gauche, gaucheHaut, haut, droiteHaut, droite, droiteBas, bas, gaucheBas};
-	
+	enum categorie_t {ennemi, joueur, marchand};
+			
 	virtual ~EntiteMobile();
 	
 	virtual void afficher(Coordonnees const &decalage, double zoom = 1.0) const;
@@ -37,12 +39,15 @@ public:
 	
 	// Met à jour la direction de l'entité en fonction de la direction du vecteur de déplacement.
 	// ATTENTION : utiliser cette fonction va générer une détection des collisions. Pour décaler une entité sans tester les collisions, utiliser entité.definirPosition(entité.position() + dep);
-	virtual void deplacerPosition(Coordonnees const &dep);
+	virtual bool deplacerPosition(Coordonnees const &dep);
 	virtual Niveau::couche_t couche() const = 0;
 	virtual bool mobile() const;
+	virtual categorie_t type() const = 0;
 	
 	index_t pX() const;
 	index_t pY() const;
+	index_t pX(coordonnee_t pX) const;
+	index_t pY(coordonnee_t pY) const;
 
 protected:	
 	Rectangle const &cadre() const;
@@ -51,7 +56,7 @@ protected:
 	EntiteMobile(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
 	static char const *transcriptionAction(action_t a);
 	static bool actionInterruptible(action_t a);
-	bool testerDeplacement(Coordonnees const &dep);
+	bool testerDeplacement(Coordonnees const &dep, index_t pX, index_t pY);
 		
 private:
 	size_t _nbImages[nbActions];
@@ -60,6 +65,7 @@ private:
 	horloge_t _tempsAffichage[nbActions];
 	
 	direction_t _direction;
+	index_t _compteurDirection;
 	
 	action_t _action;
 	uindex_t _imageActuelle;

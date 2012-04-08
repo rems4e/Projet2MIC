@@ -40,3 +40,8 @@ Coordonnees EntiteStatique::dimensions() const {
 	return _image.dimensionsReelles();
 }
 
+Image const &EntiteStatique::image() const {
+	return _image;
+}
+
+

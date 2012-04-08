@@ -33,7 +33,9 @@ class Niveau {
 	friend class Editeur;
 public:
 	enum couche_t {premiereCouche, cn_sol = premiereCouche, cn_sol2, cn_transitionSol, cn_objet, nbCouches};
-
+	typedef std::list<ElementNiveau *> elements_t;
+	typedef std::pair<elements_t::const_iterator, elements_t::const_iterator> listeElements_t;
+	
 	class Exc_CreationNiveau : public std::exception {
 	public:
 		Exc_CreationNiveau(std::string const &v) throw() : std::exception(), _valeur(v) { }
@@ -49,13 +51,15 @@ public:
 	Niveau(Joueur *j);
 	virtual ~Niveau();
 	
+	Joueur *joueur();
+	
 	// Dimensions du niveau en nombre de cases
 	size_t dimX() const;
 	size_t dimY() const;
 	
 	// Obtention du contenu d'une case en un point donné. Si ce point est en dehors du niveau, retourne Niveau::aucunElement.
 	//ElementNiveau *element(index_t x, index_t y, couche_t couche = cn_sol);
-	ElementNiveau const *element(index_t x, index_t y, couche_t couche) const;
+	listeElements_t elements(index_t x, index_t y, couche_t couche) const;
 	bool collision(index_t x, index_t y, couche_t couche, ElementNiveau *e) const;
 	
 	double zoom() const;
@@ -85,7 +89,7 @@ private:
 	struct Case {
 		Case();
 		
-		ElementNiveau *_entites[nbCouches];
+		elements_t _entites[nbCouches];
 		bool _entiteExterieure[nbCouches];
 	};
 	struct CaseMobile {

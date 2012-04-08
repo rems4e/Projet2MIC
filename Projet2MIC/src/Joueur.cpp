@@ -9,7 +9,7 @@
 #include "Joueur.h"
 #include "Session.h"
 
-Joueur::Joueur(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : Personnage(n, index, cat) {
+Joueur::Joueur(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : Personnage(n, index, cat), _inventaireAffiche(false), _inventaire() {
 	
 }
 
@@ -36,13 +36,13 @@ void Joueur::animer(horloge_t tempsEcoule) {
 		dep += Coordonnees(1, -1);
 	
 	if(!dep.vecteurNul()) {
+		dep.normaliser();
+		dep *= this->vitesse();
 		if(this->definirAction(EntiteMobile::a_deplacer)) {
-			dep.normaliser();
-			dep *= this->vitesse();
 			this->deplacerPosition(dep);
 		}
 	}
-	else {
+	if(dep.vecteurNul()) {
 		if(Session::evenement(Session::T_ESPACE)) {
 			this->definirAction(EntiteMobile::a_attaquer);
 			Session::reinitialiser(Session::T_ESPACE);
@@ -61,5 +61,21 @@ void Joueur::interagir(Personnage *p) {
 
 bool Joueur::joueur() const {
 	return true;
+}
+
+EntiteMobile::categorie_t Joueur::type() const {
+	return EntiteMobile::joueur;
+}
+
+bool Joueur::inventaireAffiche() const {
+	return _inventaireAffiche;
+}
+
+void Joueur::definirInventaireAffiche(bool af) {
+	_inventaireAffiche = af;
+}
+
+InventaireJoueur const &Joueur::inventaire() const {
+	return _inventaire;
 }
 

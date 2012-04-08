@@ -12,6 +12,7 @@
 #include "EntiteStatiqueAnimee.h"
 #include "Ennemi.h"
 #include "Joueur.h"
+#include "ObjetInventaire.h"
 #include "Niveau.h"
 #include "tinyxml.h"
 #include <cmath>
@@ -32,7 +33,9 @@ ElementNiveau *ElementNiveau::elementNiveau(Niveau *n, uindex_t index, elementNi
 			return ElementNiveau::elementNiveau<EntiteStatique>(n, index, arbre);
 		case entiteStatiqueAnimee:
 			return ElementNiveau::elementNiveau<EntiteStatiqueAnimee>(n, index);
-		case ndef5:case ndef6:case ndef7:case ndef8:
+		case objetInventaire:
+			return ElementNiveau::elementNiveau<ObjetInventaire>(n, index);
+		case ndef6:case ndef7:case ndef8:
 		case ndef9:case ndef10:case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
 		case ndef17:case ndef18:case ndef19:case ndef20:case ndef21:case ndef22:case ndef23:case ndef24:
 		case ndef25:case ndef26:case ndef27:case ndef28:case ndef29:case ndef30:case ndef31:case ndef32:
@@ -138,7 +141,8 @@ size_t ElementNiveau::nombreEntites(elementNiveau_t categorie) {
 			char const *nom = ElementNiveau::nomBalise(i);
 			if(nom) {
 				TiXmlElement *cat = element->FirstChildElement(nom);
-				for(TiXmlNode *n = cat->FirstChild(); n; n = n->NextSibling(), ++nb[i]);
+				if(cat)
+					for(TiXmlNode *n = cat->FirstChild(); n; n = n->NextSibling(), ++nb[i]);
 			}
 		}
 	}
@@ -164,7 +168,9 @@ char const *ElementNiveau::nomBalise(elementNiveau_t cat) {
 			return "Arbre";
 		case entiteStatiqueAnimee:
 			return "EntiteStatiqueAnimee";
-		case ndef5:case ndef6:case ndef7:case ndef8:
+		case objetInventaire:
+			return "ObjetInventaire";
+		case ndef6:case ndef7:case ndef8:
 		case ndef9:case ndef10:case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
 		case ndef17:case ndef18:case ndef19:case ndef20:case ndef21:case ndef22:case ndef23:case ndef24:
 		case ndef25:case ndef26:case ndef27:case ndef28:case ndef29:case ndef30:case ndef31:case ndef32:
@@ -187,7 +193,9 @@ char const *ElementNiveau::nomCategorie(elementNiveau_t cat) {
 			return "Arbre";
 		case entiteStatiqueAnimee:
 			return "Entite statique animée";
-		case ndef5:case ndef6:case ndef7:case ndef8:
+		case objetInventaire:
+			return "Objet inventaire";
+		case ndef6:case ndef7:case ndef8:
 		case ndef9:case ndef10:case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
 		case ndef17:case ndef18:case ndef19:case ndef20:case ndef21:case ndef22:case ndef23:case ndef24:
 		case ndef25:case ndef26:case ndef27:case ndef28:case ndef29:case ndef30:case ndef31:case ndef32:

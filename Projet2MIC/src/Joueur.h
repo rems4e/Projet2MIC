@@ -10,6 +10,7 @@
 #define Projet2MIC_Joueur_h
 
 #include "Personnage.h"
+#include "Inventaire.h"
 
 struct Joueur : public Personnage {
 	friend Joueur *ElementNiveau::elementNiveau<Joueur>(Niveau *n, uindex_t i, ElementNiveau::elementNiveau_t) throw(ElementNiveau::Exc_EntiteIndefinie, ElementNiveau::Exc_DefinitionEntiteIncomplete);
@@ -22,6 +23,12 @@ public:
 	void afficher(Coordonnees const &d, double zoom = 1.0) const;
 	
 	virtual bool joueur() const;
+	virtual categorie_t type() const;
+	
+	bool inventaireAffiche() const;
+	void definirInventaireAffiche(bool af);
+	
+	InventaireJoueur const &inventaire() const;
 	
 protected:
 	static ElementNiveau::elementNiveau_t categorie() { return ElementNiveau::ennemi; }
@@ -29,6 +36,10 @@ protected:
 	Joueur(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
 	Joueur(Joueur const &);
 	Joueur &operator=(Joueur const &);
+	
+private:
+	bool _inventaireAffiche;
+	InventaireJoueur _inventaire;
 };
 
 #endif

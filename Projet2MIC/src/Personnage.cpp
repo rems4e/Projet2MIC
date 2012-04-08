@@ -19,7 +19,7 @@ Personnage::Personnage(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t
 		e->Attribute("vie", &t);
 		_vieTotale = t; 
 	}
-	_vieActuelle = _vieTotale;		
+	_vieActuelle = _vieTotale / 2;
 	
 	
 	for(EntiteMobile::action_t a = EntiteMobile::premiereAction; a != EntiteMobile::nbActions; ++a) {
