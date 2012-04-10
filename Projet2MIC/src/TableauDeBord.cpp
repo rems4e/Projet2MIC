@@ -16,7 +16,8 @@ TableauDeBord::~TableauDeBord() {
 
 void TableauDeBord::afficher() {
 	Image::definirOpacite(220);
-	dimension_t posTab = Ecran::hauteur() - 150;
+	dimension_t posTab = Ecran::hauteur() - this->hauteur();
+	_fond.redimensionner(Ecran::largeur() / _fond.dimensionsReelles().x, 1);
 	_fond.afficher(Coordonnees(0, posTab));
 	Image::definirOpacite(255);
 	
@@ -30,3 +31,8 @@ void TableauDeBord::afficher() {
 	Texte chiffresVie(nombreVersTexte(_joueur->vieActuelle()) + "/" + nombreVersTexte(_joueur->vieTotale()), POLICE_GRANDE, 16, Couleur::blanc);
 	chiffresVie.afficher(Coordonnees(50, posTab + 100) + (Coordonnees(lBarre, hBarre) - chiffresVie.dimensions()) / 2);
 }
+
+dimension_t TableauDeBord::hauteur() const {
+	return 150;
+}
+

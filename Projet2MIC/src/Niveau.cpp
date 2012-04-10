@@ -72,7 +72,7 @@ Niveau::Case::Case() : _entites(), _entiteExterieure() {
 	std::memset(_entiteExterieure, 0, nbCouches * sizeof(bool));
 }
 
-Niveau::Niveau(Joueur *j, std::string const &nomFichier) : _elements(0), _dimX(0), _dimY(0), _zoom(1.0), _entitesMobiles(), _perso(), _bordures() {	
+Niveau::Niveau(Joueur *j, std::string const &nomFichier) : _elements(0), _dimX(0), _dimY(0), _zoom(1.0), _entitesMobiles(), _perso(), _bordures(), _persoInit() {	
 	TiXmlDocument niveau(Session::cheminRessources() + nomFichier);
 	if(!niveau.LoadFile()) {
 		throw Exc_CreationNiveau(std::string() + "Erreur de l'ouverture du fichier de niveau (" + (Session::cheminRessources() + nomFichier) + ".");
@@ -131,6 +131,9 @@ Niveau::Niveau(Joueur *j, std::string const &nomFichier) : _elements(0), _dimX(0
 				
 				ElementNiveau *e = 0;
 				if(!proba) { // Valeur déterminée de la case
+					if(couche == cn_sol && categorie == ElementNiveau::teleporteur && index == 0) {
+						_persoInit = Coordonnees(x + 1, y + 1) * LARGEUR_CASE;
+					}
 					try {
 						e = ElementNiveau::elementNiveau(this, index, categorie);
 					}
@@ -166,8 +169,9 @@ Niveau::Niveau(Joueur *j, std::string const &nomFichier) : _elements(0), _dimX(0
 	for(index_t i = 0; i != nbGenerateurs; ++i)
 		delete generateurs[i];
 	delete[] generateurs;
-
+	
 	this->definirJoueur(j);
+	j->definirPosition(_persoInit);
 }
 
 Niveau::Niveau(Joueur *j) : _elements(0), _dimX(0), _dimY(0), _zoom(1.0), _entitesMobiles(), _perso(j), _bordures() {		
@@ -216,8 +220,8 @@ void Niveau::allocationCases() {
 		}
 	}
 	
-	_b1 = Image(Session::cheminRessources() + "bordure1.png");
-	_b2 = Image(Session::cheminRessources() + "bordure2.png");
+	_objet = Image(Session::cheminRessources() + "objet.png");
+	_objets = Image(Session::cheminRessources() + "objets.png");
 }
 
 void Niveau::remplissageBordures() {
@@ -313,7 +317,7 @@ Joueur *Niveau::joueur() {
 }
 
 
-Niveau::listeElements_t Niveau::elements(index_t x, index_t y, Niveau::couche_t couche) const {
+Niveau::listeElements_t Niveau::elements(index_t x, index_t y, Niveau::couche_t couche) {
 	if(x < 0 || y < 0 || x >= this->dimX() || y >= this->dimY()) {
 		return std::make_pair(_elements[0][0]._entites[premiereCouche].end(), _elements[0][0]._entites[premiereCouche].end());
 	}
@@ -324,11 +328,33 @@ Niveau::listeElements_t Niveau::elements(index_t x, index_t y, Niveau::couche_t 
 	return std::make_pair(_elements[y][x]._entites[couche].begin(), _elements[y][x]._entites[couche].end());
 }
 
+Niveau::const_listeElements_t Niveau::elements(index_t x, index_t y, Niveau::couche_t couche) const {
+	if(x < 0 || y < 0 || x >= this->dimX() || y >= this->dimY()) {
+		return std::make_pair(_elements[0][0]._entites[premiereCouche].end(), _elements[0][0]._entites[premiereCouche].end());
+	}
+	
+	if(_elements[y][x]._entites[couche].empty())
+		return std::make_pair(_elements[0][0]._entites[premiereCouche].end(), _elements[0][0]._entites[premiereCouche].end());
+	
+	return std::make_pair(_elements[y][x]._entites[couche].begin(), _elements[y][x]._entites[couche].end());
+}
+
+void Niveau::ajouterElement(index_t x, index_t y, couche_t couche, ElementNiveau *elem) {
+	_elements[y][x]._entites[couche].push_back(elem);
+}
+
+void Niveau::supprimerElement(index_t x, index_t y, Niveau::couche_t couche, elements_t::iterator i, bool deleteElement) {
+	ElementNiveau *e = *i;
+	_elements[y][x]._entites[couche].erase(i);
+	if(deleteElement)
+		delete e;
+}
+
 bool Niveau::collision(index_t x, index_t y, couche_t couche, ElementNiveau *el) const {
 	if(x < 0 || y < 0 || x >= _dimX || y >= _dimY)
 		return true;
 
-	listeElements_t liste = this->elements(x, y, couche);
+	const_listeElements_t liste = this->elements(x, y, couche);
 	for(elements_t::const_iterator e = liste.first; e != liste.second; ++e) {
 		if(*e != el && !(*e)->mobile())
 			return true;
@@ -347,6 +373,8 @@ bool Niveau::collision(couche_t couche) {
 			return false;
 		case cn_objet:
 			return true;
+		case cn_objetsInventaire:
+			return false;
 		case nbCouches:
 			return false;
 	}
@@ -420,21 +448,40 @@ void Niveau::afficher() {
 	
 	
 	// Sert à afficher la grille de case, inutile sauf en cas de test
-	/*Coordonnees origine = cam;
-	for(ssize_t y = 0; y <= _dimY; ++y) {
-		for(ssize_t x = 0; x <= _dimX; ++x) {
-			_b1.afficher(Coordonnees((x + y) * LARGEUR_CASE, (y - x) * LARGEUR_CASE / 2) / 2 - cam - Coordonnees(0, LARGEUR_CASE / 4));
-			_b2.afficher(Coordonnees((x + y) * LARGEUR_CASE, (y - x) * LARGEUR_CASE / 2) / 2 - cam);
-		}
+	/*for(index_t y = 0; y <= _dimY; ++y) {
+		Ecran::afficherLigne(referentielNiveauVersEcran(Coordonnees(0, y) * LARGEUR_CASE) - cam, referentielNiveauVersEcran(Coordonnees(_dimX, y) * LARGEUR_CASE) - cam, Couleur::rouge, 1.0);
+	}
+	for(index_t x = 0; x <= _dimX; ++x) {
+		Ecran::afficherLigne(referentielNiveauVersEcran(Coordonnees(x, 0) * LARGEUR_CASE) - cam, referentielNiveauVersEcran(Coordonnees(x, _dimY) * LARGEUR_CASE) - cam, Couleur::rouge, 1.0);
 	}*/
 	
-	
 	for(Niveau::couche_t c = premiereCouche + 1; c != nbCouches; ++c) {
-		this->afficherCouche(c, cam);
+		if(c == cn_objetsInventaire)
+			this->afficherObjetsInventaire(cam);
+		else
+			this->afficherCouche(c, cam);
 	}
 	
 	this->afficherBordure(BAS, cam);
 	this->afficherBordure(DROITE, cam);
+}
+
+void Niveau::afficherObjetsInventaire(Coordonnees const &cam) {
+	for(size_t y = 0; y < _dimY; ++y) {
+		for(size_t x = 0; x < _dimX; ++x) {
+			size_t nb = _elements[y][_dimX - x - 1]._entites[cn_objetsInventaire].size();
+			Image *img = 0;
+			if(nb == 1)
+				img = &_objet;
+			else if(nb > 1)
+				img = &_objets;
+			if(img) {
+				img->redimensionner(this->zoom());
+				Coordonnees pos = referentielNiveauVersEcran(Coordonnees(_dimX - x - 1, y) * LARGEUR_CASE) - Coordonnees(11, 18) + Coordonnees(LARGEUR_CASE, 0) / 2;
+				img->afficher(pos * this->zoom() - cam);
+			}
+		}
+	}
 }
 
 void Niveau::afficherCouche(couche_t c, Coordonnees const &cam) {
@@ -500,13 +547,15 @@ void Niveau::definirJoueur(Joueur *j) {
 char const *Niveau::nomCouche(couche_t couche) {
 	switch(couche) {
 		case cn_objet:
-			return "coucheObjet";			
+			return "coucheObjet";
 		case cn_sol:
-			return "coucheSol";			
+			return "coucheSol";
 		case cn_sol2:
-			return "coucheSol2";			
+			return "coucheSol2";
 		case cn_transitionSol:
-			return "coucheTransitionSol";			
+			return "coucheTransitionSol";
+		case cn_objetsInventaire:
+			return "coucheObjetsInventaire";
 		case nbCouches:
 			return 0;			
 	}

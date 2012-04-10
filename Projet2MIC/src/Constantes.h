@@ -23,7 +23,7 @@
 #include <SDL/SDL.h>
 
 #ifdef __MACOSX__
-#define GL_H <OpenGL/OpenGL.h>
+#define GL_H <OpenGL/gl.h>
 #else
 #define GL_H <GL/gl.h>
 #endif

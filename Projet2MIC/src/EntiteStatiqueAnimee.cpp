@@ -12,14 +12,19 @@
 EntiteStatiqueAnimee::EntiteStatiqueAnimee(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : EntiteStatique(n, index, cat), _imageActuelle(0), _cadres(0), _tempsAffichage(0), _tempsPrecedent(0) {	
 	TiXmlElement *e = ElementNiveau::description(index, cat);
 	
-	e->Attribute("nbPoses", &_nbImages);
+	_nbImages = 1;
+	if(e->Attribute("nbPoses"))
+		e->Attribute("nbPoses", &_nbImages);
 	// Position aléatoire, en cas de contiguïté, pour éviter d'avoir 50 entités qui bougent en même temps…
 	_imageActuelle = nombreAleatoire(_nbImages);
 	
-	int temps;
-	e->Attribute("tempsAttente", &temps);
-	_tempsAffichage = temps / 1000.0;
-
+	_tempsAffichage = 1;
+	if(e->Attribute("tempsAttente")) {
+		int temps;
+		e->Attribute("tempsAttente", &temps);
+		_tempsAffichage = temps / 1000.0;
+	}
+	
 	_cadres = new Rectangle[_nbImages];
 	
 	size_t largeur = this->image().dimensionsReelles().x / _nbImages;

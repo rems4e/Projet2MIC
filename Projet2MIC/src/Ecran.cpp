@@ -36,8 +36,8 @@ Couleur const Couleur::transparent(0, 0);
 namespace Ecran {	
 	struct AttributsEcran {
 		Texte _texte;
-		Image *_pointeur;
-		Image *_pointeurDefaut;
+		Image const *_pointeur;
+		Image const *_pointeurDefaut;
 		Coordonnees _decalagePointeur;
 		bool _pointeurAffiche;
 		
@@ -74,13 +74,14 @@ Ecran::AttributsEcran::AttributsEcran() : _largeur(0L), _hauteur(0L), _profondeu
 
 Ecran::AttributsEcran::~AttributsEcran() {
 	SDL_ShowCursor(SDL_ENABLE);
-	delete _pointeurDefaut;
 
 	if(_pleinEcran) {
-		Ecran::modifierResolution(800, 600, 32, false);
-		Ecran::afficherRectangle(Ecran::ecran(), Couleur::noir);
+		SDL_SetVideoMode(800, 600, 32, SDL_OPENGL | SDL_ASYNCBLIT);
+		Ecran::afficherRectangle(Rectangle(0, 0, 800, 600), Couleur::noir);
 		SDL_GL_SwapBuffers();
 	}
+	
+	delete _pointeurDefaut;
 }
 
 void Ecran::modifierResolution(unsigned int largeur, unsigned int hauteur, unsigned int profondeur, bool pleinEcran) {
@@ -128,9 +129,8 @@ void Ecran::modifierResolution(unsigned int largeur, unsigned int hauteur, unsig
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_TEXTURE_2D);
-	Ecran::afficherRectangle(Ecran::ecran(), Couleur::noir);
-	glClearColor(.8f, .8f, .8f, 1.0f);
-	
+	glClearColor(0, 0, 0, 1.0f);
+	Ecran::afficherRectangle(Ecran::ecran(), Couleur::noir);	
 	Ecran::maj();
 }
 
@@ -265,7 +265,7 @@ Image const *Ecran::pointeur() {
 	return _attributs._pointeur;
 }
 
-void Ecran::definirPointeur(Image *image, Coordonnees const &decalage) {
+void Ecran::definirPointeur(Image const *image, Coordonnees const &decalage) {
 	if(image == 0) {
 		_attributs._pointeur = _attributs._pointeurDefaut;
 		_attributs._decalagePointeur = Coordonnees();

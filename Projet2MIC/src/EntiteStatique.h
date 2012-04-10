@@ -21,16 +21,16 @@ public:
 	virtual bool collision() const;
 	virtual void animer(horloge_t tempsEcoule);
 	virtual Coordonnees dimensions() const;
-	
+
+	Image const &image() const;
+
 protected:
-	static ElementNiveau::elementNiveau_t categorie() { return ElementNiveau::entiteStatique; }
+	static ElementNiveau::elementNiveau_t cat() { return ElementNiveau::entiteStatique; }
 	
 	EntiteStatique(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
 	EntiteStatique(EntiteStatique const &);
 	EntiteStatique &operator=(EntiteStatique const &);
-	
-	Image const &image() const;
-	
+		
 private:
 	Image _image;
 };

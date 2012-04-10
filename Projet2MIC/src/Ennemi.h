@@ -25,7 +25,7 @@ public:
 	virtual categorie_t type() const;
 
 protected:
-	static ElementNiveau::elementNiveau_t categorie() { return ElementNiveau::ennemi; }
+	static ElementNiveau::elementNiveau_t cat() { return ElementNiveau::ennemi; }
 
 	Ennemi(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
 	Ennemi(Ennemi const &);

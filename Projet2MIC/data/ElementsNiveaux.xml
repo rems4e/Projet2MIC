@@ -1,5 +1,17 @@
 <?xml version="1.0" standalone="no" ?>
 <ElementsNiveau>
+	<Teleporteur>
+		<Element0 image="spawn.png" x=0 y=64 dimX=4 dimY=4 />
+	</Teleporteur>
+	<ObjetInventaire>
+		<Element0 image="epee1.png" iX=2 iY=3 type="arme" centrage=1/>
+		<Element1 image="potionVie.png" iX=1 iY=1 type="potion" centrage=1/>
+		<Element2 image="gants1.png" iX=2 iY=2 type="gants" centrage=1/>
+		<Element3 image="casque1.png" iX=2 iY=2 type="casque" centrage=1/>
+		<Element4 image="bottes1.png" iX=2 iY=2 type="bottes" centrage=1/>
+		<Element5 image="armure1.png" iX=2 iY=3 type="armure" centrage=1/>
+		<Element6 image="bouclier1.png" iX=2 iY=2 type="bouclier" centrage=1/>
+	</ObjetInventaire>
 	<EntiteStatique>
 		<Element0 image="dirt2.png" multi=1 x=0 y=16 dimX=1 dimY=1 />
 		<Element1 image="dirt.png"multi=1 x=0 y=64 dimX=4 dimY=4 />

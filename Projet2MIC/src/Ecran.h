@@ -79,7 +79,7 @@ namespace Ecran {
 	
 	Image const *pointeur();
 	// Si image vaut 0, le pointeur par défaut est utilisé. La valeur decalage représente les coordonnées du point cliquable de l'image du pointeur.
-	void definirPointeur(Image *image, Coordonnees const &decalage = Coordonnees());
+	void definirPointeur(Image const *image, Coordonnees const &decalage = Coordonnees());
 }
 
 #endif

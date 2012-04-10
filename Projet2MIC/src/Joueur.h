@@ -12,6 +12,8 @@
 #include "Personnage.h"
 #include "Inventaire.h"
 
+class Partie;
+
 struct Joueur : public Personnage {
 	friend Joueur *ElementNiveau::elementNiveau<Joueur>(Niveau *n, uindex_t i, ElementNiveau::elementNiveau_t) throw(ElementNiveau::Exc_EntiteIndefinie, ElementNiveau::Exc_DefinitionEntiteIncomplete);
 public:
@@ -27,11 +29,9 @@ public:
 	
 	bool inventaireAffiche() const;
 	void definirInventaireAffiche(bool af);
-	
-	InventaireJoueur const &inventaire() const;
-	
+			
 protected:
-	static ElementNiveau::elementNiveau_t categorie() { return ElementNiveau::ennemi; }
+	static ElementNiveau::elementNiveau_t cat() { return ElementNiveau::ennemi; }
 
 	Joueur(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
 	Joueur(Joueur const &);
@@ -39,7 +39,6 @@ protected:
 	
 private:
 	bool _inventaireAffiche;
-	InventaireJoueur _inventaire;
 };
 
 #endif

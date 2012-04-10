@@ -201,8 +201,7 @@ bool EntiteMobile::deplacerPosition(Coordonnees const &delta) {
 	
 	this->definirDirection(dir);
 		
-	index_t x = std::floor((this->position().x) / LARGEUR_CASE), y = std::floor((this->position().y) / LARGEUR_CASE);
-	//std::cout << "ancien : " << x << " " << y << std::endl;
+	index_t x = this->pX(), y = this->pY();
 
 	size_t const n = std::floor(delta.norme());
 	if(n == 0) {
@@ -221,7 +220,6 @@ bool EntiteMobile::deplacerPosition(Coordonnees const &delta) {
 		if(testerDeplacement(delta - n * dep, x, y))
 			this->definirPosition(this->position() + delta - n * dep);
 	}
-	//x = std::floor((this->position().x) / LARGEUR_CASE), y = std::floor((this->position().y) / LARGEUR_CASE);
 	
 	return this->position() != anciennePosition;
 }
@@ -230,8 +228,17 @@ bool EntiteMobile::testerDeplacement(Coordonnees const &dep, index_t pX, index_t
 	if(dep.vecteurNul())
 		return true;
 	
-	index_t x1 = std::floor((this->position().x + dep.x) / LARGEUR_CASE), y1 = std::floor((this->position().y + dep.y) / LARGEUR_CASE);
-	index_t x2 = std::floor((this->position().x + dep.x + LARGEUR_CASE) / LARGEUR_CASE), y2 = std::floor((this->position().y + dep.y + LARGEUR_CASE) / LARGEUR_CASE);
+	index_t x1 = this->pX(this->position().x + dep.x), y1 = this->pY(this->position().y + dep.y);
+	index_t x2 = this->pX(this->position().x + dep.x + LARGEUR_CASE - 1), y2 = this->pY(this->position().y + dep.y + LARGEUR_CASE - 1);
+	
+	if(dep.x < 0)
+		x2 = x1;
+	else if(dep.x > 0)
+		x1 = x2;
+	if(dep.y < 0)
+		y2 = y1;
+	else if(dep.y > 0)
+		y1 = y2;
 	
 	for(index_t x = x1; x <= x2; ++x) {
 		for(index_t y = y1; y <= y2; ++y) {

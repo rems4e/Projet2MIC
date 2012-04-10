@@ -61,6 +61,7 @@ index_t Menu::afficher(Image *fond) {
 	Session::reinitialiserEvenements();
 	
 	while(Session::boucle(60, continuer)) {
+		Ecran::definirPointeurAffiche(true);
 		Ecran::effacer();
 		apercuFlou.afficher(Coordonnees());
 		Ecran::afficherRectangle(Ecran::ecran(), Couleur(0, 0, 0, 160));
@@ -114,7 +115,7 @@ index_t Menu::afficher(Image *fond) {
 	
 	if(fond == 0)
 		delete apercu;
-
+	
 	return retour;
 }
 
@@ -137,4 +138,3 @@ void Menu::afficherElements(index_t elementSelectionne) {
 size_t Menu::tailleMax() {
 	return Ecran::hauteur() * 2 / 3;
 }
-

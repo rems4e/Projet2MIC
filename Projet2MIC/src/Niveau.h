@@ -32,9 +32,10 @@ class Joueur;
 class Niveau {
 	friend class Editeur;
 public:
-	enum couche_t {premiereCouche, cn_sol = premiereCouche, cn_sol2, cn_transitionSol, cn_objet, nbCouches};
+	enum couche_t {premiereCouche, cn_sol = premiereCouche, cn_sol2, cn_transitionSol, cn_objetsInventaire, cn_objet, nbCouches};
 	typedef std::list<ElementNiveau *> elements_t;
-	typedef std::pair<elements_t::const_iterator, elements_t::const_iterator> listeElements_t;
+	typedef std::pair<elements_t::iterator, elements_t::iterator> listeElements_t;
+	typedef std::pair<elements_t::const_iterator, elements_t::const_iterator> const_listeElements_t;
 	
 	class Exc_CreationNiveau : public std::exception {
 	public:
@@ -59,8 +60,12 @@ public:
 	
 	// Obtention du contenu d'une case en un point donné. Si ce point est en dehors du niveau, retourne Niveau::aucunElement.
 	//ElementNiveau *element(index_t x, index_t y, couche_t couche = cn_sol);
-	listeElements_t elements(index_t x, index_t y, couche_t couche) const;
+	listeElements_t elements(index_t x, index_t y, couche_t couche);
+	const_listeElements_t elements(index_t x, index_t y, couche_t couche) const;
 	bool collision(index_t x, index_t y, couche_t couche, ElementNiveau *e) const;
+	
+	void ajouterElement(index_t x, index_t y, couche_t couche, ElementNiveau *elem);
+	void supprimerElement(index_t x, index_t y, couche_t couche, elements_t::iterator i, bool deleteElement);
 	
 	double zoom() const;
 	void definirZoom(double z);
@@ -74,6 +79,7 @@ protected:
 	Niveau(Joueur *p, Niveau const &niveau);
 	Niveau &operator=(Niveau const &);
 	
+	void afficherObjetsInventaire(Coordonnees const &cam);
 	void afficherCouche(couche_t couche, Coordonnees const &cam);
 	void afficherBordure(int cote, Coordonnees const &cam);
 	
@@ -103,8 +109,10 @@ private:
 	double _zoom;
 	std::list<CaseMobile> _entitesMobiles;
 	Joueur *_perso;
-	Image _b1;
-	Image _b2;
+	Image _objet;
+	Image _objets;
+	
+	Coordonnees _persoInit;
 };
 
 Niveau::couche_t &operator++(Niveau::couche_t &c);

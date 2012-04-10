@@ -174,6 +174,7 @@ void Editeur::editerNiveau(std::string const &fichier) {
 }
 
 void Editeur::afficher() {
+	Ecran::afficherRectangle(Ecran::ecran(), Couleur::grisClair);
 	for(Niveau::couche_t c = Niveau::premiereCouche; c != Niveau::nbCouches; ++c) {
 		if(c == _coucheEdition)
 			continue;
@@ -243,7 +244,7 @@ void Editeur::afficherGrille() {
 	}
 	for(index_t x = 0; x <= _niveau->_dimX; ++x) {
 		Ecran::afficherLigne(referentielNiveauVersEcran(Coordonnees(x, 0) * LARGEUR_CASE) - _origine + Editeur::cadreEditeur().origine(), referentielNiveauVersEcran(Coordonnees(x, _niveau->_dimY) * LARGEUR_CASE) - _origine + Editeur::cadreEditeur().origine(), Couleur::rouge, 1.0);
-	}	
+	}
 }
 
 void Editeur::afficherInterface() {
@@ -1702,6 +1703,7 @@ int &Editeur::LoiProba::operator[](ElementNiveau::elementNiveau_t c) {
 Editeur::ElementEditeur::ElementEditeur(ElementNiveau::elementNiveau_t cat, index_t index) : _proba(false), _index(index), _categorie(cat), _image(), _cadre(), _teinte(Couleur::blanc) {
 	TiXmlElement *e = ElementNiveau::description(index, cat);
 	_image = Image(Session::cheminRessources() + e->Attribute("image"));
+	_dimensions.x = _dimensions.y = LARGEUR_CASE;
 	
 	_cadre = Rectangle(Coordonnees(), _image.dimensions());
 

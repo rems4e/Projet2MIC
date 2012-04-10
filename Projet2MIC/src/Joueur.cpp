@@ -9,7 +9,7 @@
 #include "Joueur.h"
 #include "Session.h"
 
-Joueur::Joueur(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : Personnage(n, index, cat), _inventaireAffiche(false), _inventaire() {
+Joueur::Joueur(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : Personnage(n, index, cat, new InventaireJoueur(*this)), _inventaireAffiche(false) {
 	
 }
 
@@ -19,7 +19,7 @@ Joueur::~Joueur() {
 
 void Joueur::afficher(Coordonnees const &decalage, double zoom) const {
 	this->Personnage::afficher(decalage);
-	Ecran::afficherRectangle(Rectangle((this->positionAffichage() + this->origine()) * zoom - decalage, Coordonnees(10, 10)), Couleur::rouge);
+	Ecran::afficherRectangle(Rectangle((this->positionAffichage() + this->origine()) * zoom - decalage - Coordonnees(5, 5), Coordonnees(10, 10)), Couleur(255, 255, 0));
 }
 
 void Joueur::animer(horloge_t tempsEcoule) {
@@ -53,6 +53,16 @@ void Joueur::animer(horloge_t tempsEcoule) {
 		else
 			this->definirAction(EntiteMobile::a_immobile);
 	}
+	
+	if(Session::evenement(Session::T_r)) {
+		Niveau::listeElements_t liste = this->niveau()->elements(this->pX(), this->pY(), Niveau::cn_objetsInventaire);
+		for(Niveau::elements_t::iterator el = liste.first; el != liste.second; ++el) {
+			if(this->inventaire()->ajouterObjet(static_cast<ObjetInventaire *>(*el))) {
+				this->niveau()->supprimerElement(this->pX(), this->pY(), Niveau::cn_objetsInventaire, el, false);
+			}
+		}
+		Session::reinitialiser(Session::T_r);
+	}
 }
 
 void Joueur::interagir(Personnage *p) {
@@ -74,8 +84,3 @@ bool Joueur::inventaireAffiche() const {
 void Joueur::definirInventaireAffiche(bool af) {
 	_inventaireAffiche = af;
 }
-
-InventaireJoueur const &Joueur::inventaire() const {
-	return _inventaire;
-}
-

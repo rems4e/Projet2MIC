@@ -43,5 +43,3 @@ Coordonnees EntiteStatique::dimensions() const {
 Image const &EntiteStatique::image() const {
 	return _image;
 }
-
-

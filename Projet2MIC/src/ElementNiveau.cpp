@@ -10,6 +10,7 @@
 #include "EntiteStatique.h"
 #include "EntiteMobile.h"
 #include "EntiteStatiqueAnimee.h"
+#include "Teleporteur.h"
 #include "Ennemi.h"
 #include "Joueur.h"
 #include "ObjetInventaire.h"
@@ -35,7 +36,9 @@ ElementNiveau *ElementNiveau::elementNiveau(Niveau *n, uindex_t index, elementNi
 			return ElementNiveau::elementNiveau<EntiteStatiqueAnimee>(n, index);
 		case objetInventaire:
 			return ElementNiveau::elementNiveau<ObjetInventaire>(n, index);
-		case ndef6:case ndef7:case ndef8:
+		case teleporteur:
+			return ElementNiveau::elementNiveau<Teleporteur>(n, index);
+		case ndef7:case ndef8:
 		case ndef9:case ndef10:case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
 		case ndef17:case ndef18:case ndef19:case ndef20:case ndef21:case ndef22:case ndef23:case ndef24:
 		case ndef25:case ndef26:case ndef27:case ndef28:case ndef29:case ndef30:case ndef31:case ndef32:
@@ -48,7 +51,7 @@ ElementNiveau *ElementNiveau::elementNiveau(Niveau *n, uindex_t index, elementNi
 	}
 }
 
-ElementNiveau::ElementNiveau(Niveau *n, uindex_t index, elementNiveau_t cat) : _niveau(n), _position(), _origine(), _centrage(false), _multi(false) {
+ElementNiveau::ElementNiveau(Niveau *n, uindex_t index, elementNiveau_t cat) : _niveau(n), _position(), _origine(), _centrage(false), _multi(false), _categorie(cat) {
 	TiXmlElement *e = ElementNiveau::description(index, cat);
 	if(e->Attribute("x"))
 		e->Attribute("x", &_origine.x);
@@ -100,6 +103,11 @@ bool ElementNiveau::centrage() const {
 bool ElementNiveau::multi() const {
 	return _multi;
 }
+
+ElementNiveau::elementNiveau_t ElementNiveau::categorie() const {
+	return _categorie;
+}
+
 
 void ElementNiveau::chargerDescription() {
 	if(!_description) {
@@ -170,7 +178,9 @@ char const *ElementNiveau::nomBalise(elementNiveau_t cat) {
 			return "EntiteStatiqueAnimee";
 		case objetInventaire:
 			return "ObjetInventaire";
-		case ndef6:case ndef7:case ndef8:
+		case teleporteur:
+			return "Teleporteur";
+		case ndef7:case ndef8:
 		case ndef9:case ndef10:case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
 		case ndef17:case ndef18:case ndef19:case ndef20:case ndef21:case ndef22:case ndef23:case ndef24:
 		case ndef25:case ndef26:case ndef27:case ndef28:case ndef29:case ndef30:case ndef31:case ndef32:
@@ -195,7 +205,9 @@ char const *ElementNiveau::nomCategorie(elementNiveau_t cat) {
 			return "Entite statique animée";
 		case objetInventaire:
 			return "Objet inventaire";
-		case ndef6:case ndef7:case ndef8:
+		case teleporteur:
+			return "Téléporteur";
+		case ndef7:case ndef8:
 		case ndef9:case ndef10:case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
 		case ndef17:case ndef18:case ndef19:case ndef20:case ndef21:case ndef22:case ndef23:case ndef24:
 		case ndef25:case ndef26:case ndef27:case ndef28:case ndef29:case ndef30:case ndef31:case ndef32:

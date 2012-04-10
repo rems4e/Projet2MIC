@@ -25,6 +25,11 @@ T nombreAleatoire(T nombreMax) {
 	return static_cast<T>(nombreAleatoire(static_cast<int>(nombreMax)));
 }
 
+template <typename T>
+bool comprisEntre(T valeur, T borneInf, T borneSup) {
+	return valeur >= borneInf && valeur <= borneSup;
+}
+
 double arrondi(double n);
 float arrondi(float n);
 

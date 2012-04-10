@@ -9,7 +9,7 @@
 #include "Ennemi.h"
 #include "Joueur.h"
 
-Ennemi::Ennemi(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : Personnage(n, index, cat), _recherche(false) {
+Ennemi::Ennemi(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : Personnage(n, index, cat, new InventaireEnnemi(*this, CAPACITE_ENNEMI)), _recherche(false) {
 	
 }
 
@@ -35,7 +35,7 @@ void Ennemi::animer(horloge_t tempsEcoule) {
 			dep *= this->vitesse();
 			index_t pX = this->pX(this->position().x + dep.x), pY = this->pY(this->position().y + dep.y);
 			suivre = j->pX() != pX || j->pY() != pY;
-			Niveau::listeElements_t liste = this->niveau()->elements(pX, pY, this->couche());
+			Niveau::const_listeElements_t liste = this->niveau()->elements(pX, pY, this->couche());
 			for(Niveau::elements_t::const_iterator el = liste.first; el != liste.second; ++el) {
 				if(*el != this && (*el)->mobile() && static_cast<EntiteMobile *>(*el)->type() == EntiteMobile::ennemi) {
 					Ennemi *e = static_cast<Ennemi *>(*el);

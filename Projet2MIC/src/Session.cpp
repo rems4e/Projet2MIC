@@ -122,8 +122,9 @@ void Session::nettoyer() {
 }
 
 void Session::menu() {
-	Partie nouvellePartie;
-	nouvellePartie.commencer();
+	Partie *nouvellePartie = Partie::creerPartie();
+	nouvellePartie->commencer();
+	delete nouvellePartie;
 }
 
 void Session::gestionEvenements() {

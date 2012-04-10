@@ -22,10 +22,10 @@ public:
 	virtual void animer(horloge_t tempsEcoule);
 	virtual Coordonnees dimensions() const;
 	
-protected:	
 	Rectangle const &cadre() const;
 
-	static ElementNiveau::elementNiveau_t categorie() { return ElementNiveau::entiteStatiqueAnimee; }
+protected:	
+	static ElementNiveau::elementNiveau_t cat() { return ElementNiveau::entiteStatiqueAnimee; }
 	EntiteStatiqueAnimee(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
 
 private:
