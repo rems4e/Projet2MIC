@@ -122,11 +122,11 @@ void InventaireC<Conteneur>::vider() {
 }
 
 template<typename InputIterator>
-InventaireListe::InventaireListe(Personnage &perso, size_t capacite, InputIterator debut, InputIterator fin) : InventaireC(perso, capacite, debut, fin) {
+InventaireListe::InventaireListe(Personnage &perso, size_t capacite, InputIterator debut, InputIterator fin) : InventaireC<std::list>(perso, capacite, debut, fin) {
 	
 }
 
-InventaireListe::InventaireListe(Personnage &perso, size_t capacite) : InventaireC(perso, capacite)  {
+InventaireListe::InventaireListe(Personnage &perso, size_t capacite) : InventaireC<std::list>(perso, capacite)  {
 	
 }
 
@@ -168,7 +168,7 @@ void InventaireSol::gestionEvenements() {
 }
 
 template<typename InputIterator>
-InventaireTableau::InventaireTableau(Personnage &perso, size_t largeur, size_t hauteur, InputIterator debut, InputIterator fin) : InventaireC(perso, largeur * hauteur, debut, fin), _largeur(largeur), _hauteur(hauteur) {
+InventaireTableau::InventaireTableau(Personnage &perso, size_t largeur, size_t hauteur, InputIterator debut, InputIterator fin) : InventaireC<std::vector>(perso, largeur * hauteur, debut, fin), _largeur(largeur), _hauteur(hauteur) {
 	size_t nb = std::distance(debut, fin);
 	size_t manquants = this->capacite() - nb;
 	for(index_t i = 0; i < manquants; ++i) {
@@ -176,9 +176,9 @@ InventaireTableau::InventaireTableau(Personnage &perso, size_t largeur, size_t h
 	}
 }
 
-InventaireTableau::InventaireTableau(Personnage &perso, size_t largeur, size_t hauteur) : InventaireC(perso, largeur * hauteur), _largeur(largeur), _hauteur(hauteur) {
+InventaireTableau::InventaireTableau(Personnage &perso, size_t largeur, size_t hauteur) : InventaireC<std::vector>(perso, largeur * hauteur), _largeur(largeur), _hauteur(hauteur) {
 	for(index_t i = 0; i < this->capacite(); ++i) {
-		this->InventaireC::ajouterObjet(0);
+		this->InventaireC<std::vector>::ajouterObjet(0);
 	}
 }
 
@@ -303,9 +303,9 @@ Coordonnees InventaireTableau::positionObjet(ObjetInventaire *o) const {
 }
 
 void InventaireTableau::vider() {
-	this->InventaireC::vider();
+	this->InventaireC<std::vector>::vider();
 	for(int i = 0; i < this->capacite(); ++i) {
-		this->InventaireC::ajouterObjet(0);
+		this->InventaireC<std::vector>::ajouterObjet(0);
 	}
 }
 

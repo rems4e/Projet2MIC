@@ -82,7 +82,7 @@ Personnage::Personnage(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t
 		_delaisAction[a]._cdAbsolu = 0;
 		_delaisAction[a]._cooldown = 0;
 	}
-	_delaisAction[a_attaquer]._cooldown = .5;
+	_delaisAction[a_attaquer]._cooldown = 0.5f;
 	
 	std::memset(_tenue, 0, nbPositionsTenue * sizeof(ObjetInventaire *));
 	

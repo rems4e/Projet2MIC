@@ -193,7 +193,7 @@ void Editeur::afficher() {
 void Editeur::afficherCouche(Niveau::couche_t couche) {
 	static float teinteSelection = 0;
 	static int sensTeinte = 1;
-	teinteSelection += 1.0 / 400.0 * (60.0 / Ecran::frequenceInstantanee()) * sensTeinte;
+	teinteSelection += 1.0f / 400.0f * (60.0f / Ecran::frequenceInstantanee()) * sensTeinte;
 	if(teinteSelection > 1) {
 		teinteSelection = 1;
 		sensTeinte = -1;
@@ -822,9 +822,9 @@ void Editeur::editerLoiProba(index_t loi, Image *fond) {
 	int sensTeinte = 1;
 
 	while(Session::boucle(100.0f, continuer)) {
-		teinteSelection += 1.0 / 50 * (60.0 / Ecran::frequenceInstantanee()) * sensTeinte;
-		if(teinteSelection > 0.7) {
-			teinteSelection = 0.7;
+		teinteSelection += 1.0f / 50.0f * (60.0f / Ecran::frequenceInstantanee()) * sensTeinte;
+		if(teinteSelection > 0.7f) {
+			teinteSelection = 0.7f;
 			sensTeinte = -1;
 		}
 		else if(teinteSelection < 0) {
@@ -999,9 +999,9 @@ void Editeur::modifDimensions() {
 	size_t dimX = _niveau->_dimX, dimY = _niveau->_dimY;
 	
 	while(Session::boucle(100.0f, continuer)) {
-		teinteSelection += 1.0 / 50 * (60.0 / Ecran::frequenceInstantanee()) * sensTeinte;
-		if(teinteSelection > 0.7) {
-			teinteSelection = 0.7;
+		teinteSelection += 1.0f / 50.0f * (60.0f / Ecran::frequenceInstantanee()) * sensTeinte;
+		if(teinteSelection > 0.7f) {
+			teinteSelection = 0.7f;
 			sensTeinte = -1;
 		}
 		else if(teinteSelection < 0) {
@@ -1181,9 +1181,9 @@ void Editeur::modifIndex() {
 	int sensTeinte = 1;
 	
 	while(Session::boucle(100.0f, continuer)) {
-		teinteSelection += 1.0 / 50 * (60.0 / Ecran::frequenceInstantanee()) * sensTeinte;
-		if(teinteSelection > 0.7) {
-			teinteSelection = 0.7;
+		teinteSelection += 1.0f / 50.0f * (60.0f / Ecran::frequenceInstantanee()) * sensTeinte;
+		if(teinteSelection > 0.7f) {
+			teinteSelection = 0.7f;
 			sensTeinte = -1;
 		}
 		else if(teinteSelection < 0) {
@@ -1326,9 +1326,9 @@ static index_t choisirElement(std::vector<Unichar> const &el, index_t sel, Unich
 	int sensTeinte = 1;
 	
 	while(Session::boucle(100.0f, continuer)) {
-		teinteSelection += 1.0 / 50 * (60.0 / Ecran::frequenceInstantanee()) * sensTeinte;
-		if(teinteSelection > 0.7) {
-			teinteSelection = 0.7;
+		teinteSelection += 1.0f / 50.0f * (60.0f / Ecran::frequenceInstantanee()) * sensTeinte;
+		if(teinteSelection > 0.7f) {
+			teinteSelection = 0.7f;
 			sensTeinte = -1;
 		}
 		else if(teinteSelection < 0) {

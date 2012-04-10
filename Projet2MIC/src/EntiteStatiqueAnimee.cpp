@@ -22,14 +22,14 @@ EntiteStatiqueAnimee::EntiteStatiqueAnimee(Niveau *n, uindex_t index, ElementNiv
 	if(e->Attribute("tempsAttente")) {
 		int temps;
 		e->Attribute("tempsAttente", &temps);
-		_tempsAffichage = temps / 1000.0;
+		_tempsAffichage = temps / 1000.0f;
 	}
 	
 	_cadres = new Rectangle[_nbImages];
 	
 	size_t largeur = this->image().dimensionsReelles().x / _nbImages;
 	size_t hauteur = this->image().dimensionsReelles().y;
-	int x = 0;
+	index_t x = 0;
 	for(int p = 0; p < _nbImages; ++p) {
 		_cadres[p] = Rectangle(x, 0, largeur, hauteur);
 		x += largeur;

@@ -41,12 +41,12 @@ EntiteMobile::EntiteMobile(Niveau *n, uindex_t index, ElementNiveau::elementNive
 			action->Attribute("nbPoses", &_nbImages[a]);
 			int temps;
 			action->Attribute("tempsAttente", &temps);
-			_tempsAffichage[a] = temps / 1000.0;
+			_tempsAffichage[a] = temps / 1000.0f;
 		}
 	}
 	
 	for(int direction = 0; direction < 8; ++direction) {
-		int x = 0;
+		index_t x = 0;
 		for(action_t a = premiereAction; a != nbActions; ++a) {
 			_cadres[a][direction] = new Rectangle[_nbImages[a]];
 			for(int p = 0; p < _nbImages[a]; ++p) {

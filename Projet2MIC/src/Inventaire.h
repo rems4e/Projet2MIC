@@ -70,12 +70,12 @@ public:
 	virtual void afficher() const = 0;
 	virtual void gestionEvenements() = 0;
 	
-	const_iterator debut() const;
-	const_iterator fin() const;
+	const_iterator const &debut() const;
+	const_iterator const &fin() const;
 	
 protected:
-	iterator debut();
-	iterator fin();
+	iterator const &debut();
+	iterator const &fin();
 	
 	Personnage const &personnage() const;
 	Personnage &personnage();
@@ -161,8 +161,8 @@ private:
 
 class InventaireListe : public InventaireC<std::list> {
 public:
-	typedef InventaireC::const_iterator const_iterator;
-	typedef InventaireC::iterator iterator;
+	typedef InventaireC<std::list>::const_iterator const_iterator;
+	typedef InventaireC<std::list>::iterator iterator;
 	
 	template<typename InputIterator>
 	InventaireListe(Personnage &perso, size_t capacite, InputIterator debut, InputIterator fin);
@@ -178,8 +178,8 @@ typedef InventaireListe InventaireEnnemi;
 
 class InventaireSol : public InventaireListe {
 public:
-	typedef InventaireC::const_iterator const_iterator;
-	typedef InventaireC::iterator iterator;
+	typedef InventaireListe::const_iterator const_iterator;
+	typedef InventaireListe::iterator iterator;
 	
 	template<typename InputIterator>
 	InventaireSol(Personnage &perso, InputIterator debut, InputIterator fin);
@@ -195,8 +195,8 @@ private:
 
 class InventaireTableau : public InventaireC<std::vector> {
 public:
-	typedef InventaireC::const_iterator const_iterator;
-	typedef InventaireC::iterator iterator;
+	typedef InventaireC<std::vector>::const_iterator const_iterator;
+	typedef InventaireC<std::vector>::iterator iterator;
 	
 	template<typename InputIterator>
 	InventaireTableau(Personnage &perso, size_t largeur, size_t hauteur, InputIterator debut, InputIterator fin);
@@ -228,8 +228,8 @@ private:
 
 /*class InventaireMarchand : public InventaireTableau {
 public:
-	typedef InventaireC::const_iterator const_iterator;
-	typedef InventaireC::iterator iterator;
+	typedef InventaireTableau::const_iterator const_iterator;
+	typedef InventaireTableau::iterator iterator;
 	
 	InventaireMarchand();
 	virtual ~InventaireMarchand();
@@ -243,8 +243,8 @@ private:
 
 class InventaireJoueur : public InventaireTableau {
 public:
-	typedef InventaireC::const_iterator const_iterator;
-	typedef InventaireC::iterator iterator;
+	typedef InventaireTableau::const_iterator const_iterator;
+	typedef InventaireTableau::iterator iterator;
 	
 	InventaireJoueur(Joueur &joueur);
 	virtual ~InventaireJoueur();
