@@ -345,6 +345,7 @@ InventaireJoueur::~InventaireJoueur() {
 
 void InventaireJoueur::afficher() const {
 	_fond.afficher(Coordonnees());
+
 	Coordonnees pos(32, 288);
 	index_t i = 0;
 	for(const_iterator j = this->debut(); j != this->fin(); ++j) {
@@ -470,11 +471,12 @@ void InventaireJoueur::gestionEvenements() {
 						else {
 							_couleurSurlignage = Couleur(Couleur::rouge, 50);
 						}
+						_surlignage = _tenue[i];
 					}
 					else if(this->personnage().tenue(i)) {
 						_couleurSurlignage = Couleur(Couleur::blanc, 66);
+						_surlignage = _tenue[i];
 					}
-					_surlignage = _tenue[i];
 				}
 				break;
 			}

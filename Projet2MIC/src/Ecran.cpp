@@ -36,6 +36,7 @@ Couleur const Couleur::transparent(0, 0);
 namespace Ecran {	
 	struct AttributsEcran {
 		Texte _texte;
+		Image _vide;
 		Image const *_pointeur;
 		Image const *_pointeurDefaut;
 		Coordonnees _decalagePointeur;
@@ -85,9 +86,6 @@ Ecran::AttributsEcran::~AttributsEcran() {
 }
 
 void Ecran::modifierResolution(unsigned int largeur, unsigned int hauteur, unsigned int profondeur, bool pleinEcran) {
-#if REUTILISATION_ID_TEXTURE
-	Image::changerTexture(Image::aucuneTexture);
-#endif
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL, SYNCHRO_VERTICALE);
 	SDL_Surface *resultat = 0;
@@ -113,6 +111,10 @@ void Ecran::modifierResolution(unsigned int largeur, unsigned int hauteur, unsig
 	Ecran::_attributs._pointeurAffiche = false;
 	delete Ecran::_attributs._pointeurDefaut;
 	Ecran::_attributs._pointeurDefaut = new Image(Session::cheminRessources() + "souris.png");
+	
+	unsigned char imageVide[4] = {255, 255, 255, 255};
+	_attributs._vide = Image(imageVide, 1, 1, 4);
+	
 	Ecran::definirPointeur(0);
 	
 	Ecran::_ecran = Rectangle(Coordonnees(), Ecran::dimensions());
@@ -128,17 +130,13 @@ void Ecran::modifierResolution(unsigned int largeur, unsigned int hauteur, unsig
 	
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glEnable(GL_TEXTURE_2D);
+
 	glClearColor(0, 0, 0, 1.0f);
 	Ecran::afficherRectangle(Ecran::ecran(), Couleur::noir);	
 	Ecran::maj();
 }
 
-Image *Ecran::apercu() {
-#if REUTILISATION_ID_TEXTURE
-	Image::changerTexture(Image::aucuneTexture);
-#endif
-	
+Image *Ecran::apercu() {	
 	unsigned char *pixels = new unsigned char[static_cast<int>(Ecran::_attributs._largeur) * static_cast<int>(Ecran::_attributs._hauteur) * 4];
 
 	glReadPixels(0, 0, static_cast<int>(Ecran::_attributs._largeur), static_cast<int>(Ecran::_attributs._hauteur), GL_RGBA, GL_UNSIGNED_BYTE, pixels);
@@ -178,9 +176,6 @@ void Ecran::maj() {
 		Ecran::_attributs._pointeur->afficher(Session::souris() - Ecran::_attributs._decalagePointeur);
 	}
 	
-#if REUTILISATION_ID_TEXTURE
-	Image::changerTexture(Image::aucuneTexture);
-#endif
 	SDL_GL_SwapBuffers();
 
 	glLoadIdentity();
@@ -190,25 +185,30 @@ void Ecran::effacer() {
 	glClear(GL_COLOR_BUFFER_BIT );
 }
 
-void Ecran::afficherRectangle(Rectangle const &r, Couleur const &c) {
-	Ecran::afficherQuadrilatere(Coordonnees(r.gauche, r.haut), Coordonnees(r.gauche + r.largeur, r.haut), Coordonnees(r.gauche + r.largeur, r.haut + r.hauteur), Coordonnees(r.gauche, r.haut + r.hauteur), c);
+void Ecran::afficherRectangle(Rectangle const &r, Couleur const &c, Shader const &s) {
+	Ecran::afficherQuadrilatere(Coordonnees(r.gauche, r.haut), Coordonnees(r.gauche + r.largeur, r.haut), Coordonnees(r.gauche + r.largeur, r.haut + r.hauteur), Coordonnees(r.gauche, r.haut + r.hauteur), c, s);
 }
 
-void Ecran::afficherLigne(Coordonnees const &depart, Coordonnees const &arrivee, Couleur const &c, dimension_t epaisseur) {
+void Ecran::afficherLigne(Coordonnees const &depart, Coordonnees const &arrivee, Couleur const &c, dimension_t epaisseur, Shader const &s) {
 	if((depart - arrivee).vecteurNul())
 		return;
 	Coordonnees normale = (depart - arrivee).normaliser() * epaisseur;
 	std::swap(normale.x, normale.y);
 	normale.y *= -1;
 
-	Ecran::afficherQuadrilatere(depart - normale, depart + normale, arrivee + normale, arrivee - normale, c);
+	Ecran::afficherQuadrilatere(depart - normale, depart + normale, arrivee + normale, arrivee - normale, c, s);
 }
 
-void Ecran::afficherQuadrilatere(Coordonnees const &p1, Coordonnees const &p2, Coordonnees const &p3, Coordonnees const &p4, Couleur const &c) {
-#if REUTILISATION_ID_TEXTURE
-	Image::changerTexture(Image::aucuneTexture);
-#endif	
-	glDisable(GL_TEXTURE_2D);
+void Ecran::afficherQuadrilatere(Coordonnees const &p1, Coordonnees const &p2, Coordonnees const &p3, Coordonnees const &p4, Couleur const &c, Shader const &s) {
+	s.activer();
+
+	glBindTexture(GL_TEXTURE_2D, _attributs._vide.tex());
+	GLint dim = glGetUniformLocation(s.programme(), "dimTex");
+	glUniform2f(dim, 1, 1);
+	for(Shader::const_iterator i = s.premierParametre(); i != s.dernierParametre(); ++i) {
+		GLint loc = glGetUniformLocation(s.programme(), i->first.c_str());
+		glUniform1f(loc, i->second);
+	}
 	
 	glBegin(GL_QUADS);
 	glColor4ub(c.r, c.v, c.b, c.a);
@@ -217,8 +217,6 @@ void Ecran::afficherQuadrilatere(Coordonnees const &p1, Coordonnees const &p2, C
 	glVertex2d(p3.x, p3.y);
 	glVertex2d(p4.x, p4.y);
 	glEnd();
-	
-	glEnable(GL_TEXTURE_2D);	
 }
 
 Rectangle Ecran::ecran() {
@@ -275,4 +273,3 @@ void Ecran::definirPointeur(Image const *image, Coordonnees const &decalage) {
 		_attributs._decalagePointeur = decalage;
 	}
 }
-

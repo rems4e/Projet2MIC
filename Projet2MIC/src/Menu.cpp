@@ -11,10 +11,13 @@
 #include "Image.h"
 #include "Session.h"
 #include "Ecran.h"
+#include <algorithm>
 
 #define TAILLE_TITRE_MENU 42
 #define TAILLE_ELEMENTS_MENU 30
 #define ECART_ELEM 5
+#define TEMPS_ENTREE 1.0f
+#define FLOU_FOND 1.0f
 
 Menu::element_t::element_t(Unichar const &u) : _texte(u), _cadre() {
 	_texte.definir(POLICE_DECO, TAILLE_ELEMENTS_MENU);
@@ -55,16 +58,19 @@ index_t Menu::afficher(Image *fond) {
 	Image *apercu = fond;
 	if(apercu == 0)
 		apercu = Ecran::apercu();
-	
-	Image apercuFlou = apercu->flou(1);
-	
+		
 	Session::reinitialiserEvenements();
 	
-	while(Session::boucle(60, continuer)) {
+	horloge_t ref = horloge();
+	
+	while(Session::boucle(100, continuer)) {
 		Ecran::definirPointeurAffiche(true);
 		Ecran::effacer();
-		apercuFlou.afficher(Coordonnees());
-		Ecran::afficherRectangle(Ecran::ecran(), Couleur(0, 0, 0, 160));
+		Image::definirTeinte(Couleur(0, std::min((horloge() - ref) / TEMPS_ENTREE, 1.0f) * 80));
+		apercu->afficher(Coordonnees(), Shader::flou(std::min((horloge() - ref) / TEMPS_ENTREE, 1.0f) * FLOU_FOND));
+		Image::definirTeinte(Couleur::blanc);
+		
+		//Ecran::afficherRectangle(Ecran::ecran(), Couleur(0, 0, 0, 128));
 		this->afficherElements(elementSelectionne);
 				
 		if(Session::evenement(Session::T_ESC)) {

@@ -722,10 +722,10 @@ void Editeur::modifLoisProbas() {
 	if(elem == lois.size() - 1) {
 		_niveau->_probas.push_back(LoiProba("proba" + nombreVersTexte(lois.size()), probaVierge));
 		this->modification();
-		this->editerLoiProba(_niveau->_probas.size() - 1, fond);
+		this->editerLoiProba(_niveau->_probas.size() - 1, *fond);
 	}
 	else if(elem != lois.size()) {
-		this->editerLoiProba(elem, fond);
+		this->editerLoiProba(elem, *fond);
 	}
 	
 	delete fond;
@@ -786,7 +786,7 @@ struct trouveSouris_t {
 	}
 };
 
-void Editeur::editerLoiProba(index_t loi, Image *fond) {
+void Editeur::editerLoiProba(index_t loi, Image &fond) {
 	bool continuer = true, supprimer = false;
 	
 	horloge_t ancienDefilement = 0;
@@ -816,8 +816,6 @@ void Editeur::editerLoiProba(index_t loi, Image *fond) {
 	index_t premierAffiche = 0;
 	size_t nbAffiches = std::min(size_t(10), categories.size());
 	
-	Image flou(fond->flou(1));
-
 	float teinteSelection = 0;
 	int sensTeinte = 1;
 
@@ -837,7 +835,7 @@ void Editeur::editerLoiProba(index_t loi, Image *fond) {
 		probas[selection].definir(Couleur(teinteSelection * 255));
 
 		Ecran::effacer();
-		flou.afficher(Coordonnees());
+		fond.afficher(Coordonnees(), Shader::flou(1));
 		Ecran::afficherRectangle(Ecran::ecran(), Couleur(255, 255, 255, 200));
 		
 		Rectangle cadre(Coordonnees(80, 80), titre.dimensions()), cadreSup(Coordonnees(), sup.dimensions());
@@ -968,7 +966,7 @@ void Editeur::editerLoiProba(index_t loi, Image *fond) {
 			std::vector<Unichar> elem;
 			elem.push_back("OK");
 			Menu m("La loi de probabilité est utilisée", elem);
-			m.afficher(fond);
+			m.afficher(&fond);
 		}
 	}
 }
@@ -991,7 +989,6 @@ void Editeur::modifDimensions() {
 	index_t selection = 0;
 	
 	Image *ap = Ecran::apercu();
-	Image flou(ap->flou(1));
 	
 	float teinteSelection = 0;
 	int sensTeinte = 1;
@@ -1014,7 +1011,7 @@ void Editeur::modifDimensions() {
 		valeurs[selection].definir(Couleur(teinteSelection * 255));
 		
 		Ecran::effacer();
-		flou.afficher(Coordonnees());
+		ap->afficher(Coordonnees(), Shader::flou(1));
 		Ecran::afficherRectangle(Ecran::ecran(), Couleur(255, 255, 255, 200));
 		
 		Rectangle cadre(Coordonnees(80, 80), titre.dimensions()), cadreOk(Coordonnees(), ok.dimensions());
@@ -1175,7 +1172,6 @@ void Editeur::modifIndex() {
 	size_t nbAffiches = std::min(size_t(10), index.size());
 	
 	Image *ap = Ecran::apercu();
-	Image flou(ap->flou(1));
 	
 	float teinteSelection = 0;
 	int sensTeinte = 1;
@@ -1195,7 +1191,7 @@ void Editeur::modifIndex() {
 		index[selection].definir(Couleur(teinteSelection * 255));
 		
 		Ecran::effacer();
-		flou.afficher(Coordonnees());
+		ap->afficher(Coordonnees(), Shader::flou(1));
 		Ecran::afficherRectangle(Ecran::ecran(), Couleur(255, 255, 255, 200));
 		
 		Rectangle cadre(Coordonnees(80, 80), titre.dimensions());
@@ -1320,7 +1316,6 @@ static index_t choisirElement(std::vector<Unichar> const &el, index_t sel, Unich
 	size_t nbAffiches = std::min(size_t(10), elements.size());
 	
 	Image *ap = apercu ? apercu : Ecran::apercu();
-	Image flou(ap->flou(1));
 	
 	float teinteSelection = 0;
 	int sensTeinte = 1;
@@ -1340,7 +1335,7 @@ static index_t choisirElement(std::vector<Unichar> const &el, index_t sel, Unich
 		elements[selection].definir(Couleur(teinteSelection * 255));
 		
 		Ecran::effacer();
-		flou.afficher(Coordonnees());
+		ap-> afficher(Coordonnees(), Shader::flou(1));
 		Ecran::afficherRectangle(Ecran::ecran(), Couleur(255, 255, 255, 200));
 		
 		Rectangle cadre(Coordonnees(80, 80), titre.dimensions());

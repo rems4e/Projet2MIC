@@ -138,7 +138,7 @@ protected:
 	void modifDimensions();
 	
 	void modifLoisProbas();
-	void editerLoiProba(index_t loi, Image *fond);
+	void editerLoiProba(index_t loi, Image &fond);
 	
 	void selectionnerSemblables();
 		

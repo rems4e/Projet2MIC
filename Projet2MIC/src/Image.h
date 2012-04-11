@@ -19,6 +19,7 @@
 #include "Ecran.h"
 #include "Geometrie.h"
 #include <stack>
+#include "Shader.h"
 
 #define REUTILISATION_ID_TEXTURE 1
 
@@ -28,14 +29,13 @@ class Image {
 	friend void quitter(int code);
 public:
 	Image(std::string const &fichier);
+	// On créé un image à partir d'un tableau 2D de pixels, rangés un rang après l'autre, avec 'profondeur' octet pour chaque pixel.
 	Image(unsigned char *pixels, int largeur, int hauteur, int profondeur, bool retourner = false);
 	Image(Image const &img);
 	Image();
 	Image &operator=(Image const &img);
 	virtual ~Image();
-	
-	Image flou(int rayon) const;
-	
+		
 	// L'image a été chargée correctement
 	inline bool valide() const { return _base; }
 	
@@ -53,9 +53,9 @@ public:
 	Image const &redimensionner(facteur_t facteurX, facteur_t facteurY) const;
 	
 	// Affichage de l'image à une position donnée
-	inline void afficher(Coordonnees const &position) const { this->afficher(position, Rectangle(Coordonnees(), this->dimensionsReelles())); }
+	inline void afficher(Coordonnees const &position, Shader const &s = Shader::aucun()) const { this->afficher(position, Rectangle(Coordonnees(), this->dimensionsReelles()), s); }
 	// Affichage de la portion de l'image définie par le rectangle
-	void afficher(Coordonnees const &position, Rectangle const &filtre) const;
+	void afficher(Coordonnees const &position, Rectangle const &filtre, Shader const &s = Shader::aucun()) const;
 	
 	// Fichier de l'image ou chaîne vide si l'image a été générée à partir d'une matrice de pixels
 	inline std::string const &fichier() const;
@@ -68,20 +68,13 @@ public:
 	static Couleur teinte();
 	static void definirTeinte(Couleur const &c);
 	
-#if REUTILISATION_ID_TEXTURE
-	static GLuint const aucuneTexture;
-	static void changerTexture(GLuint tex);	
-#endif
-
-protected:
+	GLint tex();
 	
+private:
 	ImageBase *_base;
 	
 	mutable facteur_t _facteurX, _facteurY;
 	mutable float _angle;
-#if REUTILISATION_ID_TEXTURE
-	static GLuint _derniereTexture;
-#endif
 	static Couleur _teinte;
 	static unsigned char _opacite;
 		

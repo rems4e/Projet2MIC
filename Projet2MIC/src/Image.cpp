@@ -44,11 +44,6 @@ struct ImageBase {
 };
 
 static std::list<ImageBase *> *images = 0;
-#if REUTILISATION_ID_TEXTURE
-GLuint const Image::aucuneTexture = GLuint(-1);
-GLuint Image::_derniereTexture = Image::aucuneTexture;
-
-#endif
 
 Couleur Image::_teinte = Couleur::blanc;
 unsigned char Image::_opacite = 255;
@@ -99,9 +94,6 @@ void ImageBase::detruire() {
 }
 
 ImageBase::~ImageBase() {
-#if REUTILISATION_ID_TEXTURE
-	Image::changerTexture(Image::aucuneTexture);
-#endif
 	glDeleteTextures(1, &_tex);
 }
 
@@ -164,9 +156,6 @@ void Image::definirOpacite(unsigned char o) {
 }
 
 ImageBase *ImageBase::charger(unsigned char *img, int largeur, int hauteur, int profondeur, bool retourner) {
-#if REUTILISATION_ID_TEXTURE
-	Image::changerTexture(Image::aucuneTexture);
-#endif
 	glGenTextures(1, &_tex);
 	
 	if(retourner) {
@@ -279,6 +268,10 @@ std::string const &Image::fichier() const {
 	return _base->_fichier;
 }
 
+GLint Image::tex() {
+	return _base->_tex;
+}
+
 Image const &Image::tourner(float angle) const {
 	_angle = std::fmod(_angle + angle, static_cast<float>(2 * M_PI));
 	
@@ -296,57 +289,22 @@ Image const &Image::redimensionner(facteur_t facteurX, facteur_t facteurY) const
 	return *this;
 }
 
-
-#if REUTILISATION_ID_TEXTURE
-void Image::changerTexture(GLuint tex) {
-	if(tex != _derniereTexture) {
-		/*if(!_vert.empty() && _derniereTexture != Image::aucuneTexture) {
-			glEnable(GL_TEXTURE_2D);
-			glBindTexture(GL_TEXTURE_2D, _derniereTexture);
-			
-			//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-			//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-			
-			glColor4ub(255 - Ecran::teinte().a * (255 - Ecran::teinte().r) / 255, 255 - Ecran::teinte().a * (255 - Ecran::teinte().v) / 255, 255 - Ecran::teinte().a * (255 - Ecran::teinte().b) / 255, Ecran::opacite());
-			glEnableClientState(GL_VERTEX_ARRAY);
-			glVertexPointer(2, GL_FLOAT, 0, &_vert[0]);
-			
-			glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-			glTexCoordPointer(2, GL_FLOAT, 0, &_texCoord[0]);
-			
-			glDrawArrays(GL_TRIANGLES, 0, _vert.size() / 2);
-			//std::cout << _vert.size() << std::endl;
-			//std::cout << _texCoord.size() << std::endl;
-			_vert.clear();
-			_texCoord.clear();
-		}*/
-		
-		_derniereTexture = tex;
-		glEnd();
-		
-		if(_derniereTexture != Image::aucuneTexture) {
-			glBindTexture(GL_TEXTURE_2D, _derniereTexture);
-		}
-	}
-}
-
-#endif
-
-void Image::afficher(Coordonnees const &position, Rectangle const &filtre) const {
+void Image::afficher(Coordonnees const &position, Rectangle const &filtre, Shader const &s) const {
 	if(!Rectangle(position, Coordonnees(filtre.largeur * _facteurX, filtre.hauteur * _facteurY)).superposition(Ecran::ecran()))
 		return;
 	
+	s.activer();
+	glBindTexture(GL_TEXTURE_2D, _base->_tex);
+	GLint dim = glGetUniformLocation(s.programme(), "dimTex");
+	glUniform2f(dim, filtre.largeur, filtre.hauteur);
+	for(Shader::const_iterator i = s.premierParametre(); i != s.dernierParametre(); ++i) {
+		GLint loc = glGetUniformLocation(s.programme(), i->first.c_str());
+		glUniform1f(loc, i->second);
+	}
+
 	Rectangle vert(position, Coordonnees(filtre.largeur * _facteurX, filtre.hauteur * _facteurY));
 		
-	#if REUTILISATION_ID_TEXTURE
-	GLuint tex = _derniereTexture;
-	this->changerTexture(_base->_tex);
-	if(_base->_tex != tex)
-		glBegin(GL_QUADS);
-	#else
-		glBindTexture(GL_TEXTURE_2D, _base->_tex);
-		glBegin(GL_QUADS);
-	#endif
+	glBegin(GL_QUADS);
 
 	glColor4ub(255 - Image::_teinte.a * (255 - Image::_teinte.r) / 255, 255 - Image::_teinte.a * (255 - Image::_teinte.v) / 255, 255 - Image::_teinte.a * (255 - Image::_teinte.b) / 255, Image::_opacite);
 	
@@ -362,20 +320,5 @@ void Image::afficher(Coordonnees const &position, Rectangle const &filtre) const
 	glTexCoord2d(filtre.gauche / _base->_dimensions.x, (filtre.haut + filtre.hauteur) / _base->_dimensions.y);
 	glVertex2d(vert.gauche, vert.hauteur + vert.haut);
 	
-#if !REUTILISATION_ID_TEXTURE
 	glEnd();
-#endif
 }
-
-Image Image::flou(int rayon) const {
-	unsigned char const *pix = this->pixels();
-	unsigned char *flou = new unsigned char[size_t(this->dimensions().x * this->dimensions().y * 4)];
-	flouterImage(pix, flou, this->dimensions().x, this->dimensions().y, rayon);
-	delete[] pix;
-
-	Image retour(flou, this->dimensions().x, this->dimensions().y, 4);
-	delete[] flou;
-	
-	return retour;
-}
-
