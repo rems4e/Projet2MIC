@@ -37,8 +37,8 @@ void Ennemi::animer(horloge_t tempsEcoule) {
 			suivre = j->pX() != pX || j->pY() != pY;
 			Niveau::const_listeElements_t liste = this->niveau()->elements(pX, pY, this->couche());
 			for(Niveau::elements_t::const_iterator el = liste.first; el != liste.second; ++el) {
-				if(*el != this && (*el)->mobile() && static_cast<EntiteMobile *>(*el)->type() == EntiteMobile::ennemi) {
-					Ennemi *e = static_cast<Ennemi *>(*el);
+				if(el->first != this && el->first->mobile() && static_cast<EntiteMobile *>(el->first)->type() == EntiteMobile::em_ennemi) {
+					Ennemi *e = static_cast<Ennemi *>(el->first);
 					
 					if(e->_recherche) {
 						suivre = false;
@@ -74,5 +74,5 @@ double Ennemi::vitesse() const {
 }
 
 EntiteMobile::categorie_t Ennemi::type() const {
-	return EntiteMobile::ennemi;
+	return EntiteMobile::em_ennemi;
 }

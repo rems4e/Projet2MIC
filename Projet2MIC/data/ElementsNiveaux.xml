@@ -1,5 +1,17 @@
 <?xml version="1.0" standalone="no" ?>
 <ElementsNiveau>
+	<Maison>
+		<Element0 image="maison1.png" x=-20 y=120 dimX=3 dimY=6>
+			111
+			111
+			111
+			111
+			000
+			000
+		</Element0>
+		<Element1 image="maison2.png" x=0 y=200 dimX=4 dimY=7 />
+		<Element2 image="maison3.png" x=0 y=200 dimX=4 dimY=4 />
+	</Maison>
 	<Teleporteur>
 		<Element0 image="spawn.png" x=0 y=64 dimX=4 dimY=4 />
 	</Teleporteur>
@@ -13,11 +25,11 @@
 		<Element6 image="bouclier1.png" iX=2 iY=2 type="bouclier" centrage=1/>
 	</ObjetInventaire>
 	<EntiteStatique>
-		<Element0 image="dirt2.png" multi=1 x=0 y=16 dimX=1 dimY=1 />
-		<Element1 image="dirt.png"multi=1 x=0 y=64 dimX=4 dimY=4 />
-		<Element2 image="herbe.png"multi=1 x=0 y=128 dimX=8 dimY=8 />
-		<Element3 image="bleu.png" multi=1 x=0 y=16 dimX=1 dimY=1 />
-		<Element4 image="lac.png" multi=1 x=0 y=128 dimX=8 dimY=8 />
+		<Element0 image="dirt2.png" x=0 y=16 dimX=1 dimY=1 />
+		<Element1 image="dirt.png" x=0 y=64 dimX=4 dimY=4 />
+		<Element2 image="herbe.png" x=0 y=128 dimX=8 dimY=8 />
+		<Element3 image="bleu.png" x=0 y=16 dimX=1 dimY=1 />
+		<Element4 image="lac.png" x=0 y=128 dimX=8 dimY=8 />
 	</EntiteStatique>
 	<EntiteStatiqueAnimee>
 		<Element0 image="torche.png" nbPoses=20 tempsAttente=60 x=16 y=100 centrage=1 dimX=1 dimY=1 />
@@ -45,35 +57,31 @@
 		<Element19 image="a20.png" x=50 y=100 centrage=1 dimX=1 dimY=1 />
 	</Arbre>
 	<Personnage>
-		<Element0 image="perso.png" dimX=128 dimY=128 >
+		<Element0 image="perso.png" blocX=128 blocY=128 >
 			<Immobile nbPoses=6 tempsAttente=100 />
 			<Deplacer nbPoses=8 tempsAttente=100 />
 			<Attaque nbPoses=5 tempsAttente=50 />
 			<Mourir nbPoses=4 tempsAttente=100 />
 		</Element0>
-		<Element1 image="perso1.png" vitesse=7 dimX=128 dimY=128 >
+		<Element1 image="perso1.png" vitesse=7 blocX=128 blocY=128 >
 			<Immobile nbPoses=4 tempsAttente=100 />
 			<Deplacer nbPoses=8 tempsAttente=100 />
 			<Attaque nbPoses=5 tempsAttente=50 />
 		</Element1>
-		<Element2 image="werebear_0.png" vitesse=7 dimX=128 dimY=128 >
+		<Element2 image="werebear_0.png" vitesse=7 blocX=128 blocY=128 >
 			<Immobile nbPoses=4 tempsAttente=100 />
 			<Deplacer nbPoses=8 tempsAttente=100 />
 			<Attaque nbPoses=5 tempsAttente=50 />
 		</Element2>
-		<Element3 image="orc_heavy_1.png" dimX=128 dimY=128 >
+		<Element3 image="orc_heavy_1.png" blocX=128 blocY=128 >
 			<Immobile nbPoses=4 tempsAttente=100 />
 			<Deplacer nbPoses=8 tempsAttente=100 />
 			<Attaque nbPoses=5 tempsAttente=80 />
 		</Element3>
-		<Element4 image="spider_giant.png" vitesse=15 dimX=128 dimY=128 >
+		<Element4 image="spider_giant.png" vitesse=15 blocX=128 blocY=128 >
 			<Immobile nbPoses=4 tempsAttente=100 />
 			<Deplacer nbPoses=8 tempsAttente=50 />
 			<Attaque nbPoses=5 tempsAttente=80 />
 		</Element4>
-		<Element5 image="perso3.png" dimX=16 dimY=16>
-			<Immobile nbPoses=1 tempsAttente=100 />
-			<Deplacer nbPoses=1 tempsAttente=100 />
-		</Element5>
 	</Personnage>
 </ElementsNiveau>

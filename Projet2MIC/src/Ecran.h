@@ -16,6 +16,7 @@
 #include <stack>
 #include "fonctions.h"
 #include "Shader.h"
+#include <exception>
 
 #define LARGEUR_ECRAN 800
 #define HAUTEUR_ECRAN 600
@@ -48,7 +49,14 @@ struct Couleur {
 };
 
 namespace Ecran {
-	void modifierResolution(unsigned int largeur, unsigned int hauteur, unsigned int profondeur, bool pleinEcran);
+	class Exc_InitialisationImpossible : public std::exception {
+	public:
+		Exc_InitialisationImpossible() throw() : std::exception() { }
+		virtual ~Exc_InitialisationImpossible() throw() { }
+		virtual const char* what() const throw() { return "Impossible de définir la résolution de l'écran."; }
+	};
+	
+	void modifierResolution(unsigned int largeur, unsigned int hauteur, unsigned int profondeur, bool pleinEcran) throw(Exc_InitialisationImpossible);
 	
 	Coordonnees dimensions();
 	int largeur();
@@ -66,13 +74,14 @@ namespace Ecran {
 	
 	// Met à jour l'affichage en fonction des éléments affichés depuis le dernier appel à la fonction
 	void maj();
+	void finaliser();
 	// Remplis l'écran avec une couleur unie
 	void effacer();
 	
 	// Affiche une couleur unie dans un rectangle. La couleur peut être transparente.
-	void afficherRectangle(Rectangle const &r, Couleur const &c, Shader const &s = Shader::aucun());
-	void afficherLigne(Coordonnees const &depart, Coordonnees const &arrivee, Couleur const &c, dimension_t epaisseur = 1.0, Shader const &s = Shader::aucun());
-	void afficherQuadrilatere(Coordonnees const &p1, Coordonnees const &p2, Coordonnees const &p3, Coordonnees const &p4, Couleur const &c, Shader const &s = Shader::aucun());
+	void afficherRectangle(Rectangle const &r, Couleur const &c);
+	void afficherLigne(Coordonnees const &depart, Coordonnees const &arrivee, Couleur const &c, dimension_t epaisseur = 1.0);
+	void afficherQuadrilatere(Coordonnees const &p1, Coordonnees const &p2, Coordonnees const &p3, Coordonnees const &p4, Couleur const &c);
 	
 	// Pointeur
 	bool pointeurAffiche();

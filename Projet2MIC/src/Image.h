@@ -53,9 +53,9 @@ public:
 	Image const &redimensionner(facteur_t facteurX, facteur_t facteurY) const;
 	
 	// Affichage de l'image à une position donnée
-	inline void afficher(Coordonnees const &position, Shader const &s = Shader::aucun()) const { this->afficher(position, Rectangle(Coordonnees(), this->dimensionsReelles()), s); }
+	inline void afficher(Coordonnees const &position) const { this->afficher(position, Rectangle(Coordonnees(), this->dimensionsReelles())); }
 	// Affichage de la portion de l'image définie par le rectangle
-	void afficher(Coordonnees const &position, Rectangle const &filtre, Shader const &s = Shader::aucun()) const;
+	void afficher(Coordonnees const &position, Rectangle const &filtre) const;
 	
 	// Fichier de l'image ou chaîne vide si l'image a été générée à partir d'une matrice de pixels
 	inline std::string const &fichier() const;
@@ -77,8 +77,6 @@ private:
 	mutable float _angle;
 	static Couleur _teinte;
 	static unsigned char _opacite;
-		
-	static void nettoyer();
 	
 	Image *charger(std::string const &fichier);
 	Image *charger(unsigned char *pixels, int largeur, int hauteur, int profondeur, bool retourner);

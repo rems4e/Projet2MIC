@@ -16,19 +16,19 @@
 #include "Unichar.h"
 
 typedef unsigned int taillePolice_t;
-enum police_t {POLICE_NORMALE, POLICE_DECO, POLICE_GRANDE};
+enum police_t {premierePolice, POLICE_NORMALE = premierePolice, POLICE_DECO, POLICE_GRANDE, nbPolices};
+police_t &operator++(police_t &);
 
-class Texte {	
+class Texte {
+	friend void Session::nettoyer();
 public:
+	Texte(Unichar const &txt = Unichar(), police_t police = POLICE_NORMALE, taillePolice_t taille = 12, Couleur const &coul = Couleur::noir);
 	Texte(Texte const &);
 	Texte &operator=(Texte const &);
-
-	Texte(Unichar const &txt = Unichar(), police_t police = POLICE_NORMALE, taillePolice_t taille = 12, Couleur const &coul = Couleur::noir);
 	
 	virtual ~Texte();
 	
 	static Coordonnees dimensions(Unichar const &texte, police_t police, taillePolice_t taille);
-	static Coordonnees dimensions(Unichar const &texte, uindex_t p, size_t n, police_t police, taillePolice_t taille);
 	static dimension_t hauteur(police_t police, taillePolice_t taille);
 	
 	Unichar const &texte() const { return _texte; }
@@ -36,8 +36,7 @@ public:
 	taillePolice_t taille() const { return _taille; }
 	Couleur couleur() const { return _couleur; }
 
-	inline Coordonnees dimensions() const { return _dimensions; }
-	inline Coordonnees dimensions(unsigned long p, size_t n) const { return Texte::dimensions(_texte, p, n, _police, _taille); }
+	inline Coordonnees dimensions() const { return Texte::dimensions(_texte, _police, _taille); }
 	
 	Texte &definir(Unichar const &txt);
 	Texte &definir(police_t police, taillePolice_t taille);
@@ -47,16 +46,16 @@ public:
 	void afficher(Coordonnees const &pos) const;
 	static void afficher(Unichar const &texte, police_t police, taillePolice_t taille, Couleur const &couleur, Coordonnees pos);
 	
-	static void nettoyer();
-
-protected:
+private:
 	Unichar _texte;
 	police_t _police;
 	taillePolice_t _taille;
 	Couleur _couleur;
 	
 	Coordonnees _dimensions;
-	
+
+	static bool _init;
+	static void nettoyer();
 };
 
 #endif

@@ -50,8 +50,4 @@ inline std::string nombreVersTexte(unsigned long nombre) { return nombreVersText
 
 int nombreDecimales(double nombre);
 
-void quitter(int code);
-
-void flouterImage(unsigned char const *source, unsigned char *destination, int largeur, int hauteur, int rayon);
-
 #endif

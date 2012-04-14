@@ -9,7 +9,7 @@
 #include "EntiteStatiqueAnimee.h"
 #include "tinyxml.h"
 
-EntiteStatiqueAnimee::EntiteStatiqueAnimee(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : EntiteStatique(n, index, cat), _imageActuelle(0), _cadres(0), _tempsAffichage(0), _tempsPrecedent(0) {	
+EntiteStatiqueAnimee::EntiteStatiqueAnimee(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : EntiteStatique(n, index, cat), _imageActuelle(0), _cadres(0), _tempsAffichage(0), _tempsPrecedent(0) {
 	TiXmlElement *e = ElementNiveau::description(index, cat);
 	
 	_nbImages = 1;
@@ -40,7 +40,7 @@ EntiteStatiqueAnimee::~EntiteStatiqueAnimee() {
 	delete[] _cadres;
 }
 
-void EntiteStatiqueAnimee::afficher(Coordonnees const &decalage, double zoom) const {
+void EntiteStatiqueAnimee::afficher(index_t deltaX, index_t deltaY, Coordonnees const &decalage, double zoom) const {
 	this->image().redimensionner(zoom);
 	Rectangle const &cadre = this->cadre();
 	this->image().afficher(this->positionAffichage() * zoom - decalage, cadre);
@@ -51,10 +51,6 @@ void EntiteStatiqueAnimee::animer(horloge_t tempsEcoule) {
 		_tempsPrecedent = horloge();
 		_imageActuelle = (_imageActuelle + 1) % _nbImages;
 	}
-}
-
-Coordonnees EntiteStatiqueAnimee::dimensions() const {
-	return Coordonnees(this->image().dimensionsReelles().x / _nbImages, this->image().dimensionsReelles().y);
 }
 
 Rectangle const &EntiteStatiqueAnimee::cadre() const {

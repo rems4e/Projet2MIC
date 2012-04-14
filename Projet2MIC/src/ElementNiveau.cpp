@@ -18,6 +18,7 @@
 #include "tinyxml.h"
 #include <cmath>
 #include "UtilitaireNiveau.h"
+#include <cstring>
 
 TiXmlDocument *ElementNiveau::_description = 0;
 
@@ -38,7 +39,9 @@ ElementNiveau *ElementNiveau::elementNiveau(Niveau *n, uindex_t index, elementNi
 			return ElementNiveau::elementNiveau<ObjetInventaire>(n, index);
 		case teleporteur:
 			return ElementNiveau::elementNiveau<Teleporteur>(n, index);
-		case ndef7:case ndef8:
+		case maison:
+			return ElementNiveau::elementNiveau<EntiteStatique>(n, index, maison);
+		case ndef8:
 		case ndef9:case ndef10:case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
 		case ndef17:case ndef18:case ndef19:case ndef20:case ndef21:case ndef22:case ndef23:case ndef24:
 		case ndef25:case ndef26:case ndef27:case ndef28:case ndef29:case ndef30:case ndef31:case ndef32:
@@ -51,25 +54,62 @@ ElementNiveau *ElementNiveau::elementNiveau(Niveau *n, uindex_t index, elementNi
 	}
 }
 
-ElementNiveau::ElementNiveau(Niveau *n, uindex_t index, elementNiveau_t cat) : _niveau(n), _position(), _origine(), _centrage(false), _multi(false), _categorie(cat) {
+ElementNiveau::ElementNiveau(Niveau *n, uindex_t index, elementNiveau_t cat) throw(ElementNiveau::Exc_DefinitionEntiteIncomplete) : _niveau(n), _position(), _origine(), _centrage(false), _categorie(cat), _dimX(1), _dimY(1) {
 	TiXmlElement *e = ElementNiveau::description(index, cat);
 	if(e->Attribute("x"))
 		e->Attribute("x", &_origine.x);
 	if(e->Attribute("y"))
 		e->Attribute("y", &_origine.y);
+	
+	if(e->Attribute("dimX"))
+		e->Attribute("dimX", &_dimX);
+	if(e->Attribute("dimY"))
+		e->Attribute("dimY", &_dimY);
+	
 	int cc;
 	if(e->Attribute("centrage")) {
 		e->Attribute("centrage", &cc);
 		_centrage = cc;
 	}
-	if(e->Attribute("multi")) {
-		e->Attribute("multi", &cc);
-		_multi = cc;
+	
+	_collision = new bool*[_dimY];
+	for(index_t y = 0; y < _dimY; ++y) {
+		_collision[y] = new bool[_dimX];
+		for(index_t x = 0; x < _dimX; ++x) {
+			_collision[y][x] = true;
+		}
+	}
+	char const *texte = e->GetText();
+	if(texte) {
+		size_t tailleAttendue = _dimY * (_dimX + 1) - 1;
+		if(std::strlen(texte) != tailleAttendue) {
+			std::cerr << "Erreur : dimensions de la couche de collision invalides (" << nombreVersTexte(std::strlen(texte)) << " au lieu de " << nombreVersTexte(tailleAttendue) <<  " attendus) !" << std::endl;
+			throw Exc_DefinitionEntiteIncomplete();
+		}
+		for(index_t y = 0; y < _dimY; ++y) {
+			for(index_t x = 0; x < _dimX; ++x, ++texte) {
+				switch(*texte) {
+					case '0':
+						_collision[y][x] = false;
+						break;
+					case '1':
+						break;
+					default:
+						std::cerr << "Erreur : couche de collision invalide." << std::endl;
+						throw Exc_DefinitionEntiteIncomplete();
+				}
+			}
+			++texte;
+		}
 	}
 }
 
 ElementNiveau::~ElementNiveau() {
+	for(index_t y = 0; y < _dimY; ++y) {
+		delete[] _collision[y];
+	}
 	
+	delete[] _collision;
 }
 
 Coordonnees ElementNiveau::position() const {
@@ -100,10 +140,6 @@ bool ElementNiveau::centrage() const {
 	return _centrage;
 }
 
-bool ElementNiveau::multi() const {
-	return _multi;
-}
-
 ElementNiveau::elementNiveau_t ElementNiveau::categorie() const {
 	return _categorie;
 }
@@ -113,7 +149,7 @@ void ElementNiveau::chargerDescription() {
 	if(!_description) {
 		_description = new TiXmlDocument(Session::cheminRessources() + "ElementsNiveaux.xml");
 		if(!_description->LoadFile())
-			std::cout << "Erreur de l'ouverture du fichier de description d'entités (" << (Session::cheminRessources() + "ElementsNiveaux.xml") << "." << std::endl;
+			std::cerr << "Erreur de l'ouverture du fichier de description d'entités (" << (Session::cheminRessources() + "ElementsNiveaux.xml") << "." << std::endl;
 	}
 }
 
@@ -166,6 +202,26 @@ bool ElementNiveau::joueur() const {
 	return false;
 }
 
+index_t ElementNiveau::pX() const {
+	return std::floor(this->position().x / LARGEUR_CASE);
+}
+
+index_t ElementNiveau::pY() const {
+	return std::floor(this->position().y / LARGEUR_CASE);
+}
+
+bool ElementNiveau::collision(index_t x, index_t y) const {
+	return _collision[y][x];
+}
+
+size_t ElementNiveau::dimX() const {
+	return _dimX;
+}
+
+size_t ElementNiveau::dimY() const {
+	return _dimY;
+}
+
 char const *ElementNiveau::nomBalise(elementNiveau_t cat) {
 	switch(cat) {
 		case entiteStatique:
@@ -180,7 +236,9 @@ char const *ElementNiveau::nomBalise(elementNiveau_t cat) {
 			return "ObjetInventaire";
 		case teleporteur:
 			return "Teleporteur";
-		case ndef7:case ndef8:
+		case maison:
+			return "Maison";
+		case ndef8:
 		case ndef9:case ndef10:case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
 		case ndef17:case ndef18:case ndef19:case ndef20:case ndef21:case ndef22:case ndef23:case ndef24:
 		case ndef25:case ndef26:case ndef27:case ndef28:case ndef29:case ndef30:case ndef31:case ndef32:
@@ -207,7 +265,9 @@ char const *ElementNiveau::nomCategorie(elementNiveau_t cat) {
 			return "Objet inventaire";
 		case teleporteur:
 			return "Téléporteur";
-		case ndef7:case ndef8:
+		case maison:
+			return "Maison";
+		case ndef8:
 		case ndef9:case ndef10:case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
 		case ndef17:case ndef18:case ndef19:case ndef20:case ndef21:case ndef22:case ndef23:case ndef24:
 		case ndef25:case ndef26:case ndef27:case ndef28:case ndef29:case ndef30:case ndef31:case ndef32:

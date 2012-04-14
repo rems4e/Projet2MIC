@@ -20,7 +20,7 @@ struct Coordonnees {
 	static inline bool valeurNulle(coordonnee_t v) { return (v < 0 ? -v : v) < 0.001; }
 	coordonnee_t x, y;
 	
-	static Coordonnees const aucun, zero;
+	static Coordonnees const aucun, zero, un, eX, eY;
 	static coordonnee_t const coordMin, coordMax;
 	
 	inline Coordonnees() : x(0), y(0) {}

@@ -132,7 +132,7 @@ size_t Unichar::unisize(char const *utf8txt) {
 		}
 	}
 	
-	return i;	
+	return i;
 }
 
 void Unichar::replace(iterator i1, iterator i2, Unichar const &txt) {
@@ -178,7 +178,7 @@ std::string Unichar::calcUtf8() const {
 			txt.push_back(0x80 | (c >> 6 & 0x3F));
 			txt.push_back(0x80 | (c & 0x3F));
 		}
-	}	
+	}
 	
 	return txt;
 }

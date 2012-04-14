@@ -33,7 +33,7 @@ class Niveau {
 	friend class Editeur;
 public:
 	enum couche_t {premiereCouche, cn_sol = premiereCouche, cn_sol2, cn_transitionSol, cn_objetsInventaire, cn_objet, nbCouches};
-	typedef std::list<ElementNiveau *> elements_t;
+	typedef std::list<std::pair<ElementNiveau *, bool> > elements_t;
 	typedef std::pair<elements_t::iterator, elements_t::iterator> listeElements_t;
 	typedef std::pair<elements_t::const_iterator, elements_t::const_iterator> const_listeElements_t;
 	
@@ -59,7 +59,6 @@ public:
 	size_t dimY() const;
 	
 	// Obtention du contenu d'une case en un point donné. Si ce point est en dehors du niveau, retourne Niveau::aucunElement.
-	//ElementNiveau *element(index_t x, index_t y, couche_t couche = cn_sol);
 	listeElements_t elements(index_t x, index_t y, couche_t couche);
 	const_listeElements_t elements(index_t x, index_t y, couche_t couche) const;
 	bool collision(index_t x, index_t y, couche_t couche, ElementNiveau *e) const;
@@ -96,7 +95,6 @@ private:
 		Case();
 		
 		elements_t _entites[nbCouches];
-		bool _entiteExterieure[nbCouches];
 	};
 	struct CaseMobile {
 		EntiteMobile *_e;
@@ -117,6 +115,5 @@ private:
 
 Niveau::couche_t &operator++(Niveau::couche_t &c);
 Niveau::couche_t operator+(Niveau::couche_t, int i);
-
 
 #endif

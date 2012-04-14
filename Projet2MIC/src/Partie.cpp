@@ -72,7 +72,7 @@ void Partie::commencer() {
 
 	_joueur->definirNiveau(_niveau);
 	_tableauDeBord = new TableauDeBord(_joueur);
-	
+		
 	Menu *menu = 0;
 	{
 		std::vector<Unichar> elem;
@@ -84,13 +84,13 @@ void Partie::commencer() {
 	}
 	
 	bool continuer = true;
-
 	while(Session::boucle(VITESSE_RAFRAICHISSEMENT, continuer)) {
 		Ecran::definirPointeurAffiche(_joueur->inventaireAffiche());
 		Ecran::definirPointeur(0);
 		Ecran::effacer();
 		_niveau->animer(1 / Ecran::frequenceInstantanee());
 		this->afficher();
+		Ecran::finaliser();
 		
 		if(Session::evenement(Session::T_i)) {
 			_joueur->definirInventaireAffiche(!_joueur->inventaireAffiche());
@@ -120,6 +120,7 @@ void Partie::commencer() {
 		if(Session::evenement(Session::QUITTER)) {
 			continuer = false;
 		}
+
 		Ecran::maj();
 	}
 	

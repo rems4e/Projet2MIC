@@ -121,7 +121,7 @@ unsigned int Personnage::vieTotale() const {
 
 bool Personnage::definirAction(action_t a) {
 	if(horloge() > _delaisAction[a]._cdAbsolu) {
-		if(EntiteMobile::definirAction(a)) {			
+		if(EntiteMobile::definirAction(a)) {
 			_delaisAction[a]._cdAbsolu = horloge() + _delaisAction[a]._cooldown;
 			return true;
 		}

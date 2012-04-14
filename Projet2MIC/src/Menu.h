@@ -20,14 +20,14 @@
 
 class Image;
 
-class Menu {	
+class Menu {
 public:
 	Menu(Unichar const &titre, std::vector<Unichar> const &elements);
 	virtual ~Menu();
 	
 	index_t afficher(Image *fond = 0);
 	
-protected:	
+protected:
 	Menu (Menu const &);
 	Menu &operator=(Menu const &);
 

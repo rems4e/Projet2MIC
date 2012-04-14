@@ -72,7 +72,7 @@ private:
 	typedef std::vector<Colonne> Ligne;
 	
 	struct LoiProba {
-		LoiProba(std::string const &nom, std::string const &loi);
+		LoiProba(std::string const &nom, std::string const &loi = "");
 		int &operator[](ElementNiveau::elementNiveau_t c);
 
 		int _proba[ElementNiveau::nbTypesElement];
@@ -107,14 +107,14 @@ private:
 
 	typedef std::list<ElementSelection> selection_t;
 	
-protected:	
+protected:
 	Editeur();
 	
 	void modification();
 	void enregistrer();
 	void afficher();
 	void afficherCouche(Niveau::couche_t couche);
-	void afficherGrille();
+	void afficherGrille(unsigned char opacite);
 	void afficherInterface();
 	void afficherInventaire();
 	void afficherControles();
@@ -154,6 +154,10 @@ private:
 	Rectangle _affichageSelection;
 	Rectangle _cadreSelection;
 	
+	listeFonctions_t _fonctionsControles;
+	listeFonctions_t _fonctionsInventaire;
+	selection_t _selection;
+
 	static Rectangle _cadreEditeur;
 	static Rectangle _cadreControles;
 	static Rectangle _cadreInventaire;
@@ -162,10 +166,6 @@ private:
 	static void initCadres();
 	
 	static Editeur *_editeur;
-		
-	listeFonctions_t _fonctionsControles;
-	listeFonctions_t _fonctionsInventaire;
-	selection_t _selection;
 };
 
 #endif

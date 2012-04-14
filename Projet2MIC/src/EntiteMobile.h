@@ -19,12 +19,12 @@ class EntiteMobile : public ElementNiveau {
 public:
 	enum action_t {premiereAction, a_immobile = premiereAction, a_deplacer, a_attaquer, a_mourir, nbActions};
 	enum direction_t {gauche, gaucheHaut, haut, droiteHaut, droite, droiteBas, bas, gaucheBas};
-	enum categorie_t {ennemi, joueur, marchand};
+	enum categorie_t {em_ennemi, em_joueur, em_marchand};
 			
 	virtual ~EntiteMobile();
 	
-	virtual void afficher(Coordonnees const &decalage, double zoom = 1.0) const;
-	virtual bool collision() const;
+	virtual void afficher(index_t deltaX, index_t deltaY, Coordonnees const &decalage, double zoom = 1.0) const;
+	virtual bool collision(index_t x, index_t y) const;
 	virtual void animer(horloge_t tempsEcoule);
 	virtual Coordonnees dimensions() const;
 	
@@ -44,12 +44,12 @@ public:
 	virtual bool mobile() const;
 	virtual categorie_t type() const = 0;
 	
-	index_t pX() const;
-	index_t pY() const;
+	virtual index_t pX() const;
+	virtual index_t pY() const;
 	index_t pX(coordonnee_t pX) const;
 	index_t pY(coordonnee_t pY) const;
 
-protected:	
+protected:
 	Rectangle const &cadre() const;
 	bool actionDisponible(action_t a) const;
 
@@ -57,7 +57,7 @@ protected:
 	static char const *transcriptionAction(action_t a);
 	static bool actionInterruptible(action_t a);
 	bool testerDeplacement(Coordonnees const &dep, index_t pX, index_t pY);
-		
+	
 private:
 	size_t _nbImages[nbActions];
 	Image _image;
@@ -71,7 +71,6 @@ private:
 	uindex_t _imageActuelle;
 	
 	horloge_t _tempsPrecedent;
-	
 	
 	EntiteMobile(EntiteMobile const &);
 	EntiteMobile &operator=(EntiteMobile const &);

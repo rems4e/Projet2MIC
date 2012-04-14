@@ -8,54 +8,58 @@
  */
 
 #include "Session.h"
-#include <list>
-#include <stack>
-#include <map>
 #include "Ecran.h"
 #include "Texte.h"
 #include "SDL/SDL.h"
-#include <tr1/functional>
 #include "Image.h"
 #include "Partie.h"
+#include "Shader.h"
 
 namespace Ecran {
 	void init(unsigned int largeur, unsigned int hauteur, unsigned int profondeur, bool pleinEcran);
+	void nettoyagePreliminaire();
+	void nettoyageFinal();
 }
 
-namespace Session {		
+namespace ImagesBase {
+	void initialiser();
+	void nettoyer();
+	void changerTexture(GLint tex);
+}
+
+namespace Parametres {
+	void charger();
+	void enregistrer();
+	void nettoyer();
+}
+
+namespace Session {
 	horloge_t _horlogeBoucle = 0.0f;
+	std::string _chemin;
+	bool _init = false;
 	
 	bool _evenements[nombreEvenements] = {false};
 	modificateur_touche_t _modificateurTouches = M_AUCUN;
 	Coordonnees _souris;
 	
 	bool modificateurTouches(modificateur_touche_t const &mod) { return _modificateurTouches & mod; }
-	modificateur_touche_t const &modificateurTouches() { return _modificateurTouches; } 
-	bool evenement(evenement_t const &e) { return _evenements[e]; }
+	modificateur_touche_t const &modificateurTouches() { return _modificateurTouches; }
+	bool evenement(evenement_t const &e) {
+		if(e == aucunEvenement)
+			return false;
+		return _evenements[e];
+	}
 	Coordonnees const &souris() { return _souris; }
 	
-	void reinitialiser(evenement_t const &e) { _evenements[e] = false; }
+	void reinitialiser(evenement_t const &e) {
+		if(e == aucunEvenement)
+			return;
+		_evenements[e] = false;
+	}
 	void definirQuitter(bool q) { _evenements[QUITTER] = q; }
 	
 	void gestionEvenements();
-	
 	void reinitialiserEvenementsClavier();
-	
-	void reinitialiserEvenementsClavier() {
-		for(evenement_t i = PREMIER_EVENEMENT_CLAVIER; i < DERNIER_EVENEMENT_CLAVIER; ++i) {
-			_evenements[i] = false;
-		}
-	}
-	
-	void reinitialiserEvenements() {
-		//bool q = _evenements[QUITTER];
-		for(evenement_t i = premierEvenement; i < nombreEvenements; ++i) {
-			_evenements[i] = false;
-		}
-		//_evenements[QUITTER] = q;
-	}
-	
-	bool init = false;
 }
 
 #if defined(__MACOSX__) && !defined(DEVELOPPEMENT)
@@ -65,60 +69,74 @@ extern "C" {
 #endif
 
 std::string const &Session::cheminRessources() {
-	// Ici on règle le problème des chemins de fichiers différents suivant le système d'exploitation
-	static std::string chemin;
-	static bool init = false;
-	if(!init) {
-		init = true;
-#if defined(__MACOSX__)
-#if defined(DEVELOPPEMENT)
-		 chemin = "/Users/remi/Documents/INSA/2e année MIC/Projet/gitProjet/Projet2MIC/";
-#else
-		CFBundleRef bun = CFBundleGetMainBundle();		
-		CFURLRef r = CFBundleCopyResourcesDirectoryURL(bun);
-		CFURLRef res = CFURLCopyAbsoluteURL(r);
-		CFStringRef str = CFURLCopyFileSystemPath(res, 0);
-		CFIndex taille = CFStringGetLength(str);
-		char * cStr = new char[taille + 1];
-		CFStringGetCString(str, cStr, taille + 1, kCFStringEncodingUTF8);
-		chemin += cStr;
-		chemin += "/";
-		delete[] cStr;
-		
-		CFRelease(str);
-		CFRelease(res);
-		CFRelease(r);
-#endif
-#elif defined(__LINUX__)
-		
-#elif defined(__WIN32__)
-		
-#else
-		
-#endif
-		chemin += "data/";
-	}
-	
-	return chemin;
-}	
+	return _chemin;
+}
 
 void Session::initialiser() {
-	if(Session::init)
+	if(Session::_init)
 		return;
-	Session::init = true;
+	Session::_init = true;
+
+	std::srand(static_cast<unsigned int>(std::time(0)));
+	if(SDL_Init(SDL_INIT_VIDEO) < 0) {
+		std::cerr << "Impossible d'initialiser la SDL : " << SDL_GetError() << std::endl;
+		exit(1);
+	}
+	SDL_EnableUNICODE(1);
+	
+	// Ici on règle le problème des chemins de fichiers différents suivant le système d'exploitation
+#if defined(__MACOSX__)
+#if defined(DEVELOPPEMENT)
+	_chemin = "/Users/remi/Documents/INSA/2e année MIC/Projet/gitProjet/Projet2MIC/";
+#else
+	CFBundleRef bun = CFBundleGetMainBundle();
+	CFURLRef r = CFBundleCopyResourcesDirectoryURL(bun);
+	CFURLRef res = CFURLCopyAbsoluteURL(r);
+	CFStringRef str = CFURLCopyFileSystemPath(res, 0);
+	CFIndex taille = CFStringGetLength(str);
+	char * cStr = new char[taille + 1];
+	CFStringGetCString(str, cStr, taille + 1, kCFStringEncodingUTF8);
+	chemin += cStr;
+	chemin += "/";
+	delete[] cStr;
+	
+	CFRelease(str);
+	CFRelease(res);
+	CFRelease(r);
+#endif
+#elif defined(__LINUX__)
+	
+#elif defined(__WIN32__)
+	
+#else
+	
+#endif
+	_chemin += "data/";
+
+	ImagesBase::initialiser();
 	Ecran::init(LARGEUR_ECRAN, HAUTEUR_ECRAN, PROFONDEUR_COULEURS, PLEIN_ECRAN);
+	Shader::initialiser();
 	
-	
-	Texte txt("Chargement programme", POLICE_DECO, TAILLE_TEXTE_CHARGEMENT, Couleur(255, 255, 255));
+	Texte txt("Chargement programme", POLICE_DECO, TAILLE_TEXTE_CHARGEMENT, Couleur::blanc);
+	Ecran::afficherRectangle(Ecran::ecran(), Couleur::noir);
 	txt.afficher(Coordonnees((Ecran::dimensions().x - txt.dimensions().x) / 2, (Ecran::dimensions().y - txt.dimensions().y) / 2 - 50));
-	Ecran::maj();	
+	Ecran::maj();
+	
+	Parametres::charger();
 	
 	Session::reinitialiserEvenements();
 }
 
 void Session::nettoyer() {
-	if(!Session::init)
-		return;
+	Parametres::nettoyer();
+	
+	Ecran::nettoyagePreliminaire();
+	Texte::nettoyer();
+	ImagesBase::nettoyer();
+	Shader::nettoyer();
+	Ecran::nettoyageFinal();
+
+	SDL_Quit();
 }
 
 void Session::menu() {
@@ -168,7 +186,7 @@ void Session::gestionEvenements() {
 			}
 			break;
 		case SDL_KEYDOWN:
-			if(evenement.key.keysym.scancode != 0) {
+			if(evenement.key.keysym.unicode != 0) {
 				correspondances[evenement.key.keysym.scancode] = evenement.key.keysym.unicode;
 			}
 			
@@ -176,7 +194,7 @@ void Session::gestionEvenements() {
 			int temp = evenement.key.keysym.unicode;
 			int temp2 = evenement.key.keysym.sym;
 			
-			if(evenement.type == SDL_KEYUP && evenement.key.keysym.scancode != 0) {
+			if(evenement.type == SDL_KEYUP && (evenement.key.keysym.scancode != 0 || (evenement.key.keysym.sym < SDLK_F15))) {
 				temp = correspondances[evenement.key.keysym.scancode];
 			}
 			_modificateurTouches = M_AUCUN;
@@ -317,12 +335,12 @@ void Session::gestionEvenements() {
 	}
 }
 
-bool Session::boucle(float freq, bool continuer) {		
+bool Session::boucle(float freq, bool continuer) {
 	if(!continuer) {
 		Session::reinitialiserEvenements();
 		return false;
 	}
-	
+		
 	Session::gestionEvenements();
 	
 	attendre(1.0f / freq - (horloge() - Session::_horlogeBoucle));
@@ -434,3 +452,16 @@ Unichar Session::transcriptionModificateur(Session::modificateur_touche_t const 
 	
 	return retour;
 }
+
+void Session::reinitialiserEvenementsClavier() {
+	for(evenement_t i = PREMIER_EVENEMENT_CLAVIER; i < DERNIER_EVENEMENT_CLAVIER; ++i) {
+		_evenements[i] = false;
+	}
+}
+
+void Session::reinitialiserEvenements() {
+	for(evenement_t i = premierEvenement; i < nombreEvenements; ++i) {
+		_evenements[i] = false;
+	}
+}
+

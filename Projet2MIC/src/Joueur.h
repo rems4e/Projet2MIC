@@ -22,7 +22,7 @@ public:
 	virtual void animer(horloge_t tempsEcoule);
 	virtual void interagir(Personnage *p);
 	
-	void afficher(Coordonnees const &d, double zoom = 1.0) const;
+	void afficher(index_t deltaX, index_t deltaY, Coordonnees const &d, double zoom = 1.0) const;
 	
 	virtual bool joueur() const;
 	virtual categorie_t type() const;

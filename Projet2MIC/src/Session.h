@@ -66,7 +66,7 @@ namespace Session {
 	};
 	
 	inline modificateur_touche_t operator|(modificateur_touche_t const &m1, modificateur_touche_t const &m2) { return static_cast<modificateur_touche_t>(static_cast<int>(m1) | static_cast<int>(m2)); }
-	inline modificateur_touche_t &operator|=(modificateur_touche_t &m1, modificateur_touche_t const &m2) { return m1 = m1 | m2; }	
+	inline modificateur_touche_t &operator|=(modificateur_touche_t &m1, modificateur_touche_t const &m2) { return m1 = m1 | m2; }
 
 	bool modificateurTouches(modificateur_touche_t const &mod);
 	modificateur_touche_t const &modificateurTouches();
@@ -88,11 +88,12 @@ namespace Session {
 	// L'intervalle de temps entre 2 itérations de la boucle est défini par 1 / 'freq'.
 	bool boucle(horloge_t const freq, bool continuer);
 	
+	// À n'appeller qu'une seule fois en début de programme
+	void initialiser();
+	// À n'appeller qu'une seule fois en fin de programme
+	void nettoyer();
 	// Point d'entrée du jeu
 	void menu();
-	
-	void initialiser();
-	void nettoyer();
 	
 	// Retourne une chaîne de caractères associée à l'événement ou au modificateur demandé
 	Unichar transcriptionEvenement(evenement_t const &);
@@ -100,5 +101,7 @@ namespace Session {
 }
 
 inline Session::evenement_t &operator++(Session::evenement_t &e) { return e = static_cast<Session::evenement_t>(static_cast<int>(e) + 1); }
+
+#include "Parametres.h"
 
 #endif

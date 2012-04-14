@@ -17,7 +17,7 @@ class Teleporteur : public EntiteStatiqueAnimee {
 public:
 	virtual ~Teleporteur();
 		
-protected:		
+protected:
 	static ElementNiveau::elementNiveau_t cat() { return ElementNiveau::teleporteur; }
 	Teleporteur(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
 	
@@ -26,7 +26,7 @@ private:
 	bool _actif;
 	
 	Teleporteur(Teleporteur const &);
-	Teleporteur &operator=(Teleporteur const &);	
+	Teleporteur &operator=(Teleporteur const &);
 };
 
 #endif

@@ -18,13 +18,12 @@ class EntiteStatiqueAnimee : public EntiteStatique {
 public:
 	virtual ~EntiteStatiqueAnimee();
 	
-	virtual void afficher(Coordonnees const &decalage, double zoom = 1.0) const;
+	virtual void afficher(index_t deltaX, index_t deltaY, Coordonnees const &decalage, double zoom = 1.0) const;
 	virtual void animer(horloge_t tempsEcoule);
-	virtual Coordonnees dimensions() const;
 	
 	Rectangle const &cadre() const;
 
-protected:	
+protected:
 	static ElementNiveau::elementNiveau_t cat() { return ElementNiveau::entiteStatiqueAnimee; }
 	EntiteStatiqueAnimee(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
 
@@ -39,7 +38,7 @@ private:
 
 	
 	EntiteStatiqueAnimee(EntiteStatiqueAnimee const &);
-	EntiteStatiqueAnimee &operator=(EntiteStatiqueAnimee const &);	
+	EntiteStatiqueAnimee &operator=(EntiteStatiqueAnimee const &);
 };
 
 #endif

@@ -31,7 +31,7 @@ struct Menu::TestNul {
 	}
 };
 
-Menu::Menu(Unichar const &titre, std::vector<Unichar> const &elements) : _titre(titre, POLICE_DECO, TAILLE_TITRE_MENU, Couleur::blanc), _elements(elements.begin(), elements.end()), _premierElementAffiche(0), _nbElementsAffiches(0) {	
+Menu::Menu(Unichar const &titre, std::vector<Unichar> const &elements) : _titre(titre, POLICE_DECO, TAILLE_TITRE_MENU, Couleur::blanc), _elements(elements.begin(), elements.end()), _premierElementAffiche(0), _nbElementsAffiches(0) {
 	std::remove_if(_elements.begin(), _elements.end(), Menu::TestNul());
 	_elements.push_back(element_t("Retour"));
 	size_t dim = 0;
@@ -66,12 +66,17 @@ index_t Menu::afficher(Image *fond) {
 	while(Session::boucle(100, continuer)) {
 		Ecran::definirPointeurAffiche(true);
 		Ecran::effacer();
+		
 		Image::definirTeinte(Couleur(0, std::min((horloge() - ref) / TEMPS_ENTREE, 1.0f) * 80));
-		apercu->afficher(Coordonnees(), Shader::flou(std::min((horloge() - ref) / TEMPS_ENTREE, 1.0f) * FLOU_FOND));
+		Shader::flou(FLOU_FOND).activer();
+		apercu->afficher(Coordonnees());
+		Shader::desactiver();
+		
 		Image::definirTeinte(Couleur::blanc);
 		
 		//Ecran::afficherRectangle(Ecran::ecran(), Couleur(0, 0, 0, 128));
 		this->afficherElements(elementSelectionne);
+		Ecran::finaliser();
 				
 		if(Session::evenement(Session::T_ESC)) {
 			retour = _elements.size() - 1;

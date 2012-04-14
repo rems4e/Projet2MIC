@@ -23,21 +23,15 @@ EntiteStatique::~EntiteStatique() {
 	
 }
 
-void EntiteStatique::afficher(Coordonnees const &decalage, double zoom) const {
+void EntiteStatique::afficher(index_t deltaX, index_t deltaY, Coordonnees const &decalage, double zoom) const {
+	if(deltaX)
+		return;
 	_image.redimensionner(zoom);
 	_image.afficher(this->positionAffichage() * zoom - decalage);
 }
 
-bool EntiteStatique::collision() const {
-	return true;
-}
-
 void EntiteStatique::animer(horloge_t tempsEcoule) {
 	
-}
-
-Coordonnees EntiteStatique::dimensions() const {
-	return _image.dimensionsReelles();
 }
 
 Image const &EntiteStatique::image() const {

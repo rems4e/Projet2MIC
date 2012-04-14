@@ -23,7 +23,7 @@ class TiXmlDocument;
 
 class ElementNiveau {
 public:
-	enum elementNiveau_t {premierTypeElement = 0, entiteStatique = premierTypeElement, ennemi, arbre, entiteStatiqueAnimee, objetInventaire, teleporteur, ndef7, ndef8,
+	enum elementNiveau_t {premierTypeElement = 0, entiteStatique = premierTypeElement, ennemi, arbre, entiteStatiqueAnimee, objetInventaire, teleporteur, maison, ndef8,
 		ndef9, ndef10, ndef11, ndef12, ndef13, ndef14, ndef15, ndef16, ndef17, ndef18, ndef19, ndef20, ndef21, ndef22, ndef23, ndef24,
 		ndef25, ndef26, ndef27, ndef28, ndef29, ndef30, ndef31, ndef32, ndef33, ndef34, ndef35, ndef36, ndef37, ndef38, ndef39, ndef40,
 		ndef41, ndef42, ndef43, ndef44, ndef45, ndef46, ndef47, ndef48, ndef49, ndef50, ndef51, ndef52, ndef53, ndef54, ndef55, ndef56,
@@ -69,9 +69,9 @@ public:
 	virtual ~ElementNiveau();
 
 	// Affichage de l'entité dans ses caractéristiques actuelles
-	virtual void afficher(Coordonnees const &decalage, double zoom = 1.0) const = 0;
-	// L'entité entre-t-elle en collision avec les autres ?
-	virtual bool collision() const = 0;
+	virtual void afficher(index_t deltaX, index_t deltaY, Coordonnees const &decalage, double zoom = 1.0) const = 0;
+	// L'entité entre-t-elle en collision avec les autres, dans sa case (x, y) ?
+	virtual bool collision(index_t x, index_t y) const;
 	// Évolution de l'état de l'entité au fil du temps
 	virtual void animer(horloge_t tempsEcoule) = 0;
 	
@@ -80,11 +80,12 @@ public:
 	// Si la fonction retourne faux, la position est en pixels.
 	Coordonnees position() const;
 	void definirPosition(Coordonnees const &p);
+	virtual index_t pX() const;
+	virtual index_t pY() const;
 	
-	// Dimensions de l'entité (de son image affichée).
-	virtual Coordonnees dimensions() const = 0;
-	// Si l'entité recouvre plusieurs cases ou non.
-	bool multi() const;
+	// Dimensions de l'entité en nombre de cases.
+	virtual size_t dimX() const;
+	virtual size_t dimY() const;
 	
 	Niveau *niveau();
 	void definirNiveau(Niveau *n);
@@ -104,8 +105,8 @@ public:
 	static TiXmlElement *description(uindex_t index, elementNiveau_t cat);
 	static char const *nomCategorie(elementNiveau_t cat);
 
-protected:			
-	ElementNiveau(Niveau *n, uindex_t index, elementNiveau_t cat);
+protected:
+	ElementNiveau(Niveau *n, uindex_t index, elementNiveau_t cat) throw(Exc_DefinitionEntiteIncomplete);
 	ElementNiveau(ElementNiveau const &);
 	ElementNiveau &operator=(ElementNiveau const &);
 	
@@ -114,8 +115,10 @@ private:
 	Coordonnees _position;
 	Coordonnees _origine;
 	bool _centrage;
-	bool _multi;
 	elementNiveau_t _categorie;
+	size_t _dimX, _dimY;
+	
+	bool **_collision;
 	
 	static TiXmlDocument *_description;
 	

@@ -8,71 +8,123 @@
  */
 
 #include "Image.h"
-#include <list>
+#include <map>
 #include <SDL/SDL.h>
 #include <SDL/SDL_image.h>
 #include <cmath>
 #include <cstring>
 
+#define TAMPON_SOMMETS 200000
+
+namespace ImagesBase {
+	std::map<std::string, ImageBase *> *_images = 0;
+	void initialiser();
+	void nettoyer();
+	GLint _tex = -1;
+	std::vector<float> _vertCoords;
+	std::vector<float> _texCoords;
+	std::vector<unsigned char> _couleurs;
+	size_t _nbSommets = 0;
+	
+	void changerTexture(GLint tex);
+	
+	void ajouterSommet(Coordonnees const &pos, Coordonnees const &posTex, Couleur const &couleur);
+}
+
 struct ImageBase {
-	GLuint _tex;
-	std::string _fichier;
-	Coordonnees _dimensions;
-	int _nombreReferences;
-	
-	static ImageBase *imageBase(std::string const &fichier);
-	static ImageBase *imageBase(unsigned char *pixels, int largeur, int hauteur, int profondeur, bool retourner);
-	
 	inline ImageBase(std::string const &fichier) : _tex(0), _dimensions(), _fichier(), _nombreReferences(1) { this->charger(fichier); }
 	inline ImageBase(unsigned char *pixels, int largeur, int hauteur, int profondeur, bool retourner) : _tex(0), _dimensions(), _fichier(), _nombreReferences(1) { this->charger(pixels, largeur, hauteur, profondeur, retourner); }
+	static ImageBase *imageBase(std::string const &fichier);
+	static ImageBase *imageBase(unsigned char *pixels, int largeur, int hauteur, int profondeur, bool retourner);
+
+	virtual ~ImageBase();
+	void detruire();
 	
 	ImageBase *charger(std::string const &fichier);
 	ImageBase *charger(unsigned char *pixels, int largeur, int hauteur, int profondeur, bool retourner);
 	
 	unsigned char const *pixels() const;
-
-	virtual ~ImageBase();
-	
-	void detruire();
-	
-	inline bool operator==(ImageBase const &i) const {
-		return _fichier == i._fichier;
-	}
-	inline bool operator==(std::string const &f) const {
-		return _fichier == f;
-	}
+		
+	GLuint _tex;
+	std::string _fichier;
+	Coordonnees _dimensions;
+	int _nombreReferences;
 };
 
-static std::list<ImageBase *> *images = 0;
+void ImagesBase::nettoyer() {
+	for(std::map<std::string, ImageBase *>::iterator i = ImagesBase::_images->begin(); i != ImagesBase::_images->end(); ++i) {
+		delete i->second;
+	}
+	
+	delete ImagesBase::_images;
+	ImagesBase::_images = 0;
+}
+
+void ImagesBase::initialiser() {
+	_vertCoords.resize(2 * TAMPON_SOMMETS);
+	_couleurs.resize(4 * TAMPON_SOMMETS);
+	_texCoords.resize(2 * TAMPON_SOMMETS);
+}
+
+void ImagesBase::ajouterSommet(Coordonnees const &pos, Coordonnees const &posTex, Couleur const &couleur) {
+	if(_vertCoords.size() / 2 <= _nbSommets) {
+		_vertCoords.resize(_vertCoords.size() + _vertCoords.size() / 10);
+		_texCoords.resize(_vertCoords.size() + _vertCoords.size() / 10);
+		_couleurs.resize(_vertCoords.size() + _vertCoords.size() / 10);
+		
+		std::cout << "Dimensionnemen des tableaux de sommets sous-évalués. Nouvelle taille : " << _vertCoords.size() / 2 << std::endl;
+	}
+	   
+	_vertCoords[_nbSommets * 2] = pos.x;
+	_vertCoords[_nbSommets * 2 + 1] = pos.y;
+
+	_texCoords[_nbSommets * 2] = posTex.x;
+	_texCoords[_nbSommets * 2 + 1] = posTex.y;
+
+	_couleurs[_nbSommets * 4] = couleur.r;
+	_couleurs[_nbSommets * 4 + 1] = couleur.v;
+	_couleurs[_nbSommets * 4 + 2] = couleur.b;
+	_couleurs[_nbSommets * 4 + 3] = couleur.a;
+
+	++_nbSommets;
+}
+
+void ImagesBase::changerTexture(GLint tex) {
+	if(tex != _tex) {
+		if(_nbSommets) {
+			//static size_t nb;
+			glColorPointer(4, GL_UNSIGNED_BYTE, 0, &_couleurs[0]);
+			glVertexPointer(2, GL_FLOAT, 0, &_vertCoords[0]);
+			glTexCoordPointer(2, GL_FLOAT, 0, &_texCoords[0]);
+			glDrawArrays(GL_TRIANGLES, 0, _nbSommets);
+			//nb = std::max(nb, _nbSommets);
+			_nbSommets = 0;
+		}
+		
+
+		if(tex != -1) {
+			glBindTexture(GL_TEXTURE_2D, tex);
+		}
+		_tex = tex;
+	}
+}
 
 Couleur Image::_teinte = Couleur::blanc;
 unsigned char Image::_opacite = 255;
 
-struct egImg {
-	inline egImg(std::string const &s) : _s(s) { }
-	
-	inline bool operator()(ImageBase const *i) const {
-		return *i == _s;
-	}
-	
-	std::string const &_s;
-};
-
 ImageBase *ImageBase::imageBase(std::string const &fichier) {
-	if(images == 0)
-		images = new std::list<ImageBase *>;
+	if(ImagesBase::_images == 0)
+		ImagesBase::_images = new std::map<std::string, ImageBase *>;
 	
-	std::list<ImageBase *>::iterator it = std::find_if(images->begin(), images->end(), egImg(fichier));
+	ImageBase *&img = ImagesBase::_images->operator[](fichier);
 
-	if(it == images->end()) {
-		ImageBase *i = new ImageBase(fichier);
-		images->push_back(i);
-		return i;
+	if(img == 0) {
+		img = new ImageBase(fichier);
 	}
+	else
+		++(img->_nombreReferences);
 	
-	++(*it)->_nombreReferences;
-	
-	return *it;
+	return img;
 }
 
 ImageBase *ImageBase::imageBase(unsigned char *img, int largeur, int hauteur, int profondeur, bool retourner) {
@@ -80,15 +132,12 @@ ImageBase *ImageBase::imageBase(unsigned char *img, int largeur, int hauteur, in
 }
 
 void ImageBase::detruire() {
-	if(!images)
-		return;
-
 	--_nombreReferences;
 	if(_nombreReferences <= 0) {
-		if(_fichier.size()) {
-			std::list<ImageBase *>::iterator it = std::find(images->begin(), images->end(), this);
-			images->erase(it);
+		if(!_fichier.empty()) {
+			ImagesBase::_images->erase(_fichier);
 		}
+		
 		delete this;
 	}
 }
@@ -139,23 +188,7 @@ ImageBase *ImageBase::charger(std::string const &fichier) {
 	return img;
 }
 
-unsigned char Image::opacite() {
-	return _opacite;
-}
-
-Couleur Image::teinte() {
-	return _teinte;
-}
-
-void Image::definirTeinte(const Couleur &c) {
-	_teinte = c;
-}
-
-void Image::definirOpacite(unsigned char o) {
-	_opacite = o;
-}
-
-ImageBase *ImageBase::charger(unsigned char *img, int largeur, int hauteur, int profondeur, bool retourner) {
+ImageBase *ImageBase::charger(unsigned char *img, int largeur, int hauteur, int profondeur, bool retourner) {	
 	glGenTextures(1, &_tex);
 	
 	if(retourner) {
@@ -181,7 +214,7 @@ ImageBase *ImageBase::charger(unsigned char *img, int largeur, int hauteur, int 
 	if(retourner) {
 		delete[] img;
 	}
-	
+
 	return this;
 }
 
@@ -191,18 +224,6 @@ unsigned char const *ImageBase::pixels() const {
 
 	return pix;
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 Image::Image(std::string const &fichier) : _base(0), _facteurX(1.0f), _facteurY(1.0f), _angle(0.0f) {
 	if(fichier.size())
@@ -244,12 +265,20 @@ Image::~Image() {
 	}
 }
 
-void Image::nettoyer() {
-	for(std::list<ImageBase *>::iterator i = images->begin(); i != images->end(); ++i) {
-		delete *i;
-	}
-	delete images;
-	images = 0;
+unsigned char Image::opacite() {
+	return _opacite;
+}
+
+Couleur Image::teinte() {
+	return _teinte;
+}
+
+void Image::definirTeinte(const Couleur &c) {
+	_teinte = c;
+}
+
+void Image::definirOpacite(unsigned char o) {
+	_opacite = o;
 }
 
 Coordonnees Image::dimensions() const {
@@ -282,31 +311,36 @@ Image const &Image::redimensionner(facteur_t facteur) const {
 	return this->redimensionner(facteur, facteur);
 }
 
-Image const &Image::redimensionner(facteur_t facteurX, facteur_t facteurY) const {		
+Image const &Image::redimensionner(facteur_t facteurX, facteur_t facteurY) const {
 	_facteurX = facteurX;
 	_facteurY = facteurY;
 	
 	return *this;
 }
 
-void Image::afficher(Coordonnees const &position, Rectangle const &filtre, Shader const &s) const {
+void Image::afficher(Coordonnees const &position, Rectangle const &filtre) const {
 	if(!Rectangle(position, Coordonnees(filtre.largeur * _facteurX, filtre.hauteur * _facteurY)).superposition(Ecran::ecran()))
 		return;
 	
-	s.activer();
-	glBindTexture(GL_TEXTURE_2D, _base->_tex);
-	GLint dim = glGetUniformLocation(s.programme(), "dimTex");
-	glUniform2f(dim, filtre.largeur, filtre.hauteur);
-	for(Shader::const_iterator i = s.premierParametre(); i != s.dernierParametre(); ++i) {
-		GLint loc = glGetUniformLocation(s.programme(), i->first.c_str());
-		glUniform1f(loc, i->second);
-	}
-
 	Rectangle vert(position, Coordonnees(filtre.largeur * _facteurX, filtre.hauteur * _facteurY));
+	
+	Shader::shaderActuel().definirParametre(Shader::dim, vert.largeur, vert.hauteur);
+	Shader::shaderActuel().definirParametre(Shader::pos, vert.gauche, vert.haut);
 		
-	glBegin(GL_QUADS);
+	ImagesBase::changerTexture(_base->_tex);
+	
+	//glBegin(GL_QUADS);
+	
+	Couleur c(255 - Image::_teinte.a * (255 - Image::_teinte.r) / 255, 255 - Image::_teinte.a * (255 - Image::_teinte.v) / 255, 255 - Image::_teinte.a * (255 - Image::_teinte.b) / 255, Image::_opacite);
 
-	glColor4ub(255 - Image::_teinte.a * (255 - Image::_teinte.r) / 255, 255 - Image::_teinte.a * (255 - Image::_teinte.v) / 255, 255 - Image::_teinte.a * (255 - Image::_teinte.b) / 255, Image::_opacite);
+	ImagesBase::ajouterSommet(Coordonnees(vert.gauche, vert.haut), Coordonnees(filtre.gauche / _base->_dimensions.x, filtre.haut / _base->_dimensions.y), c);
+	ImagesBase::ajouterSommet(Coordonnees(vert.gauche + vert.largeur, vert.haut), Coordonnees((filtre.gauche + filtre.largeur) / _base->_dimensions.x, filtre.haut / _base->_dimensions.y), c);
+	ImagesBase::ajouterSommet(Coordonnees(vert.gauche, vert.haut + vert.hauteur), Coordonnees(filtre.gauche / _base->_dimensions.x, (filtre.haut + filtre.hauteur) / _base->_dimensions.y), c);
+
+	ImagesBase::ajouterSommet(Coordonnees(vert.gauche, vert.haut + vert.hauteur), Coordonnees(filtre.gauche / _base->_dimensions.x, (filtre.haut + filtre.hauteur) / _base->_dimensions.y), c);
+	ImagesBase::ajouterSommet(Coordonnees(vert.gauche + vert.largeur, vert.haut), Coordonnees((filtre.gauche + filtre.largeur) / _base->_dimensions.x, filtre.haut / _base->_dimensions.y), c);
+	ImagesBase::ajouterSommet(Coordonnees(vert.gauche + vert.largeur, vert.haut + vert.hauteur), Coordonnees((filtre.gauche + filtre.largeur) / _base->_dimensions.x, (filtre.haut + filtre.hauteur) / _base->_dimensions.y), c);
+	/*glColor4ub(255 - Image::_teinte.a * (255 - Image::_teinte.r) / 255, 255 - Image::_teinte.a * (255 - Image::_teinte.v) / 255, 255 - Image::_teinte.a * (255 - Image::_teinte.b) / 255, Image::_opacite);
 	
 	glTexCoord2d(filtre.gauche / _base->_dimensions.x, filtre.haut / _base->_dimensions.y);
 	glVertex2d(vert.gauche, vert.haut);
@@ -318,7 +352,7 @@ void Image::afficher(Coordonnees const &position, Rectangle const &filtre, Shade
 	glVertex2d(vert.largeur + vert.gauche, vert.hauteur + vert.haut);
 	
 	glTexCoord2d(filtre.gauche / _base->_dimensions.x, (filtre.haut + filtre.hauteur) / _base->_dimensions.y);
-	glVertex2d(vert.gauche, vert.hauteur + vert.haut);
+	glVertex2d(vert.gauche, vert.hauteur + vert.haut);*/
 	
-	glEnd();
+	//glEnd();
 }

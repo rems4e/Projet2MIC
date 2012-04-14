@@ -104,7 +104,7 @@ bool InventaireC<Conteneur>::ajouterObjet(ObjetInventaire *o) {
 }
 
 template <template <class e, class = std::allocator<e> > class Conteneur>
-void InventaireC<Conteneur>::supprimerObjet(ObjetInventaire *o) {	
+void InventaireC<Conteneur>::supprimerObjet(ObjetInventaire *o) {
 	for(iterator i = _elements.begin(); i != _elements.end(); ++i) {
 		if(*i == o) {
 			_elements.erase(i._base);

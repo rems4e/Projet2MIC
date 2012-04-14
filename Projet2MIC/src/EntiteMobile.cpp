@@ -30,10 +30,10 @@ EntiteMobile::EntiteMobile(Niveau *n, uindex_t index, ElementNiveau::elementNive
 	_image = Image(Session::cheminRessources() + img);
 	
 	size_t dimX = 128, dimY = 128;
-	if(e->Attribute("dimX"))
-		e->Attribute("dimX", &dimX);
-	if(e->Attribute("dimY"))
-		e->Attribute("dimY", &dimY);
+	if(e->Attribute("blocX"))
+		e->Attribute("blocX", &dimX);
+	if(e->Attribute("blocY"))
+		e->Attribute("blocY", &dimY);
 	
 	for(action_t a = premiereAction; a != nbActions; ++a) {
 		TiXmlElement *action = e->FirstChildElement(EntiteMobile::transcriptionAction(a));
@@ -68,14 +68,14 @@ EntiteMobile::~EntiteMobile() {
 	}
 }
 
-void EntiteMobile::afficher(Coordonnees const &decalage, double zoom) const {
+void EntiteMobile::afficher(index_t deltaX, index_t deltaY, Coordonnees const &decalage, double zoom) const {
 	_image.redimensionner(zoom);
 	Rectangle const &cadre = this->cadre();
 	_image.afficher(this->positionAffichage() * zoom - decalage, cadre);
 }
 
-bool EntiteMobile::collision() const {
-	return true;
+bool EntiteMobile::collision(index_t x, index_t y) const {
+	return false;
 }
 
 index_t EntiteMobile::pX() const {
@@ -103,7 +103,7 @@ void EntiteMobile::animer(horloge_t tempsEcoule) {
 }
 
 Coordonnees EntiteMobile::dimensions() const {
-	return Coordonnees(LARGEUR_CASE, LARGEUR_CASE);
+	return Coordonnees(1, 1);
 }
 
 Rectangle const &EntiteMobile::cadre() const {

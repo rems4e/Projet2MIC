@@ -17,8 +17,8 @@ Joueur::~Joueur() {
 	
 }
 
-void Joueur::afficher(Coordonnees const &decalage, double zoom) const {
-	this->Personnage::afficher(decalage);
+void Joueur::afficher(index_t deltaX, index_t deltaY, Coordonnees const &decalage, double zoom) const {
+	this->Personnage::afficher(deltaX, deltaY, decalage);
 	Ecran::afficherRectangle(Rectangle((this->positionAffichage() + this->origine()) * zoom - decalage - Coordonnees(5, 5), Coordonnees(10, 10)), Couleur(255, 255, 0));
 }
 
@@ -26,13 +26,13 @@ void Joueur::animer(horloge_t tempsEcoule) {
 	Personnage::animer(tempsEcoule);
 	
 	Coordonnees dep;
-	if(Session::evenement(Session::T_DROITE))
+	if(Session::evenement(Parametres::evenementAction(Parametres::depDroite)))
 		dep += Coordonnees(1, 1);
-	else if(Session::evenement(Session::T_GAUCHE))
+	else if(Session::evenement(Parametres::evenementAction(Parametres::depGauche)))
 		dep += Coordonnees(-1, -1);
-	if(Session::evenement(Session::T_BAS))
+	if(Session::evenement(Parametres::evenementAction(Parametres::depBas)))
 		dep += Coordonnees(-1, 1);
-	else if(Session::evenement(Session::T_HAUT))
+	else if(Session::evenement(Parametres::evenementAction(Parametres::depHaut)))
 		dep += Coordonnees(1, -1);
 	
 	if(!dep.vecteurNul()) {
@@ -57,7 +57,7 @@ void Joueur::animer(horloge_t tempsEcoule) {
 	if(Session::evenement(Session::T_r)) {
 		Niveau::listeElements_t liste = this->niveau()->elements(this->pX(), this->pY(), Niveau::cn_objetsInventaire);
 		for(Niveau::elements_t::iterator el = liste.first; el != liste.second; ++el) {
-			if(this->inventaire()->ajouterObjet(static_cast<ObjetInventaire *>(*el))) {
+			if(this->inventaire()->ajouterObjet(static_cast<ObjetInventaire *>(el->first))) {
 				this->niveau()->supprimerElement(this->pX(), this->pY(), Niveau::cn_objetsInventaire, el, false);
 			}
 		}
@@ -74,7 +74,7 @@ bool Joueur::joueur() const {
 }
 
 EntiteMobile::categorie_t Joueur::type() const {
-	return EntiteMobile::joueur;
+	return EntiteMobile::em_joueur;
 }
 
 bool Joueur::inventaireAffiche() const {
