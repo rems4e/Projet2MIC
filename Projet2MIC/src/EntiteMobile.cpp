@@ -16,7 +16,7 @@
 
 EntiteMobile::action_t &operator++(EntiteMobile::action_t &c) { return c = static_cast<EntiteMobile::action_t>(static_cast<int>(c + 1)); }
 
-EntiteMobile::EntiteMobile(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : ElementNiveau(n, index, cat), _tempsPrecedent(0), _image(), _cadres(), _tempsAffichage(), _nbImages(), _imageActuelle(0), _action(a_immobile), _direction(gauche) {
+EntiteMobile::EntiteMobile(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : ElementNiveau(decoupagePerspective, n, index, cat), _tempsPrecedent(0), _image(), _cadres(), _tempsAffichage(), _nbImages(), _imageActuelle(0), _action(a_immobile), _direction(gauche) {
 	std::memset(_nbImages, 0, nbActions * sizeof(size_t));
 	for(action_t a = premiereAction; a != nbActions; ++a) {
 		std::memset(_cadres[a], 0, 8 * sizeof(Rectangle *));

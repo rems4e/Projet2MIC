@@ -65,7 +65,6 @@ namespace Ecran {
 	};
 	
 	AttributsEcran *_attributs;
-	Rectangle _ecran;
 
 	void init(unsigned int largeur, unsigned int hauteur, unsigned int profondeur, bool pleinEcran);
 	void nettoyagePreliminaire();
@@ -95,7 +94,7 @@ Ecran::AttributsEcran::~AttributsEcran() {
 
 	if(_pleinEcran) {
 		SDL_SetVideoMode(800, 600, 32, SDL_OPENGL | SDL_ASYNCBLIT);
-		Ecran::afficherRectangle(Rectangle(0, 0, 800, 600), Couleur::noir);
+		glClear(GL_COLOR_BUFFER_BIT);
 		SDL_GL_SwapBuffers();
 	}
 }
@@ -109,6 +108,9 @@ void Ecran::modifierResolution(unsigned int largeur, unsigned int hauteur, unsig
 	else
 		resultat = SDL_SetVideoMode(largeur, hauteur, 32, SDL_OPENGL | SDL_ASYNCBLIT);
 	
+	glClearColor(0, 0, 0, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT);
+	SDL_GL_SwapBuffers();
 	
 	if(resultat == 0) {
 		std::cerr << "Impossible de définir l'écran à une résolution de " << largeur << "*" << hauteur << "*" << profondeur << " (plein écran : " << pleinEcran << "). Erreur : " << SDL_GetError() << std::endl;
@@ -133,26 +135,12 @@ void Ecran::modifierResolution(unsigned int largeur, unsigned int hauteur, unsig
 	Ecran::_attributs->_vide = Image(imageVide, 1, 1, 4);
 	
 	Ecran::definirPointeur(0);
-	
-	Ecran::_ecran = Rectangle(Coordonnees(), Ecran::dimensions());
 		
-	glEnableClientState(GL_COLOR_ARRAY);
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-
 	glDisable(GL_CULL_FACE);
-
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glOrtho(0, Ecran::_attributs->_largeur, Ecran::_attributs->_hauteur, 0, 0.1, 10.0);
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	glClearColor(0, 0, 0, 1.0f);
 }
+
 
 Image *Ecran::apercu() {
 	unsigned char *pixels = new unsigned char[static_cast<int>(Ecran::_attributs->_largeur) * static_cast<int>(Ecran::_attributs->_hauteur) * 4];
@@ -167,10 +155,10 @@ Image *Ecran::apercu() {
 }
 
 void Ecran::maj() {
-	static float h = 0.0f, h1 = 0.0f;
-	static unsigned int c = 0;
-	c++;
-	float f = horloge();
+	static horloge_t h = 0.0f, h1 = 0.0f;
+	static size_t c = 0;
+	++c;
+	horloge_t f = horloge();
 	Ecran::_attributs->_frequenceInstantanee = 1.0f / (f - h1);
 	h1 = f;
 	if(f - h >= 3.0f) {
@@ -179,7 +167,7 @@ void Ecran::maj() {
 		h = f;
 	}
 
-#if IPS
+#ifdef IPS
 	static char ips[255];
 
 	snprintf(ips, 255, "%.2f s - %.1f ips", horloge(), Ecran::_attributs->_frequence);
@@ -196,8 +184,6 @@ void Ecran::maj() {
 	
 	Ecran::finaliser();
 	SDL_GL_SwapBuffers();
-
-	glLoadIdentity();
 }
 
 void Ecran::finaliser() {
@@ -235,14 +221,6 @@ void Ecran::afficherQuadrilatere(Coordonnees const &p1, Coordonnees const &p2, C
 	ImagesBase::ajouterSommet(p4, Coordonnees::eY, c);
 	ImagesBase::ajouterSommet(p2, Coordonnees::eX, c);
 	ImagesBase::ajouterSommet(p3, Coordonnees::un, c);
-	
-	/*glBegin(GL_QUADS);
-	glColor4ub(c.r, c.v, c.b, c.a);
-	glVertex2d(p1.x, p1.y);
-	glVertex2d(p2.x, p2.y);
-	glVertex2d(p3.x, p3.y);
-	glVertex2d(p4.x, p4.y);
-	glEnd();*/
 }
 
 Rectangle Ecran::ecran() {

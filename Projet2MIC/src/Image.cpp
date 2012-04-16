@@ -25,7 +25,7 @@ namespace ImagesBase {
 	std::vector<float> _texCoords;
 	std::vector<unsigned char> _couleurs;
 	size_t _nbSommets = 0;
-	
+		
 	void changerTexture(GLint tex);
 	
 	void ajouterSommet(Coordonnees const &pos, Coordonnees const &posTex, Couleur const &couleur);
@@ -69,14 +69,22 @@ void ImagesBase::initialiser() {
 void ImagesBase::ajouterSommet(Coordonnees const &pos, Coordonnees const &posTex, Couleur const &couleur) {
 	if(_vertCoords.size() / 2 <= _nbSommets) {
 		_vertCoords.resize(_vertCoords.size() + _vertCoords.size() / 10);
-		_texCoords.resize(_vertCoords.size() + _vertCoords.size() / 10);
-		_couleurs.resize(_vertCoords.size() + _vertCoords.size() / 10);
+		_texCoords.resize(_texCoords.size() + _texCoords.size() / 10);
+		_couleurs.resize(_couleurs.size() + _couleurs.size() / 10);
 		
-		std::cout << "Dimensionnemen des tableaux de sommets sous-évalués. Nouvelle taille : " << _vertCoords.size() / 2 << std::endl;
+		std::cout << "Dimensionnement des tableaux de sommets sous-évalués. Nouvelle taille : " << _vertCoords.size() / 2 << std::endl;
 	}
-	   
-	_vertCoords[_nbSommets * 2] = pos.x;
-	_vertCoords[_nbSommets * 2 + 1] = pos.y;
+	
+/*	if(vertBuf == -1) {
+		glGenBuffers(1, &vertBuf);
+
+		glBindBuffer(GL_ARRAY_BUFFER, vertBuf);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * TAMPON_SOMMETS * 2, 0, GL_DYNAMIC_DRAW);
+
+	}*/
+
+	_vertCoords[_nbSommets * 2] = pos.x / Ecran::largeur() * 2 - 1;
+	_vertCoords[_nbSommets * 2 + 1] = -(pos.y / Ecran::hauteur() * 2 - 1);
 
 	_texCoords[_nbSommets * 2] = posTex.x;
 	_texCoords[_nbSommets * 2 + 1] = posTex.y;
@@ -92,12 +100,17 @@ void ImagesBase::ajouterSommet(Coordonnees const &pos, Coordonnees const &posTex
 void ImagesBase::changerTexture(GLint tex) {
 	if(tex != _tex) {
 		if(_nbSommets) {
-			//static size_t nb;
-			glColorPointer(4, GL_UNSIGNED_BYTE, 0, &_couleurs[0]);
-			glVertexPointer(2, GL_FLOAT, 0, &_vertCoords[0]);
-			glTexCoordPointer(2, GL_FLOAT, 0, &_texCoords[0]);
+			//glBindBuffer(GL_ARRAY_BUFFER, vertBuf);
+			//glBufferSubData(GL_ARRAY_BUFFER, 0, _nbSommets * 2 * sizeof(_vertCoords[0]), &_vertCoords[0]);
+			glVertexAttribPointer(Shader::shaderActuel().vertCoord(), 2, GL_FLOAT, GL_FALSE, 0, &_vertCoords[0]);
+			glVertexAttribPointer(Shader::shaderActuel().texCoord(), 2, GL_FLOAT, GL_FALSE, 0, &_texCoords[0]);
+			glVertexAttribPointer(Shader::shaderActuel().coul(), 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, &_couleurs[0]);
+			
+			glEnableVertexAttribArray(Shader::shaderActuel().vertCoord());
+			glEnableVertexAttribArray(Shader::shaderActuel().texCoord());
+			glEnableVertexAttribArray(Shader::shaderActuel().coul());
 			glDrawArrays(GL_TRIANGLES, 0, _nbSommets);
-			//nb = std::max(nb, _nbSommets);
+
 			_nbSommets = 0;
 		}
 		
@@ -159,18 +172,17 @@ ImageBase *ImageBase::charger(std::string const &fichier) {
 	format.BitsPerPixel = 32;
 	format.BytesPerPixel = 4;
 	
-	if(SDL_BYTEORDER == SDL_BIG_ENDIAN) {
-		format.Rmask = 0xff000000;
-		format.Gmask = 0x00ff0000;
-		format.Bmask = 0x0000ff00;
-		format.Amask = 0x000000ff;
-	}
-	else {
-		format.Rmask = 0x000000ff;
-		format.Gmask = 0x0000ff00;
-		format.Bmask = 0x00ff0000;
-		format.Amask = 0xff000000;
-	}
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+	format.Rmask = 0xff000000;
+	format.Gmask = 0x00ff0000;
+	format.Bmask = 0x0000ff00;
+	format.Amask = 0x000000ff;
+#else
+	format.Rmask = 0x000000ff;
+	format.Gmask = 0x0000ff00;
+	format.Bmask = 0x00ff0000;
+	format.Amask = 0xff000000;
+#endif
 	
 	SDL_Surface *conv = SDL_CreateRGBSurface(SDL_SWSURFACE, surf->w, surf->h, surf->format->BitsPerPixel, format.Rmask, format.Gmask, format.Bmask, format.Amask);
 	
@@ -319,18 +331,16 @@ Image const &Image::redimensionner(facteur_t facteurX, facteur_t facteurY) const
 }
 
 void Image::afficher(Coordonnees const &position, Rectangle const &filtre) const {
-	if(!Rectangle(position, Coordonnees(filtre.largeur * _facteurX, filtre.hauteur * _facteurY)).superposition(Ecran::ecran()))
-		return;
-	
 	Rectangle vert(position, Coordonnees(filtre.largeur * _facteurX, filtre.hauteur * _facteurY));
+	
+	if(!vert.superposition(Ecran::ecran()))
+		return;
 	
 	Shader::shaderActuel().definirParametre(Shader::dim, vert.largeur, vert.hauteur);
 	Shader::shaderActuel().definirParametre(Shader::pos, vert.gauche, vert.haut);
 		
 	ImagesBase::changerTexture(_base->_tex);
-	
-	//glBegin(GL_QUADS);
-	
+		
 	Couleur c(255 - Image::_teinte.a * (255 - Image::_teinte.r) / 255, 255 - Image::_teinte.a * (255 - Image::_teinte.v) / 255, 255 - Image::_teinte.a * (255 - Image::_teinte.b) / 255, Image::_opacite);
 
 	ImagesBase::ajouterSommet(Coordonnees(vert.gauche, vert.haut), Coordonnees(filtre.gauche / _base->_dimensions.x, filtre.haut / _base->_dimensions.y), c);
@@ -340,19 +350,4 @@ void Image::afficher(Coordonnees const &position, Rectangle const &filtre) const
 	ImagesBase::ajouterSommet(Coordonnees(vert.gauche, vert.haut + vert.hauteur), Coordonnees(filtre.gauche / _base->_dimensions.x, (filtre.haut + filtre.hauteur) / _base->_dimensions.y), c);
 	ImagesBase::ajouterSommet(Coordonnees(vert.gauche + vert.largeur, vert.haut), Coordonnees((filtre.gauche + filtre.largeur) / _base->_dimensions.x, filtre.haut / _base->_dimensions.y), c);
 	ImagesBase::ajouterSommet(Coordonnees(vert.gauche + vert.largeur, vert.haut + vert.hauteur), Coordonnees((filtre.gauche + filtre.largeur) / _base->_dimensions.x, (filtre.haut + filtre.hauteur) / _base->_dimensions.y), c);
-	/*glColor4ub(255 - Image::_teinte.a * (255 - Image::_teinte.r) / 255, 255 - Image::_teinte.a * (255 - Image::_teinte.v) / 255, 255 - Image::_teinte.a * (255 - Image::_teinte.b) / 255, Image::_opacite);
-	
-	glTexCoord2d(filtre.gauche / _base->_dimensions.x, filtre.haut / _base->_dimensions.y);
-	glVertex2d(vert.gauche, vert.haut);
-	
-	glTexCoord2d((filtre.gauche + filtre.largeur) / _base->_dimensions.x, filtre.haut / _base->_dimensions.y);
-	glVertex2d(vert.largeur + vert.gauche, vert.haut);
-	
-	glTexCoord2d((filtre.gauche + filtre.largeur) / _base->_dimensions.x, (filtre.haut + filtre.hauteur) / _base->_dimensions.y);
-	glVertex2d(vert.largeur + vert.gauche, vert.hauteur + vert.haut);
-	
-	glTexCoord2d(filtre.gauche / _base->_dimensions.x, (filtre.haut + filtre.hauteur) / _base->_dimensions.y);
-	glVertex2d(vert.gauche, vert.hauteur + vert.haut);*/
-	
-	//glEnd();
 }

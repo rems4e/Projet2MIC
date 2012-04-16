@@ -20,7 +20,6 @@ namespace ImagesBase {
 char const * const Shader::rayonFlou = "rayon";
 char const * const Shader::dim = "_dim";
 char const * const Shader::pos = "_pos";
-char const * const Shader::ecran = "_ecran";
 
 std::map<std::pair<std::string, std::string>, std::pair<std::pair<GLint, std::pair<GLint, GLint> >, size_t> > *Shader::_programmes;
 std::map<std::string, std::pair<GLint, size_t> > *Shader::_vertexShaders;
@@ -133,6 +132,10 @@ Shader::Shader(std::string const &vert, std::string const &frag) throw(Shader::E
 			std::cerr << "Édition des liens du programme impossible : " + vert + " " + frag << std::endl;
 			throw;
 		}
+		
+		_vertCoord =  glGetAttribLocation(_prog, "vertCoord");
+		_texCoord = glGetAttribLocation(_prog, "texCoord");
+		_coul = glGetAttribLocation(_prog, "color");
 	}
 	else {
 		_prog = idProgramme.first.first;
@@ -142,8 +145,6 @@ Shader::Shader(std::string const &vert, std::string const &frag) throw(Shader::E
 	++idProgramme.second;
 	++idVert.second;
 	++idFrag.second;
-	
-	this->definirParametre(Shader::ecran, Ecran::largeur(), Ecran::hauteur());
 }
 
 Shader::~Shader() {

@@ -9,7 +9,7 @@
 #include "Joueur.h"
 #include "Session.h"
 
-Joueur::Joueur(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : Personnage(n, index, cat, new InventaireJoueur(*this)), _inventaireAffiche(false) {
+Joueur::Joueur(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : Personnage(decoupagePerspective, n, index, cat, new InventaireJoueur(*this)), _inventaireAffiche(false) {
 	
 }
 

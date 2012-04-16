@@ -13,16 +13,16 @@
 #include "Ecran.h"
 #include <algorithm>
 
-#define TAILLE_TITRE_MENU 42
-#define TAILLE_ELEMENTS_MENU 30
+#define TAILLE_TITRE_MENU 46
+#define TAILLE_ELEMENTS_MENU 32
 #define ECART_ELEM 5
-#define TEMPS_ENTREE 1.0f
 #define FLOU_FOND 1.0f
+#define COULEUR_ELEM Couleur(255, 160)
 
 Menu::element_t::element_t(Unichar const &u) : _texte(u), _cadre() {
 	_texte.definir(POLICE_DECO, TAILLE_ELEMENTS_MENU);
 	_cadre.definirDimensions(_texte.dimensions());
-	_texte.definir(Couleur::grisClair);
+	_texte.definir(COULEUR_ELEM);
 }
 
 struct Menu::TestNul {
@@ -49,32 +49,24 @@ Menu::~Menu() {
 
 }
 
-index_t Menu::afficher(Image *fond) {
+index_t Menu::afficher(index_t selection, Image const &fond) {
 	bool continuer = true;
 	index_t retour = 0;
-	index_t elementSelectionne = 0;
+	index_t elementSelectionne = selection;
 	horloge_t ancienDefilement = 0;
-	
-	Image *apercu = fond;
-	if(apercu == 0)
-		apercu = Ecran::apercu();
-		
+			
 	Session::reinitialiserEvenements();
 	
-	horloge_t ref = horloge();
-	
-	while(Session::boucle(100, continuer)) {
+	while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, continuer)) {
 		Ecran::definirPointeurAffiche(true);
 		Ecran::effacer();
 		
-		Image::definirTeinte(Couleur(0, std::min((horloge() - ref) / TEMPS_ENTREE, 1.0f) * 80));
 		Shader::flou(FLOU_FOND).activer();
-		apercu->afficher(Coordonnees());
+		fond.afficher(Coordonnees());
 		Shader::desactiver();
+				
+		Ecran::afficherRectangle(Ecran::ecran(), Couleur(0, 0, 0, 128));
 		
-		Image::definirTeinte(Couleur::blanc);
-		
-		//Ecran::afficherRectangle(Ecran::ecran(), Couleur(0, 0, 0, 128));
 		this->afficherElements(elementSelectionne);
 		Ecran::finaliser();
 				
@@ -123,10 +115,7 @@ index_t Menu::afficher(Image *fond) {
 		
 		Ecran::maj();
 	}
-	
-	if(fond == 0)
-		delete apercu;
-	
+		
 	return retour;
 }
 
@@ -143,7 +132,7 @@ void Menu::afficherElements(index_t elementSelectionne) {
 		ordonnee += i->_cadre.hauteur + ECART_ELEM;
 	}
 	
-	_elements[elementSelectionne]._texte.definir(Couleur::grisClair);
+	_elements[elementSelectionne]._texte.definir(COULEUR_ELEM);
 }
 
 size_t Menu::tailleMax() {

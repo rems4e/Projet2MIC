@@ -46,7 +46,7 @@ public:
 	};
 		
 	// Création d'une entité en fonction de sa catégorie
-	static ElementNiveau *elementNiveau(Niveau *n, uindex_t index, elementNiveau_t categorie = ElementNiveau::entiteStatique) throw(Exc_EntiteIndefinie, Exc_DefinitionEntiteIncomplete);
+	static ElementNiveau *elementNiveau(bool decoupagePerspective, Niveau *n, uindex_t index, elementNiveau_t categorie = ElementNiveau::entiteStatique) throw(Exc_EntiteIndefinie, Exc_DefinitionEntiteIncomplete);
 	
 	// Création d'une entité en fonction du type passe en paramètre template. Permet d'avoir à se dispenser d'un static_cast<VraiType *>(…).
 	// Sans spécifier le 3e paramètre, l'appel de cette fonction est "sûr".
@@ -55,9 +55,9 @@ public:
 	// Exemple INCORRECT : elementNiveau<Joueur> créé avec une catégorie à ElementNiveau::arbre. Un joueur n'est en aucun cas un arbre, basé sur EntiteStatique.
 	// Exemple CORRECT : elementNiveau<EntiteStatique> créé avec une catégorie à ElementNiveau::arbre. Un arbre est une entité statique et une entité statique peut être un arbre.
 	template<class TypeEntite>
-	static TypeEntite *elementNiveau(Niveau *n, uindex_t index, elementNiveau_t categorie = TypeEntite::cat()) throw(Exc_EntiteIndefinie, Exc_DefinitionEntiteIncomplete) {
+	static TypeEntite *elementNiveau(bool decoupagePerspective, Niveau *n, uindex_t index, elementNiveau_t categorie = TypeEntite::cat()) throw(Exc_EntiteIndefinie, Exc_DefinitionEntiteIncomplete) {
 		if(ElementNiveau::description(index, categorie)) {
-			return new TypeEntite(n, index, categorie);
+			return new TypeEntite(decoupagePerspective, n, index, categorie);
 		}
 		
 		throw Exc_EntiteIndefinie();
@@ -96,6 +96,7 @@ public:
 	virtual Coordonnees origine() const;
 	// L'image est-elle centrée sur la cae où elle se trouve ?
 	virtual bool centrage() const;
+	bool decoupagePerspective() const;
 	
 	virtual bool mobile() const;
 	virtual bool joueur() const;
@@ -106,17 +107,20 @@ public:
 	static char const *nomCategorie(elementNiveau_t cat);
 
 protected:
-	ElementNiveau(Niveau *n, uindex_t index, elementNiveau_t cat) throw(Exc_DefinitionEntiteIncomplete);
+	ElementNiveau(bool decoupagePerspective, Niveau *n, uindex_t index, elementNiveau_t cat) throw(Exc_DefinitionEntiteIncomplete);
 	ElementNiveau(ElementNiveau const &);
 	ElementNiveau &operator=(ElementNiveau const &);
-	
+		
 private:
 	Niveau *_niveau;
 	Coordonnees _position;
 	Coordonnees _origine;
 	bool _centrage;
 	elementNiveau_t _categorie;
+	
 	size_t _dimX, _dimY;
+	bool _decoupagePerspective;
+	bool _relief;
 	
 	bool **_collision;
 	

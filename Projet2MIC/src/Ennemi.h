@@ -12,7 +12,7 @@
 #include "Personnage.h"
 
 class Ennemi : public Personnage {
-	friend Ennemi *ElementNiveau::elementNiveau<Ennemi>(Niveau *n, uindex_t i, ElementNiveau::elementNiveau_t) throw(ElementNiveau::Exc_EntiteIndefinie, ElementNiveau::Exc_DefinitionEntiteIncomplete);
+	friend Ennemi *ElementNiveau::elementNiveau<Ennemi>(bool decoupagePerspective, Niveau *n, uindex_t i, ElementNiveau::elementNiveau_t) throw(ElementNiveau::Exc_EntiteIndefinie, ElementNiveau::Exc_DefinitionEntiteIncomplete);
 public:
 	
 	virtual ~Ennemi();
@@ -27,7 +27,7 @@ public:
 protected:
 	static ElementNiveau::elementNiveau_t cat() { return ElementNiveau::ennemi; }
 
-	Ennemi(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
+	Ennemi(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
 	Ennemi(Ennemi const &);
 	Ennemi &operator=(Ennemi const &);
 		

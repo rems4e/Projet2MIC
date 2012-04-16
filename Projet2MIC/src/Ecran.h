@@ -23,8 +23,8 @@
 #define PROFONDEUR_COULEURS 32
 #define PLEIN_ECRAN false
 #define SYNCHRO_VERTICALE true
-#define VITESSE_RAFRAICHISSEMENT 100
-#define IPS true
+#define FREQUENCE_RAFRAICHISSEMENT 100
+#define IPS
 
 class Texte;
 class Image;

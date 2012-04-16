@@ -13,7 +13,7 @@
 #include "Geometrie.h"
 
 class EntiteStatiqueAnimee : public EntiteStatique {
-	friend EntiteStatiqueAnimee *ElementNiveau::elementNiveau<EntiteStatiqueAnimee>(Niveau *n, uindex_t i, ElementNiveau::elementNiveau_t) throw(ElementNiveau::Exc_EntiteIndefinie, ElementNiveau::Exc_DefinitionEntiteIncomplete);
+	friend EntiteStatiqueAnimee *ElementNiveau::elementNiveau<EntiteStatiqueAnimee>(bool decoupagePerspective, Niveau *n, uindex_t i, ElementNiveau::elementNiveau_t) throw(ElementNiveau::Exc_EntiteIndefinie, ElementNiveau::Exc_DefinitionEntiteIncomplete);
 	friend class ElementNiveau;
 public:
 	virtual ~EntiteStatiqueAnimee();
@@ -25,7 +25,7 @@ public:
 
 protected:
 	static ElementNiveau::elementNiveau_t cat() { return ElementNiveau::entiteStatiqueAnimee; }
-	EntiteStatiqueAnimee(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
+	EntiteStatiqueAnimee(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
 
 private:
 	size_t _nbImages;

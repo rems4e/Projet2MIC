@@ -25,7 +25,7 @@ public:
 	Menu(Unichar const &titre, std::vector<Unichar> const &elements);
 	virtual ~Menu();
 	
-	index_t afficher(Image *fond = 0);
+	index_t afficher(index_t selection, Image const &fond);
 	
 protected:
 	Menu (Menu const &);

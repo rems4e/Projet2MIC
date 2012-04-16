@@ -47,7 +47,7 @@ public:
 		int nbAlea = nombreAleatoire(_nbNonNuls * NB_VALEURS_PROBA_ENTITES);
 		for(ElementNiveau::elementNiveau_t e = ElementNiveau::premierTypeElement; e != ElementNiveau::nbTypesElement; ++e) {
 			if(nbAlea < _probasCumulees[e]) {
-				ElementNiveau *retour = ElementNiveau::elementNiveau(n, nombreAleatoire(static_cast<int>(ElementNiveau::nombreEntites(e))), e);
+				ElementNiveau *retour = ElementNiveau::elementNiveau(true, n, nombreAleatoire(static_cast<int>(ElementNiveau::nombreEntites(e))), e);
 				return retour;
 			}
 		}
@@ -155,7 +155,7 @@ Niveau::Niveau(Joueur *j, std::string const &nomFichier) : _elements(0), _dimX(0
 						_persoInit = Coordonnees(x + 1.5, y + 1.5) * LARGEUR_CASE;
 					}
 					try {
-						e = ElementNiveau::elementNiveau(this, index, categorie);
+						e = ElementNiveau::elementNiveau(true, this, index, categorie);
 					}
 					catch(ElementNiveau::Exc_EntiteIndefinie &e) {
 						std::cerr << "L'entité (cat : " << categorie << " ; index : " << index << ") appelée dans le fichier de niveau \"" << nomFichier << "\" (couche : " << Niveau::nomCouche(couche) << " ; x : " << x << " ; y : " << y << ") n'est pas définie !" << std::endl;
@@ -206,14 +206,14 @@ Niveau::Niveau(Joueur *j) : _elements(0), _dimX(0), _dimY(0), _zoom(1.0), _entit
 		for(size_t x = 0; x < _dimX; ++x) {
 			Case &c = _elements[y][x];
 			if(c._entites[cn_sol].size() == 0) {
-				ElementNiveau *e = ElementNiveau::elementNiveau(this, 2, ElementNiveau::entiteStatique);
+				ElementNiveau *e = ElementNiveau::elementNiveau(true, this, 2, ElementNiveau::entiteStatique);
 				this->definirContenuCase(x, y, cn_sol, e);
 				e->definirPosition(Coordonnees(x, y) * LARGEUR_CASE);
 			}
 			if(c._entites[cn_objet].size() == 0) {
 				int nb = nombreAleatoire(100);
 				if(nb < 10) {
-					EntiteStatique *e = ElementNiveau::elementNiveau<EntiteStatique>(this, nb, ElementNiveau::arbre);
+					EntiteStatique *e = ElementNiveau::elementNiveau<EntiteStatique>(true, this, nb, ElementNiveau::arbre);
 					this->definirContenuCase(x, y, cn_objet, e);
 					e->definirPosition(Coordonnees(x, y) * LARGEUR_CASE);
 				}
@@ -246,7 +246,7 @@ void Niveau::allocationCases() {
 
 void Niveau::remplissageBordures() {
 	index_t idSol = 2;
-	EntiteStatique *solBordure = ElementNiveau::elementNiveau<EntiteStatique>(this, idSol);
+	EntiteStatique *solBordure = ElementNiveau::elementNiveau<EntiteStatique>(false, this, idSol);
 	size_t dimSol = solBordure->dimX();
 	delete solBordure;
 	for(int cote = 0; cote < 4; ++cote) {
@@ -255,11 +255,11 @@ void Niveau::remplissageBordures() {
 			for(index_t j = 0; j < dim; ++j) {
 				int nb = nombreAleatoire(10);
 				if((((cote == BAS || cote == DROITE) && i == 0) || ((cote == HAUT || cote == GAUCHE) && i == Niveau::epaisseurBordure() - 1)) && (cote == HAUT || cote == BAS || ((j >= Niveau::epaisseurBordure()) && j < _dimX + Niveau::epaisseurBordure()))) {
-					EntiteStatique *e = ElementNiveau::elementNiveau<EntiteStatique>(this, nb, ElementNiveau::arbre);
+					EntiteStatique *e = ElementNiveau::elementNiveau<EntiteStatique>(false, this, nb, ElementNiveau::arbre);
 					_bordures[cote][i][j]._entites[cn_objet].push_back(std::make_pair(e, false));
 				}
 				if(((cote == GAUCHE || cote == DROITE) && (i % dimSol == 0 && (Niveau::epaisseurBordure() - j - 1) % dimSol == 0)) || ((cote == HAUT || cote == BAS) && ((Niveau::epaisseurBordure() - i - 1) % dimSol == 0 && j % dimSol == 0))) {
-					EntiteStatique *e = ElementNiveau::elementNiveau<EntiteStatique>(this, idSol);
+					EntiteStatique *e = ElementNiveau::elementNiveau<EntiteStatique>(false, this, idSol);
 					_bordures[cote][i][j]._entites[cn_sol].push_back(std::make_pair(e, false));
 				}
 				
@@ -497,9 +497,9 @@ void Niveau::afficherCouche(couche_t c, Coordonnees const &cam) {
 	for(size_t y = 0; y < _dimY; ++y) {
 		for(ssize_t x = _dimX - 1; x >= 0; --x) {
 			for(elements_t::iterator i = _elements[y][x]._entites[c].begin(); i != _elements[y][x]._entites[c].end(); ++i) {
-				//if(!i->second) {
-					i->first->afficher(x - i->first->pX(), y - i->first->pY(), cam * this->zoom(), this->zoom());
-				//}
+				if(x == i->first->pX() && (i->first->decoupagePerspective() || y == i->first->pY())) {
+					i->first->afficher(0, y - i->first->pY(), cam * this->zoom(), this->zoom());
+				}
 			}
 		}
 	}

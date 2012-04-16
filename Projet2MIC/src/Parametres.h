@@ -11,10 +11,13 @@
 
 #include "Session.h"
 
+class Image;
+
 namespace Parametres {
 	enum action_t {premiereAction, depGauche = premiereAction, depDroite, depHaut, depBas, nbActions};
 	Session::evenement_t evenementAction(action_t action);
-	void definirEvenementAction(action_t action, Session::evenement_t e);
+	
+	void editerParametres(Image const &fond);
 }
 
 inline Parametres::action_t &operator++(Parametres::action_t &e) { return e = static_cast<Parametres::action_t>(static_cast<int>(e) + 1); }

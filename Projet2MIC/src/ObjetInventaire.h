@@ -13,7 +13,7 @@
 #include "Personnage.h"
 
 class ObjetInventaire : public EntiteStatique {
-	friend ObjetInventaire *ElementNiveau::elementNiveau<ObjetInventaire>(Niveau *n, uindex_t i, ElementNiveau::elementNiveau_t) throw(ElementNiveau::Exc_EntiteIndefinie, ElementNiveau::Exc_DefinitionEntiteIncomplete);
+	friend ObjetInventaire *ElementNiveau::elementNiveau<ObjetInventaire>(bool decoupagePerspective, Niveau *n, uindex_t i, ElementNiveau::elementNiveau_t) throw(ElementNiveau::Exc_EntiteIndefinie, ElementNiveau::Exc_DefinitionEntiteIncomplete);
 	friend class ElementNiveau;
 public:
 	enum categorie_t {arme, bouclier, armure, casque, gants, bottes, potion};
@@ -32,7 +32,7 @@ public:
 protected:
 	static ElementNiveau::elementNiveau_t cat() { return ElementNiveau::objetInventaire; }
 	
-	ObjetInventaire(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
+	ObjetInventaire(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
 	ObjetInventaire(EntiteStatique const &);
 	ObjetInventaire &operator=(ObjetInventaire const &);
 	

@@ -7,12 +7,20 @@
 //
 
 #include "Parametres.h"
+#include "Image.h"
+#include "Ecran.h"
+#include "Menu.h"
 
 namespace Parametres {
 	void charger();
 	void enregistrer();
 	void nettoyer();
 	
+	void video(Image const &fond);
+	void audio(Image const &fond);
+	void controles(Image const &fond);
+	void definirEvenementAction(action_t action, Session::evenement_t e);
+
 	Session::evenement_t _evenementsAction[nbActions];
 }
 
@@ -54,3 +62,41 @@ void Parametres::definirEvenementAction(action_t action, Session::evenement_t e)
 	
 	_evenementsAction[action] = e;
 }
+
+void Parametres::editerParametres(Image const &fond) {
+	std::vector<Unichar> elements;
+	elements.push_back("Réglages vidéos");
+	elements.push_back("Réglages audios");
+	elements.push_back("Réglages contrôles");
+	Menu menu("Réglages", elements);
+	
+	index_t selection = 0;
+	do {
+		selection = menu.afficher(selection, fond);
+		switch(selection) {
+			case 0:
+				Parametres::video(fond);
+				break;
+			case 1:
+				Parametres::audio(fond);
+				break;
+			case 2:
+				Parametres::controles(fond);
+				break;
+		}
+	} while(selection != elements.size());
+}
+
+void Parametres::video(Image const &fond) {
+	std::cout << "vidéo" << std::endl;
+}
+
+void Parametres::audio(Image const &ond) {
+	std::cout << "audio" << std::endl;
+}
+
+void Parametres::controles(Image const &fond) {
+	std::cout << "contrôles" << std::endl;
+}
+
+

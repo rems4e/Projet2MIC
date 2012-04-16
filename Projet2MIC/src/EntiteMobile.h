@@ -53,7 +53,7 @@ protected:
 	Rectangle const &cadre() const;
 	bool actionDisponible(action_t a) const;
 
-	EntiteMobile(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
+	EntiteMobile(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
 	static char const *transcriptionAction(action_t a);
 	static bool actionInterruptible(action_t a);
 	bool testerDeplacement(Coordonnees const &dep, index_t pX, index_t pY);

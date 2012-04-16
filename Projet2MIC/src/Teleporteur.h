@@ -12,14 +12,14 @@
 #include "EntiteStatiqueAnimee.h"
 
 class Teleporteur : public EntiteStatiqueAnimee {
-	friend Teleporteur *ElementNiveau::elementNiveau<Teleporteur>(Niveau *n, uindex_t i, ElementNiveau::elementNiveau_t) throw(ElementNiveau::Exc_EntiteIndefinie, ElementNiveau::Exc_DefinitionEntiteIncomplete);
+	friend Teleporteur *ElementNiveau::elementNiveau<Teleporteur>(bool decoupagePerspective, Niveau *n, uindex_t i, ElementNiveau::elementNiveau_t) throw(ElementNiveau::Exc_EntiteIndefinie, ElementNiveau::Exc_DefinitionEntiteIncomplete);
 	friend class ElementNiveau;
 public:
 	virtual ~Teleporteur();
 		
 protected:
 	static ElementNiveau::elementNiveau_t cat() { return ElementNiveau::teleporteur; }
-	Teleporteur(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
+	Teleporteur(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
 	
 private:
 	Coordonnees _destination;

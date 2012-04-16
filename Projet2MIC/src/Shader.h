@@ -23,7 +23,6 @@ public:
 	static char const * const rayonFlou;
 	static char const * const dim;
 	static char const * const pos;
-	static char const * const ecran;
 		
 	class Exc_CreationImpossible : public std::exception {
 	public:
@@ -45,6 +44,11 @@ public:
 	void definirParametre(char const *param, float v1, float v2, float v3, float v4) const;
 
 	void activer() const;
+	
+	GLint vertCoord() const { return _vertCoord; }
+	GLint texCoord() const { return _texCoord; }
+	GLint coul() const { return _coul; }
+	
 	static void desactiver();
 	
 	static Shader const &shaderActuel();
@@ -59,6 +63,8 @@ private:
 	GLint _vert;
 	GLint _frag;
 	GLint _prog;
+	
+	GLint _vertCoord, _texCoord, _coul;
 			
 	mutable std::map<char const *, GLint> _parametres;
 

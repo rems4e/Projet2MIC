@@ -15,7 +15,7 @@
 class Partie;
 
 struct Joueur : public Personnage {
-	friend Joueur *ElementNiveau::elementNiveau<Joueur>(Niveau *n, uindex_t i, ElementNiveau::elementNiveau_t) throw(ElementNiveau::Exc_EntiteIndefinie, ElementNiveau::Exc_DefinitionEntiteIncomplete);
+	friend Joueur *ElementNiveau::elementNiveau<Joueur>(bool decoupagePerspective, Niveau *n, uindex_t i, ElementNiveau::elementNiveau_t) throw(ElementNiveau::Exc_EntiteIndefinie, ElementNiveau::Exc_DefinitionEntiteIncomplete);
 public:
 	virtual ~Joueur();
 	
@@ -33,7 +33,7 @@ public:
 protected:
 	static ElementNiveau::elementNiveau_t cat() { return ElementNiveau::ennemi; }
 
-	Joueur(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
+	Joueur(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
 	Joueur(Joueur const &);
 	Joueur &operator=(Joueur const &);
 	

@@ -9,7 +9,7 @@
 #include "EntiteStatiqueAnimee.h"
 #include "tinyxml.h"
 
-EntiteStatiqueAnimee::EntiteStatiqueAnimee(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : EntiteStatique(n, index, cat), _imageActuelle(0), _cadres(0), _tempsAffichage(0), _tempsPrecedent(0) {
+EntiteStatiqueAnimee::EntiteStatiqueAnimee(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : EntiteStatique(decoupagePerspective, n, index, cat), _imageActuelle(0), _cadres(0), _tempsAffichage(0), _tempsPrecedent(0) {
 	TiXmlElement *e = ElementNiveau::description(index, cat);
 	
 	_nbImages = 1;

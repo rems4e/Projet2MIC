@@ -120,6 +120,8 @@ protected:
 	void afficherControles();
 	void afficherCarte();
 	
+	void demandeEnregistrement(Image const &fond);
+	
 	void sourisInventaire();
 	void sourisControles();
 	void sourisEditeur();

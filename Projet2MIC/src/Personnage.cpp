@@ -66,7 +66,7 @@ Personnage::positionTenue_t &operator++(Personnage::positionTenue_t &p) {
 	return p;
 }
 
-Personnage::Personnage(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat, Inventaire *inventaire) : EntiteMobile(n, index, cat), _vitesse(10), _vieActuelle(0), _vieTotale(200), _delaisAction(), _inventaire(inventaire), _competences() {
+Personnage::Personnage(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat, Inventaire *inventaire) : EntiteMobile(decoupagePerspective, n, index, cat), _vitesse(10), _vieActuelle(0), _vieTotale(200), _delaisAction(), _inventaire(inventaire), _competences() {
 	TiXmlElement *e = ElementNiveau::description(index, cat);
 	int t;
 	if(e->Attribute("vitesse"))

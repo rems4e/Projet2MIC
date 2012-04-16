@@ -63,7 +63,7 @@ public:
 	virtual bool peutEquiperObjet(ObjetInventaire *objet, positionTenue_t pos);
 
 protected:
-	Personnage(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t, Inventaire *inventaire);
+	Personnage(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t, Inventaire *inventaire);
 	Personnage(Personnage const &);
 	Personnage &operator=(Personnage const &);
 

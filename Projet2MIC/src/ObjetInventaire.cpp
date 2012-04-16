@@ -9,7 +9,7 @@
 #include "ObjetInventaire.h"
 #include "tinyxml.h"
 
-ObjetInventaire::ObjetInventaire(Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : EntiteStatique(n, index, cat), _dimInventaire(1, 1), _competencesRequises() {
+ObjetInventaire::ObjetInventaire(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : EntiteStatique(decoupagePerspective, n, index, cat), _dimInventaire(1, 1), _competencesRequises() {
 	TiXmlElement *e = ElementNiveau::description(index, cat);
 	if(e->Attribute("iX"))
 		e->Attribute("iX", &_dimInventaire.x);

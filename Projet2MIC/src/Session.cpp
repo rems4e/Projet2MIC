@@ -96,8 +96,8 @@ void Session::initialiser() {
 	CFIndex taille = CFStringGetLength(str);
 	char * cStr = new char[taille + 1];
 	CFStringGetCString(str, cStr, taille + 1, kCFStringEncodingUTF8);
-	chemin += cStr;
-	chemin += "/";
+	_chemin += cStr;
+	_chemin += "/";
 	delete[] cStr;
 	
 	CFRelease(str);

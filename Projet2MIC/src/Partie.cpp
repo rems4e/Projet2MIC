@@ -67,7 +67,7 @@ Partie::~Partie() {
 }
 
 void Partie::commencer() {
-	_joueur = ElementNiveau::elementNiveau<Joueur>(0, 0);
+	_joueur = ElementNiveau::elementNiveau<Joueur>(false, 0, 0);
 	_niveau = new Niveau(_joueur, "niveau1.xml");
 
 	_joueur->definirNiveau(_niveau);
@@ -76,6 +76,7 @@ void Partie::commencer() {
 	Menu *menu = 0;
 	{
 		std::vector<Unichar> elem;
+		elem.push_back("Réglages");
 		elem.push_back("Recharger le niveau");
 		elem.push_back("Ouvrir l'éditeur");
 		elem.push_back("Quitter");
@@ -84,7 +85,7 @@ void Partie::commencer() {
 	}
 	
 	bool continuer = true;
-	while(Session::boucle(VITESSE_RAFRAICHISSEMENT, continuer)) {
+	while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, continuer)) {
 		Ecran::definirPointeurAffiche(_joueur->inventaireAffiche());
 		Ecran::definirPointeur(0);
 		Ecran::effacer();
@@ -97,21 +98,29 @@ void Partie::commencer() {
 			Session::reinitialiser(Session::T_i);
 		}
 		if(Session::evenement(Session::T_ESC)) {
-			index_t retour = menu->afficher();
-			if(retour == 0) {
-				this->reinitialiser();
-				Session::reinitialiser(Session::T_r);
-			}
-			else if(retour == 1) {
-				Editeur *e = Editeur::editeur();
-				
-				e->editerNiveau("niveau1.xml");
-				
-				delete Editeur::editeur();
-			}
-			else if(retour == 2) {
-				continuer = false;
-			}
+			Image *apercu = Ecran::apercu();
+			index_t selection = 0;
+			do {
+				selection = menu->afficher(0, *apercu);
+				if(selection == 0) {
+					Parametres::editerParametres(*apercu);
+				}
+				else if(selection == 1) {
+					this->reinitialiser();
+					Session::reinitialiser(Session::T_r);
+				}
+				else if(selection == 2) {
+					Editeur *e = Editeur::editeur();
+					
+					e->editerNiveau("niveau1.xml");
+					
+					delete Editeur::editeur();
+				}
+				else if(selection == 3) {
+					continuer = false;
+				}
+			} while(selection == 0);
+			delete apercu;
 		}
 		if(_joueur->inventaireAffiche()) {
 			_joueur->inventaire()->gestionEvenements();

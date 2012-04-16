@@ -25,22 +25,22 @@ TiXmlDocument *ElementNiveau::_description = 0;
 ElementNiveau::elementNiveau_t &operator++(ElementNiveau::elementNiveau_t &e) { return e = static_cast<ElementNiveau::elementNiveau_t>(static_cast<int>(e) + 1); }
 ElementNiveau::elementNiveau_t operator+(ElementNiveau::elementNiveau_t e, int i) { return static_cast<ElementNiveau::elementNiveau_t>(static_cast<int>(e) + 1); }
 
-ElementNiveau *ElementNiveau::elementNiveau(Niveau *n, uindex_t index, elementNiveau_t cat) throw(ElementNiveau::Exc_EntiteIndefinie, ElementNiveau::Exc_DefinitionEntiteIncomplete) {
+ElementNiveau *ElementNiveau::elementNiveau(bool decoupagePerspective, Niveau *n, uindex_t index, elementNiveau_t cat) throw(ElementNiveau::Exc_EntiteIndefinie, ElementNiveau::Exc_DefinitionEntiteIncomplete) {
 	switch(cat) {
 		case entiteStatique:
-			return ElementNiveau::elementNiveau<EntiteStatique>(n, index);
+			return ElementNiveau::elementNiveau<EntiteStatique>(decoupagePerspective, n, index);
 		case ennemi:
-			return ElementNiveau::elementNiveau<Ennemi>(n, index);
+			return ElementNiveau::elementNiveau<Ennemi>(decoupagePerspective, n, index);
 		case arbre:
-			return ElementNiveau::elementNiveau<EntiteStatique>(n, index, arbre);
+			return ElementNiveau::elementNiveau<EntiteStatique>(decoupagePerspective, n, index, arbre);
 		case entiteStatiqueAnimee:
-			return ElementNiveau::elementNiveau<EntiteStatiqueAnimee>(n, index);
+			return ElementNiveau::elementNiveau<EntiteStatiqueAnimee>(decoupagePerspective, n, index);
 		case objetInventaire:
-			return ElementNiveau::elementNiveau<ObjetInventaire>(n, index);
+			return ElementNiveau::elementNiveau<ObjetInventaire>(decoupagePerspective, n, index);
 		case teleporteur:
-			return ElementNiveau::elementNiveau<Teleporteur>(n, index);
+			return ElementNiveau::elementNiveau<Teleporteur>(decoupagePerspective, n, index);
 		case maison:
-			return ElementNiveau::elementNiveau<EntiteStatique>(n, index, maison);
+			return ElementNiveau::elementNiveau<EntiteStatique>(decoupagePerspective, n, index, maison);
 		case ndef8:
 		case ndef9:case ndef10:case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
 		case ndef17:case ndef18:case ndef19:case ndef20:case ndef21:case ndef22:case ndef23:case ndef24:
@@ -54,7 +54,7 @@ ElementNiveau *ElementNiveau::elementNiveau(Niveau *n, uindex_t index, elementNi
 	}
 }
 
-ElementNiveau::ElementNiveau(Niveau *n, uindex_t index, elementNiveau_t cat) throw(ElementNiveau::Exc_DefinitionEntiteIncomplete) : _niveau(n), _position(), _origine(), _centrage(false), _categorie(cat), _dimX(1), _dimY(1) {
+ElementNiveau::ElementNiveau(bool decoupagePerspective, Niveau *n, uindex_t index, elementNiveau_t cat) throw(ElementNiveau::Exc_DefinitionEntiteIncomplete) : _niveau(n), _position(), _origine(), _centrage(false), _categorie(cat), _dimX(1), _dimY(1), _decoupagePerspective(decoupagePerspective), _relief(true) {
 	TiXmlElement *e = ElementNiveau::description(index, cat);
 	if(e->Attribute("x"))
 		e->Attribute("x", &_origine.x);
@@ -72,6 +72,12 @@ ElementNiveau::ElementNiveau(Niveau *n, uindex_t index, elementNiveau_t cat) thr
 		_centrage = cc;
 	}
 	
+	if(e->Attribute("relief")) {
+		e->Attribute("relief", &cc);
+		_relief = cc;
+		if(!_relief)
+			_decoupagePerspective = false;
+	}
 	_collision = new bool*[_dimY];
 	for(index_t y = 0; y < _dimY; ++y) {
 		_collision[y] = new bool[_dimX];
@@ -144,6 +150,10 @@ ElementNiveau::elementNiveau_t ElementNiveau::categorie() const {
 	return _categorie;
 }
 
+
+bool ElementNiveau::decoupagePerspective() const {
+	return _decoupagePerspective;
+}
 
 void ElementNiveau::chargerDescription() {
 	if(!_description) {

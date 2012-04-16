@@ -62,16 +62,19 @@ void Editeur::editerNiveau(std::string const &fichier) {
 	
 	Menu menuEditeur("Menu éditeur", elemMenus);
 	
-	while(Session::boucle(100, _continuer)) {
+	while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, _continuer)) {
 		Ecran::definirPointeurAffiche(true);
 		Ecran::effacer();
 		this->afficher();
 		Ecran::finaliser();
 		
 		if(Session::evenement(Session::T_ESC)) {
-			index_t retour = menuEditeur.afficher();
+			Image *fond = Ecran::apercu();
+			index_t retour = menuEditeur.afficher(0, *fond);
 			if(retour < elemMenus.size()) {
 				if(retour == 2) {
+					if(_modifie)
+						this->demandeEnregistrement(*fond);
 					_continuer = false;
 				}
 				else if(retour == 0) {
@@ -122,6 +125,11 @@ void Editeur::editerNiveau(std::string const &fichier) {
 		
 		if(Session::evenement(Session::QUITTER)) {
 			_continuer = false;
+			if(_modifie) {
+				Image *f = Ecran::apercu();
+				this->demandeEnregistrement(*f);
+				delete f;
+			}
 		}
 		else {
 			if(Session::evenement(Session::T_GAUCHE))
@@ -146,30 +154,30 @@ void Editeur::editerNiveau(std::string const &fichier) {
 				_cadreSelection = Rectangle::aucun;
 			}
 		}
-		
-		if(!_continuer && _modifie) {
-			std::vector<Unichar> txt;
-			txt.push_back("Enregistrer");
-			txt.push_back("Ne pas enregistrer");
-			
-			Menu m("Niveau modifié. Enregistrer ?", txt);
-			index_t retour = m.afficher();
-			if(retour == 0) {
-				this->enregistrer();
-			}
-			else if(retour == 1) {
-				_modifie = false;
-			}
-			else {
-				Session::reinitialiserEvenements();
-				_continuer = true;
-			}
-		}
-		
+				
 		Ecran::maj();
 	}
 		
 	delete _niveau;
+}
+
+void Editeur::demandeEnregistrement(Image const &fond) {
+	std::vector<Unichar> txt;
+	txt.push_back("Enregistrer");
+	txt.push_back("Ne pas enregistrer");
+	
+	Menu m("Niveau modifié. Enregistrer ?", txt);
+	index_t retour = m.afficher(0, fond);
+	if(retour == 0) {
+		this->enregistrer();
+	}
+	else if(retour == 1) {
+		_modifie = false;
+	}
+	else {
+		Session::reinitialiserEvenements();
+		_continuer = true;
+	}
 }
 
 void Editeur::afficher() {
@@ -184,7 +192,7 @@ void Editeur::afficher() {
 	
 	this->afficherGrille(255);
 	this->afficherCouche(_coucheEdition);
-	//this->afficherGrille(128);
+	this->afficherGrille(128);
 
 	
 	this->afficherInterface();
@@ -991,8 +999,8 @@ void Editeur::editerLoiProba(index_t loi, Image &fond) {
 		else {
 			std::vector<Unichar> elem;
 			elem.push_back("OK");
-			Menu m("La loi de probabilité est utilisée", elem);
-			m.afficher(&fond);
+			Menu m("La loi de probabilité est utilisée !", elem);
+			m.afficher(0, fond);
 		}
 	}
 }
@@ -1138,7 +1146,7 @@ void Editeur::modifDimensions() {
 			std::vector<Unichar> elem;
 			elem.push_back("Continuer");
 			Menu m("Des éléments seront supprimés", elem);
-			index_t reponse = m.afficher(ap);
+			index_t reponse = m.afficher(0, *ap);
 			if(reponse != 0)
 				redim = false;
 		}
