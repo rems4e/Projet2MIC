@@ -19,7 +19,6 @@ namespace ImagesBase {
 
 char const * const Shader::rayonFlou = "rayon";
 char const * const Shader::dim = "_dim";
-char const * const Shader::pos = "_pos";
 
 std::map<std::pair<std::string, std::string>, std::pair<std::pair<GLint, std::pair<GLint, GLint> >, size_t> > *Shader::_programmes;
 std::map<std::string, std::pair<GLint, size_t> > *Shader::_vertexShaders;
@@ -113,7 +112,6 @@ Shader::Shader(std::string const &vert, std::string const &frag) throw(Shader::E
 			}
 		}
 		else {
-			//std::cout << frag << std::endl;
 			_frag = idFrag.first;
 		}
 		
@@ -148,9 +146,10 @@ Shader::Shader(std::string const &vert, std::string const &frag) throw(Shader::E
 }
 
 Shader::~Shader() {
-	if(_shaderActuel == this)
+	if(_shaderActuel == this) {
 		Shader::desactiver();
-	
+	}
+
 	std::map<std::pair<std::string, std::string>, std::pair<std::pair<GLint, std::pair<GLint, GLint> >, size_t> >::iterator prog = _programmes->begin();
 	std::map<std::string, std::pair<GLint, size_t> >::iterator vert = _vertexShaders->begin();
 	std::map<std::string, std::pair<GLint, size_t> >::iterator frag = _fragmentShaders->begin();
@@ -172,11 +171,7 @@ Shader::~Shader() {
 	--vert->second.second;
 	--frag->second.second;
 		
-	if(prog->second.second == 0) {
-		if(glIsProgram(_prog)) {
-			glUseProgram(0);
-		}
-		
+	if(prog->second.second == 0) {		
 		glDetachShader(_prog, _vert);
 		glDetachShader(_prog, _frag);
 		glDeleteProgram(_prog);
@@ -205,8 +200,8 @@ Shader const &Shader::aucun() {
 Shader const &Shader::flou(float rayon) {
 	if(!_flou) {
 		_flou = new Shader(Session::cheminRessources() + "aucun.vert", Session::cheminRessources() + "flou.frag");
-		_flou->definirParametre(rayonFlou, rayon);
 	}
+	_flou->definirParametre(rayonFlou, rayon);
 	
 	return *_flou;
 }
@@ -222,24 +217,36 @@ void Shader::nettoyer() {
 void Shader::definirParametre(char const *param, float v) const {
 	if(_shaderActuel != this)
 		glUseProgram(_prog);
+	else
+		ImagesBase::changerTexture(-1);
+
 	glUniform1f(this->locParam(param), v);
 }
 
 void Shader::definirParametre(char const *param, float v1, float v2) const {
 	if(_shaderActuel != this)
 		glUseProgram(_prog);
+	else
+		ImagesBase::changerTexture(-1);
+
 	glUniform2f(this->locParam(param), v1, v2);
 }
 
 void Shader::definirParametre(char const *param, float v1, float v2, float v3) const {
 	if(_shaderActuel != this)
 		glUseProgram(_prog);
+	else
+		ImagesBase::changerTexture(-1);
+
 	glUniform3f(this->locParam(param), v1, v2, v3);
 }
 
 void Shader::definirParametre(char const *param, float v1, float v2, float v3, float v4) const {
 	if(_shaderActuel != this)
 		glUseProgram(_prog);
+	else
+		ImagesBase::changerTexture(-1);
+
 	glUniform4f(this->locParam(param), v1, v2, v3, v4);
 }
 
@@ -257,6 +264,8 @@ void Shader::activer() const {
 		ImagesBase::changerTexture(-1);
 		_shaderActuel = this;
 		glUseProgram(_prog);
+		
+		this->definirParametre("_ecran", Ecran::largeur(), Ecran::hauteur());
 	}
 }
 
@@ -265,6 +274,15 @@ void Shader::desactiver() {
 	if(_shaderActuel != &aucun) {
 		aucun.activer();
 	}
+}
+
+Coordonnees Shader::versShader(Coordonnees const &c) {
+	return Coordonnees(c.x / Ecran::largeur() * 2 - 1, -(c.y / Ecran::hauteur() * 2 - 1));
+}
+
+Rectangle Shader::versShader(Rectangle const &r) {
+	return Rectangle(versShader(r.origine()), Coordonnees(r.largeur / Ecran::largeur(), r.hauteur / Ecran::hauteur()));
+
 }
 
 void Shader::compiler(GLuint shader) throw(Shader::Exc_CreationImpossible) {

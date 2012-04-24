@@ -13,9 +13,11 @@
 #include "Geometrie.h"
 #include <exception>
 
+
 class Niveau;
 class Joueur;
 class TableauDeBord;
+class Marchand;
 
 class Partie {
 public:
@@ -34,6 +36,10 @@ public:
 	void commencer();
 	void reinitialiser();
 	
+	Joueur *joueur();
+	Marchand *marchand();
+	void definirMarchand(Marchand *m);
+	
 	Rectangle zoneJeu() const;
 	
 	static Partie *partie();
@@ -42,6 +48,7 @@ private:
 	void afficher();
 	void animer();
 	void gestionEvenements();
+	void mortJoueur();
 	
 	Partie();
 	Partie(std::string const &sauvegarde);
@@ -50,6 +57,7 @@ private:
 	Niveau *_niveau;
 	Joueur *_joueur;
 	TableauDeBord *_tableauDeBord;
+	Marchand *_marchand;
 	
 	Partie(Partie const &);
 	Partie &operator=(Partie const &);

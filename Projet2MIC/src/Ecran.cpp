@@ -11,8 +11,6 @@
 #include "Constantes.h"
 #include "fonctions.h"
 
-#include GL_H
-
 #include "SDL/SDL.h"
 #include "Texte.h"
 #include "Image.h"
@@ -20,6 +18,15 @@
 #include <limits>
 #include <cassert>
 #include <algorithm>
+
+#ifdef __MACOSX__
+#include <OpenGL/gl.h>
+#else
+#define GL_GLEXT_LEGACY
+#include <GL/gl.h>
+#define GL_GLEXT_PROTOTYPES
+#include <GL/glext.h>
+#endif
 
 namespace ImagesBase {
 	void changerTexture(GLint tex);
@@ -135,6 +142,10 @@ void Ecran::modifierResolution(unsigned int largeur, unsigned int hauteur, unsig
 	Ecran::_attributs->_vide = Image(imageVide, 1, 1, 4);
 	
 	Ecran::definirPointeur(0);
+	
+	/*glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+	glEnableClientState(GL_COLOR_ARRAY);*/
 		
 	glDisable(GL_CULL_FACE);
 	glEnable(GL_BLEND);
@@ -187,7 +198,7 @@ void Ecran::maj() {
 }
 
 void Ecran::finaliser() {
-	ImagesBase::changerTexture(-1);	
+	ImagesBase::changerTexture(-1);
 }
 
 void Ecran::effacer() {
@@ -210,7 +221,6 @@ void Ecran::afficherLigne(Coordonnees const &depart, Coordonnees const &arrivee,
 
 void Ecran::afficherQuadrilatere(Coordonnees const &p1, Coordonnees const &p2, Coordonnees const &p3, Coordonnees const &p4, Couleur const &c) {
 	Shader::shaderActuel().definirParametre(Shader::dim, p2.x - p1.x, p3.y - p2.y);
-	Shader::shaderActuel().definirParametre(Shader::pos, p1.x, p1.y);
 	
 	ImagesBase::changerTexture(Ecran::_attributs->_vide.tex());
 	
@@ -219,6 +229,16 @@ void Ecran::afficherQuadrilatere(Coordonnees const &p1, Coordonnees const &p2, C
 	ImagesBase::ajouterSommet(p4, Coordonnees::eY, c);
 	
 	ImagesBase::ajouterSommet(p4, Coordonnees::eY, c);
+	ImagesBase::ajouterSommet(p2, Coordonnees::eX, c);
+	ImagesBase::ajouterSommet(p3, Coordonnees::un, c);
+}
+
+void Ecran::afficherTriangle(Coordonnees const &p1, Coordonnees const &p2, Coordonnees const &p3, Couleur const &c) {
+	Shader::shaderActuel().definirParametre(Shader::dim, 1, 1);
+	
+	ImagesBase::changerTexture(Ecran::_attributs->_vide.tex());
+	
+	ImagesBase::ajouterSommet(p1, Coordonnees::zero, c);
 	ImagesBase::ajouterSommet(p2, Coordonnees::eX, c);
 	ImagesBase::ajouterSommet(p3, Coordonnees::un, c);
 }

@@ -15,7 +15,6 @@
 #include "Image.h"
 #include "horloge.h"
 #include <exception>
-//#include "Editeur.h"
 
 class Niveau;
 class TiXmlElement;
@@ -23,8 +22,8 @@ class TiXmlDocument;
 
 class ElementNiveau {
 public:
-	enum elementNiveau_t {premierTypeElement = 0, entiteStatique = premierTypeElement, ennemi, arbre, entiteStatiqueAnimee, objetInventaire, teleporteur, maison, ndef8,
-		ndef9, ndef10, ndef11, ndef12, ndef13, ndef14, ndef15, ndef16, ndef17, ndef18, ndef19, ndef20, ndef21, ndef22, ndef23, ndef24,
+	enum elementNiveau_t {premierTypeElement = 0, entiteStatique = premierTypeElement, ennemi, arbre, entiteStatiqueAnimee, objetInventaire, teleporteur, maison, arbreMort,
+		marchand, ndef10, ndef11, ndef12, ndef13, ndef14, ndef15, ndef16, ndef17, ndef18, ndef19, ndef20, ndef21, ndef22, ndef23, ndef24,
 		ndef25, ndef26, ndef27, ndef28, ndef29, ndef30, ndef31, ndef32, ndef33, ndef34, ndef35, ndef36, ndef37, ndef38, ndef39, ndef40,
 		ndef41, ndef42, ndef43, ndef44, ndef45, ndef46, ndef47, ndef48, ndef49, ndef50, ndef51, ndef52, ndef53, ndef54, ndef55, ndef56,
 		ndef57, ndef58, ndef59, ndef60, ndef61, ndef62, ndef63, ndef64, nbTypesElement};
@@ -69,11 +68,11 @@ public:
 	virtual ~ElementNiveau();
 
 	// Affichage de l'entité dans ses caractéristiques actuelles
-	virtual void afficher(index_t deltaX, index_t deltaY, Coordonnees const &decalage, double zoom = 1.0) const = 0;
+	virtual void afficher(index_t deltaY, Coordonnees const &decalage, double zoom = 1.0) const = 0;
 	// L'entité entre-t-elle en collision avec les autres, dans sa case (x, y) ?
 	virtual bool collision(index_t x, index_t y) const;
 	// Évolution de l'état de l'entité au fil du temps
-	virtual void animer(horloge_t tempsEcoule) = 0;
+	virtual void animer() = 0;
 	
 	// Position de l'entité sur l'écran.
 	// Si la fonction 'grille' retourne vrai pour un type d'entité, la position représente les coordonnées de la case du niveau.
@@ -110,6 +109,9 @@ protected:
 	ElementNiveau(bool decoupagePerspective, Niveau *n, uindex_t index, elementNiveau_t cat) throw(Exc_DefinitionEntiteIncomplete);
 	ElementNiveau(ElementNiveau const &);
 	ElementNiveau &operator=(ElementNiveau const &);
+
+	void calcPX();
+	void calcPY();
 		
 private:
 	Niveau *_niveau;
@@ -118,6 +120,7 @@ private:
 	bool _centrage;
 	elementNiveau_t _categorie;
 	
+	index_t _pX, _pY;
 	size_t _dimX, _dimY;
 	bool _decoupagePerspective;
 	bool _relief;

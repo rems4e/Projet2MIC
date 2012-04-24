@@ -8,22 +8,25 @@
 
 #include "Joueur.h"
 #include "Session.h"
+#include "Partie.h"
+#include "Marchand.h"
+#include "UtilitaireNiveau.h"
 
 Joueur::Joueur(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : Personnage(decoupagePerspective, n, index, cat, new InventaireJoueur(*this)), _inventaireAffiche(false) {
-	
+	this->inventaire()->modifierMonnaie(123);
 }
 
 Joueur::~Joueur() {
 	
 }
 
-void Joueur::afficher(index_t deltaX, index_t deltaY, Coordonnees const &decalage, double zoom) const {
-	this->Personnage::afficher(deltaX, deltaY, decalage);
-	Ecran::afficherRectangle(Rectangle((this->positionAffichage() + this->origine()) * zoom - decalage - Coordonnees(5, 5), Coordonnees(10, 10)), Couleur(255, 255, 0));
+void Joueur::afficher(index_t deltaY, Coordonnees const &decalage, double zoom) const {
+	this->Personnage::afficher(deltaY, decalage);
+	//Ecran::afficherRectangle(Rectangle(referentielNiveauVersEcran(Coordonnees(this->pX(), this->pY()) * LARGEUR_CASE) - decalage - Coordonnees(5, 5), Coordonnees(10, 10)), Couleur(255, 255, 0));
 }
 
-void Joueur::animer(horloge_t tempsEcoule) {
-	Personnage::animer(tempsEcoule);
+void Joueur::animer() {
+	this->Personnage::animer();
 	
 	Coordonnees dep;
 	if(Session::evenement(Parametres::evenementAction(Parametres::depDroite)))
@@ -43,37 +46,71 @@ void Joueur::animer(horloge_t tempsEcoule) {
 		}
 	}
 	if(dep.vecteurNul()) {
-		if(Session::evenement(Session::T_ESPACE)) {
-			this->definirAction(EntiteMobile::a_attaquer);
-			Session::reinitialiser(Session::T_ESPACE);
+		if(Session::evenement(Parametres::evenementAction(Parametres::interagir))) {
+			this->Personnage::interagir();
+			Session::reinitialiser(Parametres::evenementAction(Parametres::interagir));
 		}
 		else if(Session::evenement(Session::T_m)) {
-			this->definirAction(EntiteMobile::a_mourir);
+			this->modifierVieActuelle(-this->vieTotale());
 		}
 		else
 			this->definirAction(EntiteMobile::a_immobile);
 	}
 	
-	if(Session::evenement(Session::T_r)) {
+	if(Session::evenement(Parametres::evenementAction(Parametres::ramasserObjet))) {
+		index_t x = this->pX(), y = this->pY();
+		this->inventaire()->modifierMonnaie(this->niveau()->monnaie(x, y));
+		this->niveau()->modifierMonnaie(x, y, -this->niveau()->monnaie(x, y));
+		
 		Niveau::listeElements_t liste = this->niveau()->elements(this->pX(), this->pY(), Niveau::cn_objetsInventaire);
-		for(Niveau::elements_t::iterator el = liste.first; el != liste.second; ++el) {
-			if(this->inventaire()->ajouterObjet(static_cast<ObjetInventaire *>(el->first))) {
-				this->niveau()->supprimerElement(this->pX(), this->pY(), Niveau::cn_objetsInventaire, el, false);
+		for(Niveau::elements_t::iterator el = liste.first; el != liste.second;) {
+			if(this->inventaire()->ajouterObjet(static_cast<ObjetInventaire *>(el->entite))) {
+				el = this->niveau()->supprimerElement(el, Niveau::cn_objetsInventaire, false);
+			}
+			else {
+				++el;
 			}
 		}
-		Session::reinitialiser(Session::T_r);
+		Session::reinitialiser(Parametres::evenementAction(Parametres::ramasserObjet));
 	}
 }
 
-void Joueur::interagir(Personnage *p) {
+bool Joueur::interagir(Personnage *p) {
+	switch(p->categorieMobile()) {
+		case EntiteMobile::em_ennemi:
+			this->attaquer(p);
+			return true;
+		case EntiteMobile::em_marchand:
+			Partie::partie()->definirMarchand(static_cast<Marchand *>(p));
+		case EntiteMobile::em_joueur:
+			break;
+	}
 	
+	return false;
+}
+
+void Joueur::mourir() {
+	Personnage::mourir();
 }
 
 bool Joueur::joueur() const {
 	return true;
 }
 
-EntiteMobile::categorie_t Joueur::type() const {
+void Joueur::jeterObjets() {
+	InventaireJoueur *e = static_cast<InventaireJoueur *>(this->inventaire());
+	std::list<ObjetInventaire *> liste;
+	index_t pX = this->pX(), pY = this->pY();
+	for(InventaireJoueur::iterator i = e->debut(); i != e->fin(); ++i) {
+		if(*i) {
+			liste.push_back(*i);
+			this->niveau()->ajouterElement(pX, pY, Niveau::cn_objetsInventaire, *i);
+		}
+	}
+	e->vider();	
+}
+
+EntiteMobile::categorie_t Joueur::categorieMobile() const {
 	return EntiteMobile::em_joueur;
 }
 
@@ -84,3 +121,8 @@ bool Joueur::inventaireAffiche() const {
 void Joueur::definirInventaireAffiche(bool af) {
 	_inventaireAffiche = af;
 }
+
+void Joueur::renaitre() {
+	this->Personnage::renaitre();
+}
+

@@ -48,4 +48,3 @@ Coordonnees referentielNiveauVersEcran(Coordonnees const &pos) {
 Coordonnees referentielEcranVersNiveau(Coordonnees const &pos) {
 	return Coordonnees(pos.x - 2 * pos.y, pos.x + 2 * pos.y);
 }
-

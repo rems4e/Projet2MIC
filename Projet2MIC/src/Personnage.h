@@ -35,19 +35,22 @@ public:
 	enum positionTenue_t {premierePositionTenue, brasG = premierePositionTenue, brasD, casque, armure, gants, bottes, nbPositionsTenue};
 	virtual ~Personnage();
 	
-	virtual void animer(horloge_t tempsEcoule);
-	virtual void interagir(Personnage *p) = 0;
+	virtual void animer();
+	virtual bool interagir(Personnage *p) = 0;
+	virtual void attaquer(Personnage *p);
 	
 	virtual Coordonnees origine() const;
 	virtual bool centrage() const;
 	
 	// Le coefficient multiplicateur de la vitesse de déplacement de l'entité
 	virtual double vitesse() const;
+	
 	unsigned int vieActuelle() const;
-	//non spécifié yet
+	void modifierVieActuelle(int delta);
+	
 	virtual unsigned int vieTotale() const;
-	//non spécifié yet 
-	void modifierVieActuelle(int delta);     
+	void definirVieTotale(int vie);
+	
 	virtual bool definirAction(action_t a);
 	virtual Niveau::couche_t couche() const;
 	
@@ -61,15 +64,22 @@ public:
 	
 	virtual bool peutEquiperObjet(ObjetInventaire *objet);
 	virtual bool peutEquiperObjet(ObjetInventaire *objet, positionTenue_t pos);
+	
 
 protected:
 	Personnage(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t, Inventaire *inventaire);
 	Personnage(Personnage const &);
 	Personnage &operator=(Personnage const &);
+	
+	void interagir();
+	virtual void mourir();
+	void renaitre();
+	
+	virtual void jeterObjets() = 0;
 
 private:
-	unsigned int _vieActuelle;
-	unsigned int _vieTotale;
+	int _vieActuelle;
+	int _vieTotale;
 	double _vitesse;
 	struct DelaisAction {
 		horloge_t _cooldown;
@@ -80,6 +90,8 @@ private:
 	Inventaire *_inventaire;
 	ObjetInventaire *_tenue[nbPositionsTenue];
 	Competences _competences;
+	
+	Personnage *_cibleAttaque;
 };
 
 Personnage::positionTenue_t &operator++(Personnage::positionTenue_t &p);

@@ -20,8 +20,8 @@ public:
 	
 	virtual ~ObjetInventaire();
 	
-	virtual void afficher(index_t deltaX, index_t deltaY, Coordonnees const &decalage, double zoom = 1.0) const;
-	virtual void animer(horloge_t tempsEcoule);
+	virtual void afficher(index_t deltaY, Coordonnees const &decalage, double zoom = 1.0) const;
+	virtual void animer();
 	virtual Coordonnees dimensions() const;
 	
 	categorie_t categorieObjet() const;

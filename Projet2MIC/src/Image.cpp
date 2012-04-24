@@ -95,6 +95,16 @@ void ImagesBase::ajouterSommet(Coordonnees const &pos, Coordonnees const &posTex
 	_couleurs[_nbSommets * 4 + 3] = couleur.a;
 
 	++_nbSommets;
+	/*static int nb = 0;
+	static horloge_t h = horloge();
+	nb += _nbSommets;
+	float H = horloge();
+	if(H - h >= 1.0f) {
+		std::cout << nb / (H - h) << std::endl;
+		
+		h = H;
+		nb = 0;
+	}*/
 }
 
 void ImagesBase::changerTexture(GLint tex) {
@@ -102,6 +112,7 @@ void ImagesBase::changerTexture(GLint tex) {
 		if(_nbSommets) {
 			//glBindBuffer(GL_ARRAY_BUFFER, vertBuf);
 			//glBufferSubData(GL_ARRAY_BUFFER, 0, _nbSommets * 2 * sizeof(_vertCoords[0]), &_vertCoords[0]);
+			
 			glVertexAttribPointer(Shader::shaderActuel().vertCoord(), 2, GL_FLOAT, GL_FALSE, 0, &_vertCoords[0]);
 			glVertexAttribPointer(Shader::shaderActuel().texCoord(), 2, GL_FLOAT, GL_FALSE, 0, &_texCoords[0]);
 			glVertexAttribPointer(Shader::shaderActuel().coul(), 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, &_couleurs[0]);
@@ -109,7 +120,15 @@ void ImagesBase::changerTexture(GLint tex) {
 			glEnableVertexAttribArray(Shader::shaderActuel().vertCoord());
 			glEnableVertexAttribArray(Shader::shaderActuel().texCoord());
 			glEnableVertexAttribArray(Shader::shaderActuel().coul());
+			
+			/*glTexCoordPointer(2, GL_FLOAT, 0, &_texCoords[0]);
+			glVertexPointer(2, GL_FLOAT, 0, &_vertCoords[0]);
+			glColorPointer(4, GL_UNSIGNED_BYTE, 0, &_couleurs[0]);*/
+			
 			glDrawArrays(GL_TRIANGLES, 0, _nbSommets);
+			glDisableVertexAttribArray(Shader::shaderActuel().vertCoord());
+			glDisableVertexAttribArray(Shader::shaderActuel().texCoord());
+			glDisableVertexAttribArray(Shader::shaderActuel().coul());
 
 			_nbSommets = 0;
 		}
@@ -337,7 +356,6 @@ void Image::afficher(Coordonnees const &position, Rectangle const &filtre) const
 		return;
 	
 	Shader::shaderActuel().definirParametre(Shader::dim, vert.largeur, vert.hauteur);
-	Shader::shaderActuel().definirParametre(Shader::pos, vert.gauche, vert.haut);
 		
 	ImagesBase::changerTexture(_base->_tex);
 		

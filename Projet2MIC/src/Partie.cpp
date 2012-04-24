@@ -16,6 +16,8 @@
 #include "TableauDeBord.h"
 #include "Inventaire.h"
 #include "Menu.h"
+#include "Marchand.h"
+#include <cmath>
 
 Partie *Partie::_partie = 0;
 
@@ -56,7 +58,7 @@ Partie *Partie::partie() {
 	return _partie;
 }
 
-Partie::Partie() : _niveau(0), _joueur(0), _tableauDeBord(0) {
+Partie::Partie() : _niveau(0), _joueur(0), _tableauDeBord(0), _marchand(0) {
 	
 }
 
@@ -89,13 +91,23 @@ void Partie::commencer() {
 		Ecran::definirPointeurAffiche(_joueur->inventaireAffiche());
 		Ecran::definirPointeur(0);
 		Ecran::effacer();
-		_niveau->animer(1 / Ecran::frequenceInstantanee());
+		_niveau->animer();
 		this->afficher();
 		Ecran::finaliser();
 		
-		if(Session::evenement(Session::T_i)) {
+		if(_joueur->mort()) {
+			this->mortJoueur();
+		}
+		
+		if(Session::evenement(Parametres::evenementAction(Parametres::afficherInventaire))) {
+			if(_joueur->inventaireAffiche()) {
+				_joueur->inventaire()->masquer();
+			}
+			else {
+				_joueur->inventaire()->preparationAffichage();
+			}
 			_joueur->definirInventaireAffiche(!_joueur->inventaireAffiche());
-			Session::reinitialiser(Session::T_i);
+			Session::reinitialiser(Parametres::evenementAction(Parametres::afficherInventaire));
 		}
 		if(Session::evenement(Session::T_ESC)) {
 			Image *apercu = Ecran::apercu();
@@ -107,7 +119,6 @@ void Partie::commencer() {
 				}
 				else if(selection == 1) {
 					this->reinitialiser();
-					Session::reinitialiser(Session::T_r);
 				}
 				else if(selection == 2) {
 					Editeur *e = Editeur::editeur();
@@ -143,14 +154,30 @@ void Partie::commencer() {
 }
 
 void Partie::afficher() {
+/*	static Shader *s = 0;
+	static horloge_t temps;
+	if(s == 0) {
+		temps = horloge();
+		s = new Shader(Session::cheminRessources() + "aucun.vert", Session::cheminRessources() + "test.frag");
+	}*/
+	
 	_niveau->afficher();
+	/*s->activer();
+	s->definirParametre("_temps", horloge() - temps);*/
+	Ecran::afficherRectangle(Ecran::ecran(), Couleur(0, 0, 0, 1.0));
+	//s->desactiver();
+	
 	if(_joueur->inventaireAffiche()) {
 		_joueur->inventaire()->afficher();
 	}
-	_tableauDeBord->afficher();
+
+	if(!_joueur->mort())
+		_tableauDeBord->afficher();
 }
 
 void Partie::reinitialiser() {
+	_joueur->renaitre();
+
 	delete _niveau;
 	_niveau = new Niveau(_joueur, "niveau1.xml");
 	_joueur->definirNiveau(_niveau);
@@ -159,7 +186,10 @@ void Partie::reinitialiser() {
 }
 
 Rectangle Partie::zoneJeu() const {
-	if(!(_joueur->inventaireAffiche())) {
+	if(_marchand) {
+		return Rectangle::aucun;
+	}
+	else if(!(_joueur->inventaireAffiche())) {
 		return Rectangle(Coordonnees(), Coordonnees(Ecran::largeur(), Ecran::hauteur() - _tableauDeBord->hauteur()));
 	}
 	else {
@@ -167,3 +197,99 @@ Rectangle Partie::zoneJeu() const {
 	}
 }
 
+Joueur *Partie::joueur() {
+	return _joueur;
+}
+
+Marchand *Partie::marchand() {
+	return _marchand;
+}
+
+void Partie::definirMarchand(Marchand *m) {
+	_marchand = m;
+	if(_marchand) {
+		_marchand->inventaire()->preparationAffichage();
+		_joueur->inventaire()->preparationAffichage();
+		bool continuer = true;
+		while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, continuer)) {
+			Ecran::definirPointeurAffiche(true);
+			Ecran::definirPointeur(0);
+			Ecran::effacer();
+			
+			_joueur->inventaire()->afficher();
+			_marchand->inventaire()->afficher();
+			_tableauDeBord->afficher();
+			
+			Ecran::finaliser();
+			
+			_joueur->inventaire()->gestionEvenements();
+			_marchand->inventaire()->gestionEvenements();
+			if(Session::evenement(Session::T_ESC)) {
+				continuer = false;
+			}
+			
+			Ecran::maj();
+		}
+		_marchand->inventaire()->masquer();
+		_joueur->inventaire()->masquer();
+		_marchand = 0;
+	}
+}
+
+void Partie::mortJoueur() {
+	bool continuer = true;
+	Image *apercu = Ecran::apercu();
+	float const dureeTransition = 3.0f;
+	char const * const t = "temps";
+	char const * const angle = "angle";
+	char const * const position = "position";
+	Shader sMort(Session::cheminRessources() + "aucun.vert", Session::cheminRessources() + "mort.frag");
+	sMort.definirParametre("duree", dureeTransition);
+	
+	Shader sTexte(Session::cheminRessources() + "rotation.vert", Session::cheminRessources() + "aucun.frag");
+	sTexte.definirParametre("axe", 1.0, 0, 0.0);
+	Texte titre("T'es mort !", POLICE_DECO, 42, Couleur::blanc);
+	Texte sousTitre("(Esc pour recommencer)", POLICE_DECO, 26, Couleur::blanc);
+	
+	horloge_t tempsInitial = horloge();
+	
+	while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, continuer)) {
+		Ecran::definirPointeurAffiche(true);
+		Ecran::definirPointeur(0);
+		Ecran::effacer();
+		
+		Shader::flou(1.0).activer();
+		apercu->afficher(Coordonnees::zero);
+		
+		sMort.activer();
+		sMort.definirParametre(t, horloge() - tempsInitial);
+		Ecran::afficherRectangle(Ecran::ecran(), Couleur::blanc);
+		
+		Shader::aucun().activer();
+		
+		sTexte.activer();
+		sTexte.definirParametre(angle, std::fmod(horloge() - tempsInitial, float(M_PI * 2)));
+		Coordonnees pTitre = Ecran::dimensions() / 2 - titre.dimensions() / 2 - Coordonnees(0, 80);
+		sTexte.definirParametre(position, pTitre.x, pTitre.y, 0);
+		titre.afficher(pTitre);
+
+		pTitre.x = Ecran::dimensions().x / 2 - sousTitre.dimensions().x / 2;
+		sousTitre.afficher(pTitre + Coordonnees(0, titre.dimensions().y + 40));
+		Shader::desactiver();
+		
+		
+		
+		Ecran::finaliser();
+		
+		if(Session::evenement(Session::T_ESC)) {
+			continuer = false;
+		}
+		
+		Ecran::maj();
+	}
+	
+	Shader::desactiver();
+
+	delete apercu;
+	this->reinitialiser();
+}

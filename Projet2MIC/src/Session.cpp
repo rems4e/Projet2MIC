@@ -14,6 +14,7 @@
 #include "Image.h"
 #include "Partie.h"
 #include "Shader.h"
+#include <ctime>
 
 namespace Ecran {
 	void init(unsigned int largeur, unsigned int hauteur, unsigned int profondeur, bool pleinEcran);
@@ -432,10 +433,7 @@ Unichar Session::transcriptionEvenement(Session::evenement_t const &e) {
 	else if(e == QUITTER)
 		return "quitter";
 	
-	// FIXME: trad
-	std::cerr << "L'événement " << e << " n'a pas de transcription textuelle !" << std::endl;
-	assert(0);
-	return "aucun événement";
+	return "<aucun événement>";
 }
 
 Unichar Session::transcriptionModificateur(Session::modificateur_touche_t const &m) {

@@ -35,13 +35,13 @@ EntiteStatique::~EntiteStatique() {
 	delete[] _cadres;
 }
 
-void EntiteStatique::afficher(index_t deltaX, index_t deltaY, Coordonnees const &decalage, double zoom) const {
+void EntiteStatique::afficher(index_t deltaY, Coordonnees const &decalage, double zoom) const {
 	_image.redimensionner(zoom);
 	_image.afficher(this->positionAffichage() * zoom - decalage + Coordonnees(deltaY * 64, 0), this->decoupagePerspective() ? _cadres[deltaY] : Rectangle(Coordonnees::zero, _image.dimensionsReelles()));
 	
 }
 
-void EntiteStatique::animer(horloge_t tempsEcoule) {
+void EntiteStatique::animer() {
 	
 }
 

@@ -16,7 +16,6 @@
 #define TAILLE_TITRE_MENU 46
 #define TAILLE_ELEMENTS_MENU 32
 #define ECART_ELEM 5
-#define FLOU_FOND 1.0f
 #define COULEUR_ELEM Couleur(255, 160)
 
 Menu::element_t::element_t(Unichar const &u) : _texte(u), _cadre() {
@@ -61,7 +60,7 @@ index_t Menu::afficher(index_t selection, Image const &fond) {
 		Ecran::definirPointeurAffiche(true);
 		Ecran::effacer();
 		
-		Shader::flou(FLOU_FOND).activer();
+		Shader::flou(1).activer();
 		fond.afficher(Coordonnees());
 		Shader::desactiver();
 				

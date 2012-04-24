@@ -1,9 +1,10 @@
-uniform vec2 _pos;
 uniform vec2 _dim;
+uniform vec2 _ecran;
 
 attribute vec2 texCoord;
 attribute vec2 vertCoord;
 attribute vec4 color;
+uniform vec2 _ecran;
 
 varying vec2 _texCoord;
 varying vec4 _color;

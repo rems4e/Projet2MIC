@@ -13,10 +13,11 @@
 #include "Session.h"
 #include <algorithm>
 #include "Joueur.h"
+#include "Marchand.h"
 #include "Partie.h"
 #include "Niveau.h"
 
-Inventaire::Inventaire(Personnage &perso) : _perso(perso) {
+Inventaire::Inventaire(Personnage &perso) : _perso(perso), _monnaie(0) {
 	
 }
 
@@ -30,6 +31,14 @@ Personnage const &Inventaire::personnage() const {
 
 Personnage &Inventaire::personnage() {
 	return  _perso;
+}
+
+ssize_t Inventaire::monnaie() const {
+	return _monnaie;
+}
+
+void Inventaire::modifierMonnaie(ssize_t delta) {
+	_monnaie = std::max<ssize_t>(0L, _monnaie + delta);
 }
 
 template <template <class e, class = std::allocator<e> > class Conteneur>
@@ -47,6 +56,7 @@ InventaireC<Conteneur>::InventaireC(Personnage &perso, size_t capacite, InputIte
 
 template <template <class e, class = std::allocator<e> > class Conteneur>
 InventaireC<Conteneur>::InventaireC(Personnage &perso, size_t capacite) : Inventaire(perso), _elements(), _capacite(capacite) {
+	
 }
 
 template <template <class e, class = std::allocator<e> > class Conteneur>
@@ -115,9 +125,6 @@ void InventaireC<Conteneur>::supprimerObjet(ObjetInventaire *o) {
 
 template <template <class e, class = std::allocator<e> > class Conteneur>
 void InventaireC<Conteneur>::vider() {
-	for(iterator i = this->debut(); i != this->fin(); ++i) {
-		delete *i;
-	}
 	_elements.clear();
 }
 
@@ -140,6 +147,30 @@ void InventaireListe::afficher() const {
 
 void InventaireListe::gestionEvenements() {
 	
+}
+
+void InventaireListe::masquer() {
+	
+}
+
+void InventaireListe::preparationAffichage() {
+	
+}
+
+InventaireListe::const_iterator InventaireListe::debut() const {
+	return _elements.begin();
+}
+
+InventaireListe::const_iterator InventaireListe::fin() const {
+	return _elements.end();
+}
+
+InventaireListe::iterator InventaireListe::debut() {
+	return _elements.begin();
+}
+
+InventaireListe::iterator InventaireListe::fin() {
+	return _elements.end();
 }
 
 template<typename InputIterator>
@@ -309,8 +340,24 @@ void InventaireTableau::vider() {
 	}
 }
 
-/*InventaireMarchand::InventaireMarchand(Marchand &perso) : InventaireTableau(perso, LARGEUR_MARCHAND, HAUTEUR_MARCHAND) {
-	
+InventaireTableau::const_iterator InventaireTableau::debut() const {
+	return _elements.begin();
+}
+
+InventaireTableau::const_iterator InventaireTableau::fin() const {
+	return _elements.end();
+}
+
+InventaireTableau::iterator InventaireTableau::debut() {
+	return _elements.begin();
+}
+
+InventaireTableau::iterator InventaireTableau::fin() {
+	return _elements.end();
+}
+
+InventaireMarchand::InventaireMarchand(Marchand &perso) : InventaireTableau(perso, LARGEUR_MARCHAND, HAUTEUR_MARCHAND), _fond(Session::cheminRessources() + "inventaireMarchand.png") {
+
 }
 
 InventaireMarchand::~InventaireMarchand() {
@@ -318,18 +365,87 @@ InventaireMarchand::~InventaireMarchand() {
 }
 
 void InventaireMarchand::afficher() const {
+	_fond.afficher(Coordonnees(Ecran::largeur() / 2, 0));
 	
+	Coordonnees pos(Ecran::largeur() / 2 + 28, 83);
+	index_t i = 0;
+	for(const_iterator j = this->debut(); j != this->fin(); ++j) {
+		if(*j) {
+			(*j)->image().afficher(pos);
+		}
+		pos.x += 36;
+		++i;
+		if((i % this->largeur()) == 0) {
+			pos.x = Ecran::largeur() / 2 + 28;
+			pos.y += 35.4;
+		}
+	}
+
+	if(_surlignage != Rectangle::aucun) {
+		Ecran::afficherRectangle(_surlignage, _couleurSurlignage);
+	}
 }
 
 void InventaireMarchand::gestionEvenements() {
+	_surlignage = Rectangle::aucun;
 	
+	if(Session::souris() < _inventaire) {
+		Coordonnees pos = Session::souris() - _inventaire.origine();
+		index_t pX = pos.x / 36, pY = pos.y / 36;
+		if(comprisEntre<index_t>(pX, 0, this->largeur() - 1) && comprisEntre<index_t>(pY, 0, this->hauteur() - 1)) {
+			if(Session::evenement(Session::B_GAUCHE)) {
+				InventaireJoueur *iJ = static_cast<InventaireJoueur *>(Partie::partie()->joueur()->inventaire());
+				if(iJ->objetTransfert() == 0) {
+					ObjetInventaire *article = this->objetDansCase(pX, pY);
+					ssize_t prix = Partie::partie()->marchand()->prixVente(article);
+					
+					if(prix <= iJ->monnaie()) {
+						this->supprimerObjet(article);
+						iJ->definirObjetTransfert(article);
+						iJ->modifierMonnaie(-prix);
+					}
+				}
+				Session::reinitialiser(Session::B_GAUCHE);
+			}
+			else {
+				InventaireJoueur *iJ = static_cast<InventaireJoueur *>(Partie::partie()->joueur()->inventaire());
+				if(iJ->objetTransfert() == 0) {
+					ObjetInventaire *o = this->objetDansCase(pX, pY);
+					if(o) {
+						Coordonnees positionCase = this->positionObjet(o);
+						_surlignage = Rectangle(_inventaire.origine() + Coordonnees(positionCase.x * 36, positionCase.y * 35.4), Coordonnees(o->dimensionsInventaire().x * 36, o->dimensionsInventaire().y * 35.4));
+						if(Partie::partie()->marchand()->prixVente(o) <= iJ->monnaie())
+							_couleurSurlignage = Couleur(Couleur::blanc, 66);
+						else {
+							_couleurSurlignage = Couleur(Couleur::rouge, 50);
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+Rectangle const &InventaireMarchand::zoneObjets() const {
+	return _inventaire;
+}
+
+void InventaireMarchand::masquer() {
+	
+}
+
+void InventaireMarchand::preparationAffichage() {
+	_inventaire.definirOrigine(Coordonnees(Ecran::largeur() / 2, 0) + Coordonnees(17, 80));
+	_inventaire.definirDimensions(Coordonnees(360, 360));
+	
+	std::cout << "Initialisation objets" << std::endl;
 }
 
 void InventaireMarchand::definirCapacite(size_t c) {
 	
-}*/
+}
 
-InventaireJoueur::InventaireJoueur(Joueur &perso) : InventaireTableau(perso, LARGEUR_JOUEUR, HAUTEUR_JOUEUR), _fond(Session::cheminRessources() + "inventaire.png"), _objetTransfert(0) {
+InventaireJoueur::InventaireJoueur(Joueur &perso) : InventaireTableau(perso, LARGEUR_JOUEUR, HAUTEUR_JOUEUR), _fond(Session::cheminRessources() + "inventaire.png"), _objetTransfert(0), _or("", POLICE_DECO, 20, Couleur::blanc) {
 	_inventaire = Rectangle(21, 282, 365, 150);
 	_tenue[Personnage::brasG] = Rectangle(22, 51, 76, 136);
 	_tenue[Personnage::brasD] = Rectangle(308, 51, 76, 136);
@@ -345,6 +461,8 @@ InventaireJoueur::~InventaireJoueur() {
 
 void InventaireJoueur::afficher() const {
 	_fond.afficher(Coordonnees());
+	_or.definir(nombreVersTexte(this->monnaie()));
+	_or.afficher(Coordonnees(205, 450) + Coordonnees(6, -8));
 
 	Coordonnees pos(32, 288);
 	index_t i = 0;
@@ -363,7 +481,6 @@ void InventaireJoueur::afficher() const {
 		if(this->personnage().tenue(i)) {
 			Image const &img = this->personnage().tenue(i)->image();
 			img.afficher(_tenue[i].origine() + (_tenue[i].dimensions() - img.dimensions()) / 2);
-
 		}
 	}
 	
@@ -373,22 +490,21 @@ void InventaireJoueur::afficher() const {
 	if(_surlignageTransfert != Rectangle::aucun) {
 		Ecran::afficherRectangle(_surlignageTransfert.intersection(_inventaire), _couleurSurlignageTransfert);
 	}
-	
-	if(_objetTransfert) {
-		_objetTransfert->image().afficher(Session::souris());
-	}
-	
-	/*Ecran::afficherRectangle(_inventaire, Couleur(255, 0, 0, 128));
-	for(Personnage::positionTenue_t i = Personnage::premierePositionTenue; i != Personnage::nbPositionsTenue; ++i) {
-		Ecran::afficherRectangle(_tenue[i], Couleur(255, 0, 0 + i * 40, 128));
-	}*/
 }
 
 void InventaireJoueur::gestionEvenements() {
 	_surlignage = Rectangle::aucun;
 	_surlignageTransfert = Rectangle::aucun;
 
-	if(Session::souris() < Partie::partie()->zoneJeu() && Session::evenement(Session::B_GAUCHE)) {
+	if(Partie::partie()->marchand() && Session::souris() < static_cast<InventaireMarchand*>(Partie::partie()->marchand()->inventaire())->zoneObjets()) {
+		if(_objetTransfert && Session::evenement(Session::B_GAUCHE)) {
+			this->modifierMonnaie(Partie::partie()->marchand()->prixAchat(_objetTransfert));
+			Partie::partie()->marchand()->inventaire()->ajouterObjet(_objetTransfert);
+			_objetTransfert = 0;
+			Session::reinitialiser(Session::B_GAUCHE);
+		}
+	}
+	else if(Session::evenement(Session::B_GAUCHE) && Session::souris() < Partie::partie()->zoneJeu()) {
 		if(_objetTransfert) {
 			this->personnage().niveau()->ajouterElement(this->personnage().pX(), this->personnage().pY(), Niveau::cn_objetsInventaire, _objetTransfert);
 			_objetTransfert = 0;
@@ -403,6 +519,7 @@ void InventaireJoueur::gestionEvenements() {
 				if(_objetTransfert) {
 					ObjetInventaire *remp;
 					bool ok = this->peutPlacerObjetDansCase(pX, pY, _objetTransfert, remp);
+
 					if(ok) {
 						this->supprimerObjet(remp);
 						this->ajouterObjetEnPosition(_objetTransfert, pY * this->largeur() + pX);
@@ -482,11 +599,31 @@ void InventaireJoueur::gestionEvenements() {
 			}
 		}
 	}
+	this->definirObjetTransfert(_objetTransfert);
+}
+
+void InventaireJoueur::masquer() {
 	if(_objetTransfert) {
-		Ecran::definirPointeur(&_objetTransfert->image());
+		this->personnage().niveau()->ajouterElement(this->personnage().pX(), this->personnage().pY(), Niveau::cn_objetsInventaire, _objetTransfert);
+		_objetTransfert = 0;
 	}
+}
+
+void InventaireJoueur::preparationAffichage() {
+
 }
 
 void InventaireJoueur::definirCapacite(size_t c) {
 	
+}
+
+ObjetInventaire *InventaireJoueur::objetTransfert() {
+	return _objetTransfert;
+}
+
+void InventaireJoueur::definirObjetTransfert(ObjetInventaire *o) {
+	_objetTransfert = o;
+	if(_objetTransfert) {
+		Ecran::definirPointeur(&_objetTransfert->image());
+	}
 }

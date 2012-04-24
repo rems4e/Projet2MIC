@@ -17,8 +17,8 @@ class EntiteStatique : public ElementNiveau {
 public:
 	virtual ~EntiteStatique();
 	
-	virtual void afficher(index_t deltaX, index_t deltaY, Coordonnees const &decalage, double zoom = 1.0) const;
-	virtual void animer(horloge_t tempsEcoule);
+	virtual void afficher(index_t deltaY, Coordonnees const &decalage, double zoom = 1.0) const;
+	virtual void animer();
 
 	Image const &image() const;
 

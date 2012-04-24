@@ -11,15 +11,18 @@
 
 #define CAPACITE_ENNEMI 4
 #define LARGEUR_MARCHAND 10
-#define HAUTEUR_MARCHAND 4
+#define HAUTEUR_MARCHAND 10
 #define LARGEUR_JOUEUR 10
 #define HAUTEUR_JOUEUR 4
 
 #include "ObjetInventaire.h"
 #include "Personnage.h"
+#include "Texte.h"
 
 #include <list>
 #include <vector>
+
+class Marchand;
 
 class Inventaire {
 protected:
@@ -58,6 +61,9 @@ public:
 	Inventaire(Personnage &perso);
 	virtual ~Inventaire();
 	
+	ssize_t monnaie() const;
+	void modifierMonnaie(ssize_t delta);
+	
 	virtual size_t capacite() const = 0;
 	virtual void definirCapacite(size_t c) = 0;
 	
@@ -70,18 +76,21 @@ public:
 	virtual void afficher() const = 0;
 	virtual void gestionEvenements() = 0;
 	
+	virtual void preparationAffichage() = 0;
+	virtual void masquer() = 0;
+
 	const_iterator const &debut() const;
 	const_iterator const &fin() const;
-	
-protected:
 	iterator const &debut();
 	iterator const &fin();
 	
+protected:	
 	Personnage const &personnage() const;
 	Personnage &personnage();
 	
 private:
 	Personnage &_perso;
+	ssize_t _monnaie;
 };
 
 template<template <class e, class = std::allocator<e> > class Conteneur>
@@ -147,15 +156,15 @@ public:
 	virtual void supprimerObjet(ObjetInventaire *o);
 	virtual void vider();
 	
-	const_iterator debut() const;
-	const_iterator fin() const;
-		
+	virtual const_iterator debut() const = 0;
+	virtual const_iterator fin() const = 0;
+	virtual iterator debut() = 0;
+	virtual iterator fin() = 0;
+	
 protected:
-	iterator debut();
-	iterator fin();
+	Conteneur<ObjetInventaire *> _elements;
 
 private:
-	Conteneur<ObjetInventaire *> _elements;
 	size_t _capacite;
 };
 
@@ -168,10 +177,18 @@ public:
 	InventaireListe(Personnage &perso, size_t capacite, InputIterator debut, InputIterator fin);
 	InventaireListe(Personnage &perso, size_t capacite);
 	virtual ~InventaireListe();
+
+	virtual const_iterator debut() const;
+	virtual const_iterator fin() const;
+	virtual iterator debut();
+	virtual iterator fin();
 			
 private:
 	virtual void afficher() const;
 	virtual void gestionEvenements();
+	
+	virtual void preparationAffichage();
+	virtual void masquer();
 };
 
 typedef InventaireListe InventaireEnnemi;
@@ -209,6 +226,11 @@ public:
 	virtual size_t nombreObjets() const;
 
 	virtual void vider();
+
+	virtual const_iterator debut() const;
+	virtual const_iterator fin() const;
+	virtual iterator debut();
+	virtual iterator fin();
 	
 protected:
 	ObjetInventaire *objetDansCase(index_t position);
@@ -226,20 +248,31 @@ private:
 	size_t _hauteur;
 };
 
-/*class InventaireMarchand : public InventaireTableau {
+class InventaireMarchand : public InventaireTableau {
 public:
 	typedef InventaireTableau::const_iterator const_iterator;
 	typedef InventaireTableau::iterator iterator;
 	
-	InventaireMarchand();
+	InventaireMarchand(Marchand &marchand);
 	virtual ~InventaireMarchand();
 		
 	virtual void afficher() const;
 	virtual void gestionEvenements();
+	
+	virtual void preparationAffichage();
+	virtual void masquer();
+
+	Rectangle const &zoneObjets() const;
 
 private:
 	virtual void definirCapacite(size_t c);
-};*/
+	
+	Image _fond;
+	Rectangle _inventaire;
+
+	Rectangle _surlignage;
+	Couleur _couleurSurlignage;
+};
 
 class InventaireJoueur : public InventaireTableau {
 public:
@@ -252,9 +285,17 @@ public:
 	virtual void afficher() const;
 	virtual void gestionEvenements();
 	
+	virtual void preparationAffichage();
+	virtual void masquer();
+
+	ObjetInventaire *objetTransfert();
+	void definirObjetTransfert(ObjetInventaire *o);
+	
 private:
 	virtual void definirCapacite(size_t c);
 	Image _fond;
+	mutable Texte _or;
+	
 	Rectangle _inventaire;
 	Rectangle _tenue[Personnage::nbPositionsTenue];
 	Rectangle _surlignage;

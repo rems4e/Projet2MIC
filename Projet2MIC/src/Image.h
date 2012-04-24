@@ -13,7 +13,14 @@
 #include "Constantes.h"
 #include <SDL/SDL.h>
 
-#include GL_H
+#ifdef __MACOSX__
+#include <OpenGL/gl.h>
+#else
+#define GL_GLEXT_LEGACY
+#include <GL/gl.h>
+#define GL_GLEXT_PROTOTYPES
+#include <GL/glext.h>
+#endif
 
 #include <string>
 #include "Ecran.h"

@@ -14,7 +14,15 @@
 #include <exception>
 #include <map>
 #include <string>
-#include GL_H
+
+#ifdef __MACOSX__
+#include <OpenGL/gl.h>
+#else
+#define GL_GLEXT_LEGACY
+#include <GL/gl.h>
+#define GL_GLEXT_PROTOTYPES
+#include <GL/glext.h>
+#endif
 
 class Shader {
 	friend void Session::nettoyer();
@@ -22,7 +30,6 @@ class Shader {
 public:
 	static char const * const rayonFlou;
 	static char const * const dim;
-	static char const * const pos;
 		
 	class Exc_CreationImpossible : public std::exception {
 	public:
@@ -52,6 +59,8 @@ public:
 	static void desactiver();
 	
 	static Shader const &shaderActuel();
+	static Coordonnees versShader(Coordonnees const &);
+	static Rectangle versShader(Rectangle const &);
 		
 protected:
 	static void compiler(GLuint shader) throw(Exc_CreationImpossible);

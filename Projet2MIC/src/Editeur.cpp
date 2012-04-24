@@ -326,9 +326,9 @@ void Editeur::afficherInventaire() {
 				break;
 		}
 		bool diffProba = !i->_e, diffIndex = false, diffCategorie = false, diffIndexProba = false, vide = !i->_e;
-		bool proba;
-		index_t index, indexProba, nbVide = 0;
-		ElementNiveau::elementNiveau_t cat;
+		bool proba = false;
+		index_t index = 0, indexProba, nbVide = 0;
+		ElementNiveau::elementNiveau_t cat = ElementNiveau::nbTypesElement;
 		uint16_t idEntite;
 		if(i->_e) {
 			idEntite = i->_e->operator()();
@@ -1180,11 +1180,9 @@ void Editeur::modifIndex() {
 		return;
 
 	bool continuer = true;
-	
-	horloge_t ancienDefilement = 0;
-	
+	bool selectionChangee = true;
 	index_t selection = 0;
-	ElementNiveau::elementNiveau_t catSel;
+	ElementNiveau::elementNiveau_t catSel = ElementNiveau::nbTypesElement;
 	{
 		bool proba;
 		index_t indexProba;
@@ -1215,6 +1213,8 @@ void Editeur::modifIndex() {
 	float teinteSelection = 0;
 	int sensTeinte = 1;
 	
+	ElementEditeur *apercu = 0;
+
 	while(Session::boucle(100.0f, continuer)) {
 		teinteSelection += 1.0f / 50.0f * (60.0f / Ecran::frequenceInstantanee()) * sensTeinte;
 		if(teinteSelection > 0.7f) {
@@ -1265,16 +1265,21 @@ void Editeur::modifIndex() {
 		
 		cadre -= Coordonnees(10, -10);
 		
-		ElementEditeur *apercu = new ElementEditeur(catSel, selection);
+		if(selectionChangee) {
+			delete apercu;
+			apercu = new ElementEditeur(catSel, selection);
+			selectionChangee = false;
+		}
 		apercu->image().afficher(pCadre, apercu->cadre());
-		delete apercu;
 		Ecran::finaliser();
+		
+		index_t ancienneSelection = selection;
 				
 		if(Session::evenement(Session::T_ESC) || Session::evenement(Session::QUITTER) || Session::evenement(Session::T_ENTREE)) {
 			continuer = false;
 		}
 		else {
-			if(Session::evenement(Session::T_HAUT) && horloge() - ancienDefilement > INTERVALLE_DEFILEMENT) {
+			if(Session::evenement(Session::T_HAUT)) {
 				if(selection > 0) {
 					--selection;
 					if(selection < premierAffiche)
@@ -1286,9 +1291,9 @@ void Editeur::modifIndex() {
 						premierAffiche = index.size() - nbAffiches;
 				}
 				
-				ancienDefilement = horloge();
+				Session::reinitialiser(Session::T_HAUT);
 			}
-			else if(Session::evenement(Session::T_BAS) && horloge() - ancienDefilement > INTERVALLE_DEFILEMENT) {
+			else if(Session::evenement(Session::T_BAS) && horloge()) {
 				if(selection < index.size() - 1) {
 					++selection;
 					if(selection >= premierAffiche + nbAffiches)
@@ -1299,7 +1304,7 @@ void Editeur::modifIndex() {
 					premierAffiche = 0;
 				}
 				
-				ancienDefilement = horloge();
+				Session::reinitialiser(Session::T_BAS);
 			}
 			if(Session::evenement(Session::B_GAUCHE)) {
 				std::vector<Rectangle>::iterator souris = std::find_if(cadres.begin(), cadres.end(), trouveSouris_t());
@@ -1308,6 +1313,9 @@ void Editeur::modifIndex() {
 				}
 			}
 		}
+		
+		if(ancienneSelection != selection)
+			selectionChangee = true;
 	
 		Ecran::maj();
 	}
@@ -1547,7 +1555,7 @@ void Editeur::modifCategorie() {
 	if(_selection.empty())
 		return;
 	
-	ElementNiveau::elementNiveau_t catSel;
+	ElementNiveau::elementNiveau_t catSel = ElementNiveau::nbTypesElement;
 	{
 		index_t index;
 		bool proba;

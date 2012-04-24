@@ -13,6 +13,7 @@
 #include "Teleporteur.h"
 #include "Ennemi.h"
 #include "Joueur.h"
+#include "Marchand.h"
 #include "ObjetInventaire.h"
 #include "Niveau.h"
 #include "tinyxml.h"
@@ -41,8 +42,11 @@ ElementNiveau *ElementNiveau::elementNiveau(bool decoupagePerspective, Niveau *n
 			return ElementNiveau::elementNiveau<Teleporteur>(decoupagePerspective, n, index);
 		case maison:
 			return ElementNiveau::elementNiveau<EntiteStatique>(decoupagePerspective, n, index, maison);
-		case ndef8:
-		case ndef9:case ndef10:case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
+		case arbreMort:
+			return ElementNiveau::elementNiveau<EntiteStatique>(decoupagePerspective, n, index);
+		case marchand:
+			return ElementNiveau::elementNiveau<Marchand>(decoupagePerspective, n, index);
+		case ndef10:case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
 		case ndef17:case ndef18:case ndef19:case ndef20:case ndef21:case ndef22:case ndef23:case ndef24:
 		case ndef25:case ndef26:case ndef27:case ndef28:case ndef29:case ndef30:case ndef31:case ndef32:
 		case ndef33:case ndef34:case ndef35:case ndef36:case ndef37:case ndef38:case ndef39:case ndef40:
@@ -54,7 +58,7 @@ ElementNiveau *ElementNiveau::elementNiveau(bool decoupagePerspective, Niveau *n
 	}
 }
 
-ElementNiveau::ElementNiveau(bool decoupagePerspective, Niveau *n, uindex_t index, elementNiveau_t cat) throw(ElementNiveau::Exc_DefinitionEntiteIncomplete) : _niveau(n), _position(), _origine(), _centrage(false), _categorie(cat), _dimX(1), _dimY(1), _decoupagePerspective(decoupagePerspective), _relief(true) {
+ElementNiveau::ElementNiveau(bool decoupagePerspective, Niveau *n, uindex_t index, elementNiveau_t cat) throw(ElementNiveau::Exc_DefinitionEntiteIncomplete) : _niveau(n), _position(), _origine(), _centrage(false), _categorie(cat), _dimX(1), _dimY(1), _decoupagePerspective(decoupagePerspective), _relief(true), _pX(0), _pY(0) {
 	TiXmlElement *e = ElementNiveau::description(index, cat);
 	if(e->Attribute("x"))
 		e->Attribute("x", &_origine.x);
@@ -124,6 +128,8 @@ Coordonnees ElementNiveau::position() const {
 
 void ElementNiveau::definirPosition(Coordonnees const &p) {
 	_position = p;
+	this->calcPX();
+	this->calcPY();
 }
 
 Coordonnees ElementNiveau::positionAffichage() const {
@@ -213,11 +219,19 @@ bool ElementNiveau::joueur() const {
 }
 
 index_t ElementNiveau::pX() const {
-	return std::floor(this->position().x / LARGEUR_CASE);
+	return _pX;
 }
 
 index_t ElementNiveau::pY() const {
-	return std::floor(this->position().y / LARGEUR_CASE);
+	return _pY;
+}
+
+void ElementNiveau::calcPX() {
+	_pX = std::floor((this->position().x + this->origine().x) / LARGEUR_CASE);
+}
+
+void ElementNiveau::calcPY() {
+	_pY = std::floor((this->position().y) / LARGEUR_CASE);
 }
 
 bool ElementNiveau::collision(index_t x, index_t y) const {
@@ -248,8 +262,11 @@ char const *ElementNiveau::nomBalise(elementNiveau_t cat) {
 			return "Teleporteur";
 		case maison:
 			return "Maison";
-		case ndef8:
-		case ndef9:case ndef10:case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
+		case arbreMort:
+			return "ArbreMort";
+		case marchand:
+			return "Marchand";
+		case ndef10:case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
 		case ndef17:case ndef18:case ndef19:case ndef20:case ndef21:case ndef22:case ndef23:case ndef24:
 		case ndef25:case ndef26:case ndef27:case ndef28:case ndef29:case ndef30:case ndef31:case ndef32:
 		case ndef33:case ndef34:case ndef35:case ndef36:case ndef37:case ndef38:case ndef39:case ndef40:
@@ -277,8 +294,11 @@ char const *ElementNiveau::nomCategorie(elementNiveau_t cat) {
 			return "Téléporteur";
 		case maison:
 			return "Maison";
-		case ndef8:
-		case ndef9:case ndef10:case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
+		case arbreMort:
+			return "Arbre mort";
+		case marchand:
+			return "Marchand";
+		case ndef10:case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
 		case ndef17:case ndef18:case ndef19:case ndef20:case ndef21:case ndef22:case ndef23:case ndef24:
 		case ndef25:case ndef26:case ndef27:case ndef28:case ndef29:case ndef30:case ndef31:case ndef32:
 		case ndef33:case ndef34:case ndef35:case ndef36:case ndef37:case ndef38:case ndef39:case ndef40:
@@ -289,4 +309,3 @@ char const *ElementNiveau::nomCategorie(elementNiveau_t cat) {
 			return 0;
 	}
 }
-

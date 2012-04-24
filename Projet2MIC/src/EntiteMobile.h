@@ -23,9 +23,9 @@ public:
 			
 	virtual ~EntiteMobile();
 	
-	virtual void afficher(index_t deltaX, index_t deltaY, Coordonnees const &decalage, double zoom = 1.0) const;
+	virtual void afficher(index_t deltaY, Coordonnees const &decalage, double zoom = 1.0) const;
 	virtual bool collision(index_t x, index_t y) const;
-	virtual void animer(horloge_t tempsEcoule);
+	virtual void animer();
 	virtual Coordonnees dimensions() const;
 	
 	// Direction (gauche, droite…)
@@ -40,14 +40,16 @@ public:
 	// Met à jour la direction de l'entité en fonction de la direction du vecteur de déplacement.
 	// ATTENTION : utiliser cette fonction va générer une détection des collisions. Pour décaler une entité sans tester les collisions, utiliser entité.definirPosition(entité.position() + dep);
 	virtual bool deplacerPosition(Coordonnees const &dep);
+		
 	virtual Niveau::couche_t couche() const = 0;
 	virtual bool mobile() const;
-	virtual categorie_t type() const = 0;
+	virtual categorie_t categorieMobile() const = 0;
+	bool personnage() const;
 	
-	virtual index_t pX() const;
-	virtual index_t pY() const;
-	index_t pX(coordonnee_t pX) const;
-	index_t pY(coordonnee_t pY) const;
+	index_t nPX(coordonnee_t pX) const;
+	index_t nPY(coordonnee_t pY) const;
+
+	bool mort() const;
 
 protected:
 	Rectangle const &cadre() const;
@@ -56,7 +58,15 @@ protected:
 	EntiteMobile(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
 	static char const *transcriptionAction(action_t a);
 	static bool actionInterruptible(action_t a);
-	bool testerDeplacement(Coordonnees const &dep, index_t pX, index_t pY);
+	bool actionInterruptible() const;
+	bool testerDeplacement(Coordonnees const &dep);
+	
+	index_t imageActuelle() const { return _imageActuelle; }
+	index_t imageAttaque() const { return _imageAttaque; }
+	action_t actionActuelle() const { return _action; }
+			
+	void mourir();
+	void renaitre();
 	
 private:
 	size_t _nbImages[nbActions];
@@ -69,14 +79,15 @@ private:
 	
 	action_t _action;
 	uindex_t _imageActuelle;
-	
 	horloge_t _tempsPrecedent;
+	
+	bool _mort;
+	uindex_t _imageAttaque;
 	
 	EntiteMobile(EntiteMobile const &);
 	EntiteMobile &operator=(EntiteMobile const &);
 };
 
 EntiteMobile::action_t &operator++(EntiteMobile::action_t &c);
-
 
 #endif

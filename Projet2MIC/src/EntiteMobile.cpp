@@ -16,7 +16,7 @@
 
 EntiteMobile::action_t &operator++(EntiteMobile::action_t &c) { return c = static_cast<EntiteMobile::action_t>(static_cast<int>(c + 1)); }
 
-EntiteMobile::EntiteMobile(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : ElementNiveau(decoupagePerspective, n, index, cat), _tempsPrecedent(0), _image(), _cadres(), _tempsAffichage(), _nbImages(), _imageActuelle(0), _action(a_immobile), _direction(gauche) {
+EntiteMobile::EntiteMobile(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : ElementNiveau(decoupagePerspective, n, index, cat), _tempsPrecedent(0), _image(), _cadres(), _tempsAffichage(), _nbImages(), _imageActuelle(0), _action(a_immobile), _direction(gauche), _mort(false) {
 	std::memset(_nbImages, 0, nbActions * sizeof(size_t));
 	for(action_t a = premiereAction; a != nbActions; ++a) {
 		std::memset(_cadres[a], 0, 8 * sizeof(Rectangle *));
@@ -35,23 +35,39 @@ EntiteMobile::EntiteMobile(bool decoupagePerspective, Niveau *n, uindex_t index,
 	if(e->Attribute("blocY"))
 		e->Attribute("blocY", &dimY);
 	
+	int premiereImage[nbActions] = {0};
+	
 	for(action_t a = premiereAction; a != nbActions; ++a) {
 		TiXmlElement *action = e->FirstChildElement(EntiteMobile::transcriptionAction(a));
 		if(action) {
 			action->Attribute("nbPoses", &_nbImages[a]);
+			if(action->Attribute("premiere"))
+				action->Attribute("premiere", &premiereImage[a]);
+			else if(a != premiereAction) {
+				premiereImage[a] = premiereImage[a - 1] + _nbImages[a - 1];
+			}
 			int temps;
 			action->Attribute("tempsAttente", &temps);
 			_tempsAffichage[a] = temps / 1000.0f;
+			
+			if(a == a_attaquer) {
+				if(action->Attribute("attaque")) {
+					action->Attribute("attaque", &_imageAttaque);
+				}
+				else {
+					_imageAttaque = _nbImages[a_attaquer] - 1;
+				}
+			}
 		}
 	}
 	
 	for(int direction = 0; direction < 8; ++direction) {
-		index_t x = 0;
 		for(action_t a = premiereAction; a != nbActions; ++a) {
+			index_t x = premiereImage[a];
 			_cadres[a][direction] = new Rectangle[_nbImages[a]];
 			for(int p = 0; p < _nbImages[a]; ++p) {
-				_cadres[a][direction][p] = Rectangle(x, direction * dimY, dimX, dimY);
-				x += dimX;
+				_cadres[a][direction][p] = Rectangle(x * dimX, direction * dimY, dimX, dimY);
+				++x;
 			}
 		}
 	}
@@ -68,7 +84,7 @@ EntiteMobile::~EntiteMobile() {
 	}
 }
 
-void EntiteMobile::afficher(index_t deltaX, index_t deltaY, Coordonnees const &decalage, double zoom) const {
+void EntiteMobile::afficher(index_t deltaY, Coordonnees const &decalage, double zoom) const {
 	_image.redimensionner(zoom);
 	Rectangle const &cadre = this->cadre();
 	_image.afficher(this->positionAffichage() * zoom - decalage, cadre);
@@ -78,28 +94,44 @@ bool EntiteMobile::collision(index_t x, index_t y) const {
 	return false;
 }
 
-index_t EntiteMobile::pX() const {
-	return this->pX(this->position().x);
-}
-
-index_t EntiteMobile::pY() const {
-	return this->pY(this->position().y);
-}
-
-index_t EntiteMobile::pX(coordonnee_t pX) const {
+index_t EntiteMobile::nPX(coordonnee_t pX) const {
 	return std::floor(pX / LARGEUR_CASE);
 
 }
 
-index_t EntiteMobile::pY(coordonnee_t pY) const {
+index_t EntiteMobile::nPY(coordonnee_t pY) const {
 	return std::floor(pY / LARGEUR_CASE);
 }
 
-void EntiteMobile::animer(horloge_t tempsEcoule) {
+bool EntiteMobile::mort() const {
+	return _mort;
+}
+
+void EntiteMobile::animer() {
 	if(horloge() - _tempsPrecedent >= _tempsAffichage[_action]) {
 		_tempsPrecedent = horloge();
 		_imageActuelle = (_imageActuelle + 1) % _nbImages[_action];
+		
+		if(_action == a_mourir && _imageActuelle == _nbImages[a_mourir] - 1) {
+			_mort = true;
+		}
+
+		if(_imageActuelle == 0) {
+			_action = nbActions;
+			this->definirAction(a_immobile);
+		}
 	}
+}
+
+void EntiteMobile::mourir() {
+	if(_action != a_mourir && !_mort) {
+		_action = nbActions;
+		this->definirAction(a_mourir);
+	}
+}
+
+void EntiteMobile::renaitre() {
+	_mort = false;
 }
 
 Coordonnees EntiteMobile::dimensions() const {
@@ -140,10 +172,14 @@ bool EntiteMobile::actionInterruptible(action_t a) {
 		case a_mourir:
 			return false;
 		case nbActions:
-			return false;
+			return true;
 	}
 }
 
+
+bool EntiteMobile::actionInterruptible() const {
+	return EntiteMobile::actionInterruptible(_action);
+}
 
 void EntiteMobile::definirDirection(direction_t d) {
 	++_compteurDirection;
@@ -155,7 +191,7 @@ void EntiteMobile::definirDirection(direction_t d) {
 
 bool EntiteMobile::definirAction(action_t a) {
 	if(this->actionDisponible(a)) {
-		if(EntiteMobile::actionInterruptible(_action) || _imageActuelle == _nbImages[_action] - 1) {
+		if(this->actionInterruptible()) {
 			if(_action != a) {
 				_action = a;
 				_imageActuelle = 0;
@@ -174,7 +210,8 @@ bool EntiteMobile::deplacerPosition(Coordonnees const &delta) {
 		return false;
 	
 	Coordonnees anciennePosition = this->position();
-
+	index_t x = this->pX(), y = this->pY();
+	
 	direction_t dir = EntiteMobile::gauche;
 	if(delta.x < 0) {
 		if(delta.y < 0)
@@ -200,36 +237,41 @@ bool EntiteMobile::deplacerPosition(Coordonnees const &delta) {
 	}
 	
 	this->definirDirection(dir);
-		
-	index_t x = this->pX(), y = this->pY();
-
+	
 	size_t const n = std::floor(delta.norme());
 	if(n == 0) {
-		if(testerDeplacement(delta, x, y))
+		if(testerDeplacement(delta))
 			this->definirPosition(this->position() + delta);
 	}
 	else {
 		Coordonnees const dep = delta / n;
 		for(index_t i = 0; i < n; ++i) {
-			if(testerDeplacement(dep, x, y)) {
+			if(testerDeplacement(dep)) {
 				this->definirPosition(this->position() + dep);
 			}
 			else
 				break;
 		}
-		if(testerDeplacement(delta - n * dep, x, y))
+		if(testerDeplacement(delta - n * dep))
 			this->definirPosition(this->position() + delta - n * dep);
 	}
 	
-	return this->position() != anciennePosition;
+	bool deplace = this->position() != anciennePosition;
+	if(deplace) {
+		this->niveau()->notifierDeplacement(this, x, y, this->couche());
+		
+		return true;
+	}
+	
+	return false;
 }
 
-bool EntiteMobile::testerDeplacement(Coordonnees const &dep, index_t pX, index_t pY) {
+bool EntiteMobile::testerDeplacement(Coordonnees const &dep) {
 	if(dep.vecteurNul())
 		return true;
 	
-	index_t x1 = this->pX(this->position().x + dep.x), y1 = this->pY(this->position().y + dep.y);
-	index_t x2 = this->pX(this->position().x + dep.x + LARGEUR_CASE - 1), y2 = this->pY(this->position().y + dep.y + LARGEUR_CASE - 1);
+	index_t x1 = this->nPX(this->position().x + dep.x), y1 = this->nPY(this->position().y + dep.y);
+	index_t x2 = this->nPX(this->position().x + dep.x + LARGEUR_CASE - 1), y2 = this->nPY(this->position().y + dep.y + LARGEUR_CASE - 1);
 	
 	if(dep.x < 0)
 		x2 = x1;
@@ -263,3 +305,11 @@ bool EntiteMobile::mobile() const {
 	return true;
 }
 
+bool EntiteMobile::personnage() const {
+	switch(this->categorieMobile()) {
+		case em_ennemi:
+		case em_joueur:
+		case em_marchand:
+			return true;
+	}
+}

@@ -41,12 +41,12 @@ ObjetInventaire::~ObjetInventaire() {
 
 }
 
-void ObjetInventaire::afficher(index_t deltaX, index_t deltaY, Coordonnees const &decalage, double zoom) const {
+void ObjetInventaire::afficher(index_t deltaY, Coordonnees const &decalage, double zoom) const {
 	this->image().redimensionner(zoom);
 	this->image().afficher(this->positionAffichage() * zoom - decalage);
 }
 
-void ObjetInventaire::animer(horloge_t tempsEcoule) {
+void ObjetInventaire::animer() {
 
 }
 

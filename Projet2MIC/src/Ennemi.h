@@ -17,12 +17,12 @@ public:
 	
 	virtual ~Ennemi();
 	
-	virtual void animer(horloge_t tempsEcoule);
-	virtual void interagir(Personnage *p);
+	virtual void animer();
+	virtual bool interagir(Personnage *p);
 	
 	virtual index_t porteeVision() const;
 	virtual double vitesse() const;
-	virtual categorie_t type() const;
+	virtual categorie_t categorieMobile() const;
 
 protected:
 	static ElementNiveau::elementNiveau_t cat() { return ElementNiveau::ennemi; }
@@ -30,7 +30,9 @@ protected:
 	Ennemi(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
 	Ennemi(Ennemi const &);
 	Ennemi &operator=(Ennemi const &);
-		
+
+	virtual void jeterObjets();
+
 private:
 	Coordonnees _cible;
 	bool _recherche;

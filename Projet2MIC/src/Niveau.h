@@ -32,8 +32,24 @@ class Joueur;
 class Niveau {
 	friend class Editeur;
 public:
+	struct Entite {
+		Entite(ElementNiveau *e, bool entiteExterieure) : entite(e), exterieure(entiteExterieure) {
+			
+		}
+		
+		bool operator==(Entite const &e) const {
+			return entite == e.entite;
+		}
+		bool operator==(ElementNiveau const *e) const {
+			return entite == e;
+		}
+		
+		ElementNiveau *entite;
+		bool exterieure;
+	};
+	
 	enum couche_t {premiereCouche, cn_sol = premiereCouche, cn_sol2, cn_transitionSol, cn_objetsInventaire, cn_objet, nbCouches};
-	typedef std::list<std::pair<ElementNiveau *, bool> > elements_t;
+	typedef std::list<Entite> elements_t;
 	typedef std::pair<elements_t::iterator, elements_t::iterator> listeElements_t;
 	typedef std::pair<elements_t::const_iterator, elements_t::const_iterator> const_listeElements_t;
 	
@@ -63,13 +79,19 @@ public:
 	const_listeElements_t elements(index_t x, index_t y, couche_t couche) const;
 	bool collision(index_t x, index_t y, couche_t couche, ElementNiveau *e) const;
 	
+	ssize_t monnaie(index_t x, index_t y) const;
+	void modifierMonnaie(index_t x, index_t y, ssize_t delta);
+
 	void ajouterElement(index_t x, index_t y, couche_t couche, ElementNiveau *elem);
-	void supprimerElement(index_t x, index_t y, couche_t couche, elements_t::iterator i, bool deleteElement);
+	void supprimerElement(ElementNiveau *e, couche_t couche, bool deleteElement);
+	elements_t::iterator supprimerElement(elements_t::iterator i, couche_t couche, bool deleteElement);
+	
+	void notifierDeplacement(EntiteMobile *e, index_t ancienX, index_t ancienY, couche_t ancienneCouche);
 	
 	double zoom() const;
 	void definirZoom(double z);
 	
-	void animer(horloge_t tempsEcoule);
+	void animer();
 	void afficher();
 	
 	static char const *nomCouche(couche_t couche);
@@ -94,11 +116,24 @@ private:
 	struct Case {
 		Case();
 		
+		ssize_t _monnaie;
 		elements_t _entites[nbCouches];
 	};
 	struct CaseMobile {
+		CaseMobile(EntiteMobile *e) : _e(e), _pos(0) {
+			
+		}
+		
 		EntiteMobile *_e;
 		Case *_pos;
+		
+		
+		bool operator==(CaseMobile const &e) const {
+			return _e == e._e;
+		}
+		bool operator==(EntiteMobile const *e) const {
+			return _e == e;
+		}
 	};
 
 	Case **_elements;
@@ -109,8 +144,11 @@ private:
 	Joueur *_perso;
 	Image _objet;
 	Image _objets;
+	Image _monnaie;
 	
 	Coordonnees _persoInit;
+	
+	std::list<ElementNiveau *> _aEffacer;
 };
 
 Niveau::couche_t &operator++(Niveau::couche_t &c);

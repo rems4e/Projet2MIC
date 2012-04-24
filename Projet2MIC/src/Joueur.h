@@ -19,16 +19,18 @@ struct Joueur : public Personnage {
 public:
 	virtual ~Joueur();
 	
-	virtual void animer(horloge_t tempsEcoule);
-	virtual void interagir(Personnage *p);
+	virtual void animer();
+	virtual bool interagir(Personnage *p);
 	
-	void afficher(index_t deltaX, index_t deltaY, Coordonnees const &d, double zoom = 1.0) const;
+	void afficher(index_t deltaY, Coordonnees const &d, double zoom = 1.0) const;
 	
 	virtual bool joueur() const;
-	virtual categorie_t type() const;
+	virtual categorie_t categorieMobile() const;
 	
 	bool inventaireAffiche() const;
 	void definirInventaireAffiche(bool af);
+	
+	void renaitre();
 			
 protected:
 	static ElementNiveau::elementNiveau_t cat() { return ElementNiveau::ennemi; }
@@ -37,6 +39,10 @@ protected:
 	Joueur(Joueur const &);
 	Joueur &operator=(Joueur const &);
 	
+	virtual void mourir();
+	
+	virtual void jeterObjets();
+
 private:
 	bool _inventaireAffiche;
 };

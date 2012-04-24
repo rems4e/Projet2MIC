@@ -40,13 +40,13 @@ EntiteStatiqueAnimee::~EntiteStatiqueAnimee() {
 	delete[] _cadres;
 }
 
-void EntiteStatiqueAnimee::afficher(index_t deltaX, index_t deltaY, Coordonnees const &decalage, double zoom) const {
+void EntiteStatiqueAnimee::afficher(index_t deltaY, Coordonnees const &decalage, double zoom) const {
 	this->image().redimensionner(zoom);
 	Rectangle const &cadre = this->cadre();
 	this->image().afficher(this->positionAffichage() * zoom - decalage, cadre);
 }
 
-void EntiteStatiqueAnimee::animer(horloge_t tempsEcoule) {
+void EntiteStatiqueAnimee::animer() {
 	if(horloge() - _tempsPrecedent >= _tempsAffichage) {
 		_tempsPrecedent = horloge();
 		_imageActuelle = (_imageActuelle + 1) % _nbImages;
@@ -56,4 +56,3 @@ void EntiteStatiqueAnimee::animer(horloge_t tempsEcoule) {
 Rectangle const &EntiteStatiqueAnimee::cadre() const {
 	return _cadres[_imageActuelle];
 }
-
