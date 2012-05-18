@@ -10,10 +10,10 @@
 #define Projet2MIC_Shader_h
 
 #include "Constantes.h"
-#include "Session.h"
 #include <exception>
 #include <map>
 #include <string>
+#include "Geometrie.h"
 
 #ifdef __MACOSX__
 #include <OpenGL/gl.h>
@@ -24,12 +24,19 @@
 #include <GL/glext.h>
 #endif
 
+namespace Session {
+	void nettoyer();
+	void initialiser();
+}
+
 class Shader {
 	friend void Session::nettoyer();
 	friend void Session::initialiser();
 public:
 	static char const * const rayonFlou;
 	static char const * const dim;
+	static char const * const pos;
+	static char const * const temps;
 		
 	class Exc_CreationImpossible : public std::exception {
 	public:

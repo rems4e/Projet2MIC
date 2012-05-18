@@ -118,6 +118,10 @@ void Ecran::modifierResolution(unsigned int largeur, unsigned int hauteur, unsig
 	glClearColor(0, 0, 0, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 	SDL_GL_SwapBuffers();
+
+	glDisable(GL_CULL_FACE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
 	if(resultat == 0) {
 		std::cerr << "Impossible de définir l'écran à une résolution de " << largeur << "*" << hauteur << "*" << profondeur << " (plein écran : " << pleinEcran << "). Erreur : " << SDL_GetError() << std::endl;
@@ -142,14 +146,6 @@ void Ecran::modifierResolution(unsigned int largeur, unsigned int hauteur, unsig
 	Ecran::_attributs->_vide = Image(imageVide, 1, 1, 4);
 	
 	Ecran::definirPointeur(0);
-	
-	/*glEnableClientState(GL_VERTEX_ARRAY);
-	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-	glEnableClientState(GL_COLOR_ARRAY);*/
-		
-	glDisable(GL_CULL_FACE);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 
@@ -221,6 +217,13 @@ void Ecran::afficherLigne(Coordonnees const &depart, Coordonnees const &arrivee,
 
 void Ecran::afficherQuadrilatere(Coordonnees const &p1, Coordonnees const &p2, Coordonnees const &p3, Coordonnees const &p4, Couleur const &c) {
 	Shader::shaderActuel().definirParametre(Shader::dim, p2.x - p1.x, p3.y - p2.y);
+
+	Coordonnees pos = Coordonnees(std::min(p1.x, p2.x), std::min(p1.y, p2.y));
+	pos.x = std::min(p3.x, pos.x);
+	pos.x = std::min(p4.x, pos.x);
+	pos.y = std::min(p3.y, pos.y);
+	pos.y = std::min(p4.y, pos.y);
+	Shader::shaderActuel().definirParametre(Shader::pos, pos.x, pos.y);
 	
 	ImagesBase::changerTexture(Ecran::_attributs->_vide.tex());
 	
@@ -235,6 +238,11 @@ void Ecran::afficherQuadrilatere(Coordonnees const &p1, Coordonnees const &p2, C
 
 void Ecran::afficherTriangle(Coordonnees const &p1, Coordonnees const &p2, Coordonnees const &p3, Couleur const &c) {
 	Shader::shaderActuel().definirParametre(Shader::dim, 1, 1);
+	
+	Coordonnees pos = Coordonnees(std::min(p1.x, p2.x), std::min(p1.y, p2.y));
+	pos.x = std::min(p3.x, pos.x);
+	pos.y = std::min(p3.y, pos.y);
+	Shader::shaderActuel().definirParametre(Shader::pos, pos.x, pos.y);
 	
 	ImagesBase::changerTexture(Ecran::_attributs->_vide.tex());
 	

@@ -13,6 +13,7 @@
 #include <SDL/SDL_image.h>
 #include <cmath>
 #include <cstring>
+#include <vector>
 
 #define TAMPON_SOMMETS 200000
 
@@ -109,10 +110,7 @@ void ImagesBase::ajouterSommet(Coordonnees const &pos, Coordonnees const &posTex
 
 void ImagesBase::changerTexture(GLint tex) {
 	if(tex != _tex) {
-		if(_nbSommets) {
-			//glBindBuffer(GL_ARRAY_BUFFER, vertBuf);
-			//glBufferSubData(GL_ARRAY_BUFFER, 0, _nbSommets * 2 * sizeof(_vertCoords[0]), &_vertCoords[0]);
-			
+		if(_nbSommets) {			
 			glVertexAttribPointer(Shader::shaderActuel().vertCoord(), 2, GL_FLOAT, GL_FALSE, 0, &_vertCoords[0]);
 			glVertexAttribPointer(Shader::shaderActuel().texCoord(), 2, GL_FLOAT, GL_FALSE, 0, &_texCoords[0]);
 			glVertexAttribPointer(Shader::shaderActuel().coul(), 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, &_couleurs[0]);
@@ -121,11 +119,8 @@ void ImagesBase::changerTexture(GLint tex) {
 			glEnableVertexAttribArray(Shader::shaderActuel().texCoord());
 			glEnableVertexAttribArray(Shader::shaderActuel().coul());
 			
-			/*glTexCoordPointer(2, GL_FLOAT, 0, &_texCoords[0]);
-			glVertexPointer(2, GL_FLOAT, 0, &_vertCoords[0]);
-			glColorPointer(4, GL_UNSIGNED_BYTE, 0, &_couleurs[0]);*/
-			
 			glDrawArrays(GL_TRIANGLES, 0, _nbSommets);
+			
 			glDisableVertexAttribArray(Shader::shaderActuel().vertCoord());
 			glDisableVertexAttribArray(Shader::shaderActuel().texCoord());
 			glDisableVertexAttribArray(Shader::shaderActuel().coul());
@@ -237,8 +232,8 @@ ImageBase *ImageBase::charger(unsigned char *img, int largeur, int hauteur, int 
 	glBindTexture(GL_TEXTURE_2D , _tex);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glPixelStorei(GL_UNPACK_ROW_LENGTH, largeur);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, largeur, hauteur, 0, GL_RGBA, GL_UNSIGNED_BYTE, img);
 	
@@ -355,6 +350,7 @@ void Image::afficher(Coordonnees const &position, Rectangle const &filtre) const
 	if(!vert.superposition(Ecran::ecran()))
 		return;
 	
+	Shader::shaderActuel().definirParametre(Shader::pos, position.x, position.y);
 	Shader::shaderActuel().definirParametre(Shader::dim, vert.largeur, vert.hauteur);
 		
 	ImagesBase::changerTexture(_base->_tex);

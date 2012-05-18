@@ -56,6 +56,24 @@ bool Personnage::Competences::operator>=(Competences const &c) const {
 	return !(*this < c);
 }
 
+TiXmlElement *Personnage::Competences::sauvegarde() const {
+	TiXmlElement *el = new TiXmlElement("Competences");
+	for(competences_t c = premiereCompetence; c != nbCompetences; ++c) {
+		std::string val = "c" + nombreVersTexte(c);
+		el->SetAttribute(val, (*this)[c]);
+	}
+	
+	return el;
+}
+
+void Personnage::Competences::restaurer(TiXmlElement *e) {
+	TiXmlElement *el = e->FirstChildElement("Competences");
+	for(competences_t c = premiereCompetence; c != nbCompetences; ++c) {
+		std::string val = "c" + nombreVersTexte(c);
+		el->Attribute(val, &(*this)[c]);
+	}
+}
+
 Personnage::competences_t &operator++(Personnage::competences_t &p) {
 	p = static_cast<Personnage::competences_t>(static_cast<int>(p) + 1);
 	return p;
@@ -200,6 +218,10 @@ bool Personnage::peutEquiperObjet(ObjetInventaire *objet, Personnage::positionTe
 
 Personnage::Competences const &Personnage::competences() const {
 	return _competences;
+}
+
+void Personnage::definirCompetences(Competences const &c) {
+	_competences = c;
 }
 
 void Personnage::interagir() {

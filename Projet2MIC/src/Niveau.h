@@ -15,6 +15,7 @@
 #include "horloge.h"
 #include <exception>
 #include "Image.h"
+#include "Shader.h"
 
 class ElementNiveau;
 class EntiteStatique;
@@ -28,6 +29,10 @@ class Joueur;
 #define NB_VALEURS_PROBA_ENTITES 64 * 64
 #define BASE_VALEURS_PROBA_ENTITES 64
 #define CHIFFRES_VALEURS_PROBA_ENTITES 2
+
+#define TRANSITION_GAUCHE 0
+#define TRANSITION_BAS 1
+#define TRANSITION_ANGLE 2
 
 class Niveau {
 	friend class Editeur;
@@ -48,7 +53,7 @@ public:
 		bool exterieure;
 	};
 	
-	enum couche_t {premiereCouche, cn_sol = premiereCouche, cn_sol2, cn_transitionSol, cn_objetsInventaire, cn_objet, nbCouches};
+	enum couche_t {premiereCouche, cn_sol = premiereCouche, cn_sol2, cn_objetsInventaire, cn_objet, nbCouches};
 	typedef std::list<Entite> elements_t;
 	typedef std::pair<elements_t::iterator, elements_t::iterator> listeElements_t;
 	typedef std::pair<elements_t::const_iterator, elements_t::const_iterator> const_listeElements_t;
@@ -65,7 +70,6 @@ public:
 	static ElementNiveau * const aucunElement;
 
 	Niveau(Joueur *j, std::string const &nomFichier);
-	Niveau(Joueur *j);
 	virtual ~Niveau();
 	
 	Joueur *joueur();
@@ -102,22 +106,37 @@ protected:
 	
 	void afficherObjetsInventaire(Coordonnees const &cam);
 	void afficherCouche(couche_t couche, Coordonnees const &cam);
+	void afficherTransitionsSol(Coordonnees const &cam);
 	void afficherBordure(int cote, Coordonnees const &cam);
 	
 	void definirContenuCase(index_t x, index_t y, couche_t couche, ElementNiveau *e);
 	
 	void allocationCases();
 	void remplissageBordures();
+	void remplissageTransitionsSol();
+	void transitionSol(index_t x, index_t y, int position);
+	
+	ssize_t longueurBordure(int cote);
 	static ssize_t epaisseurBordure();
 	static bool collision(couche_t couche);
 	void definirJoueur(Joueur *j);
 
 private:
+	struct TransitionSol {
+		TransitionSol() : _element(0), _dim(1), _exterieure(true) { 
+			
+		}
+		
+		ElementNiveau *_element;
+		bool _exterieure;
+		size_t _dim;
+	};
 	struct Case {
 		Case();
 		
 		ssize_t _monnaie;
 		elements_t _entites[nbCouches];
+		TransitionSol _transitions[3];
 	};
 	struct CaseMobile {
 		CaseMobile(EntiteMobile *e) : _e(e), _pos(0) {
@@ -137,7 +156,11 @@ private:
 	};
 
 	Case **_elements;
-	Case **_bordures[4];
+	ElementNiveau *_solBordures;
+	ElementNiveau **_bordures[4];	
+	TransitionSol *_transitionsBordures[2];
+	TransitionSol *_anglesTransitionsBordures[2];
+
 	size_t _dimX, _dimY;
 	double _zoom;
 	std::list<CaseMobile> _entitesMobiles;
@@ -147,6 +170,8 @@ private:
 	Image _monnaie;
 	
 	Coordonnees _persoInit;
+	Shader _pluie;
+	Shader _transitionSol;
 	
 	std::list<ElementNiveau *> _aEffacer;
 };

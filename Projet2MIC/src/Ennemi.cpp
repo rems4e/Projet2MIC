@@ -53,7 +53,7 @@ void Ennemi::animer() {
 			}
 		}
 		if(suivre && this->definirAction(EntiteMobile::a_deplacer) && this->deplacerPosition(dep)) {
-
+			
 		}
 		else {
 			this->definirAction(EntiteMobile::a_immobile);

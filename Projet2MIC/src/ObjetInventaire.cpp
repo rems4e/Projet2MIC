@@ -62,6 +62,10 @@ Personnage::Competences const &ObjetInventaire::competencesRequises() const {
 	return _competencesRequises;
 }
 
+void ObjetInventaire::definirCompetencesRequises(Personnage::Competences const &c) {
+	_competencesRequises = c;
+}
+
 ObjetInventaire::categorie_t ObjetInventaire::categorieObjet() const {
 	return _categorie;
 }

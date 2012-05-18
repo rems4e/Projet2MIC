@@ -40,10 +40,9 @@ EntiteStatiqueAnimee::~EntiteStatiqueAnimee() {
 	delete[] _cadres;
 }
 
-void EntiteStatiqueAnimee::afficher(index_t deltaY, Coordonnees const &decalage, double zoom) const {
-	this->image().redimensionner(zoom);
+void EntiteStatiqueAnimee::afficher(index_t deltaY, Coordonnees const &decalage) const {
 	Rectangle const &cadre = this->cadre();
-	this->image().afficher(this->positionAffichage() * zoom - decalage, cadre);
+	this->image().afficher(this->positionAffichage() - decalage, cadre);
 }
 
 void EntiteStatiqueAnimee::animer() {

@@ -10,6 +10,7 @@
 #define Projet2MIC_Parametres_h
 
 #include "Session.h"
+#include "Shader.h"
 
 class Image;
 
@@ -19,7 +20,7 @@ namespace Parametres {
 	float volumeMusique();
 	float volumeEffets();
 	
-	void editerParametres(Image const &fond);
+	void editerParametres(Image const &fond, Shader const &s = Shader::flou(1.0));
 }
 
 inline Parametres::action_t &operator++(Parametres::action_t &e) { return e = static_cast<Parametres::action_t>(static_cast<int>(e) + 1); }

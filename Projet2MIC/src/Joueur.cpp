@@ -11,6 +11,7 @@
 #include "Partie.h"
 #include "Marchand.h"
 #include "UtilitaireNiveau.h"
+#include "tinyxml.h"
 
 Joueur::Joueur(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : Personnage(decoupagePerspective, n, index, cat, new InventaireJoueur(*this)), _inventaireAffiche(false) {
 	this->inventaire()->modifierMonnaie(123);
@@ -20,7 +21,7 @@ Joueur::~Joueur() {
 	
 }
 
-void Joueur::afficher(index_t deltaY, Coordonnees const &decalage, double zoom) const {
+void Joueur::afficher(index_t deltaY, Coordonnees const &decalage) const {
 	this->Personnage::afficher(deltaY, decalage);
 	//Ecran::afficherRectangle(Rectangle(referentielNiveauVersEcran(Coordonnees(this->pX(), this->pY()) * LARGEUR_CASE) - decalage - Coordonnees(5, 5), Coordonnees(10, 10)), Couleur(255, 255, 0));
 }
@@ -124,5 +125,60 @@ void Joueur::definirInventaireAffiche(bool af) {
 
 void Joueur::renaitre() {
 	this->Personnage::renaitre();
+}
+
+TiXmlElement *Joueur::sauvegarde() const {
+	TiXmlElement *el = new TiXmlElement("Joueur");
+	
+	el->SetAttribute("vie", (int)this->vieActuelle());
+	
+	TiXmlElement *inv = static_cast<InventaireJoueur const *>(this->inventaire())->sauvegarde();
+	el->InsertEndChild(*inv);
+	delete inv;
+	
+	TiXmlElement *comp = this->competences().sauvegarde();
+	el->InsertEndChild(*comp);
+	delete comp;
+	
+	for(positionTenue_t p = premierePositionTenue; p != nbPositionsTenue; ++p) {
+		TiXmlElement *objet = new TiXmlElement("Tenue" + nombreVersTexte(p));
+		if(this->tenue(p)) {
+			TiXmlElement *comp = this->tenue(p)->competencesRequises().sauvegarde();
+			objet->InsertEndChild(*comp);
+			delete comp;
+			objet->SetAttribute("index", this->tenue(p)->index());
+		}
+		el->InsertEndChild(*objet);
+		delete objet;
+	}
+	
+	return el;
+}
+
+void Joueur::restaurer(TiXmlElement *sauvegarde) {
+	TiXmlElement *el = sauvegarde->FirstChildElement("Joueur");
+	static_cast<InventaireJoueur *>(this->inventaire())->restaurer(el);
+	
+	int vie;
+	el->Attribute("vie", &vie);
+	this->modifierVieActuelle(-this->vieActuelle() + vie);
+	
+	Competences comp;
+	comp.restaurer(el);
+	this->definirCompetences(comp);
+	
+	for(positionTenue_t p = premierePositionTenue; p != nbPositionsTenue; ++p) {
+		TiXmlElement *objet = el->FirstChildElement("Tenue" + nombreVersTexte(p));
+		if(objet && objet->Attribute("index")) {
+			index_t i;
+			objet->Attribute("index", &i);
+			ObjetInventaire *obj = ElementNiveau::elementNiveau<ObjetInventaire>(false, this->niveau(), i);
+			Personnage::Competences c;
+			c.restaurer(objet);
+			
+			obj->definirCompetencesRequises(c);
+			this->definirTenue(p, obj);
+		}
+	}
 }
 

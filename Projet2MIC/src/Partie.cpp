@@ -18,73 +18,187 @@
 #include "Menu.h"
 #include "Marchand.h"
 #include <cmath>
+#include "tinyxml.h"
 
 Partie *Partie::_partie = 0;
 
-Partie *Partie::creerPartie() throw(Partie::Exc_PartieDejaCreee) {
+Partie *Partie::creerPartie(TiXmlElement *sauve) throw(Partie::Exc_PartieDejaCreee) {
 	if(_partie != 0) {
 		delete _partie;
 		throw Exc_PartieDejaCreee();
 	}
 	
-	_partie = new Partie;
+	if(sauve)
+		_partie = new Partie(sauve);
+	else
+		_partie = new Partie;
 	
 	return Partie::partie();
 }
-
-/*Partie *Partie::creerPartie(std::string const &sauvegarde) throw(Partie::Exc_PartieDejaCreee) {
-	if(_partie != 0) {
-		delete _partie;
-		throw Exc_PartieDejaCreee();
-	}
-	
-	_partie = new Partie(sauvegarde);
-
-	return Partie::partie();
-}
-
-Partie *Partie::creerPartie(int numeroSecteur) throw(Partie::Exc_PartieDejaCreee) {
-	if(_partie != 0) {
-		delete _partie;
-		throw Exc_PartieDejaCreee();
-	}
-
-	_partie = new Partie(numeroSecteur);
-	
-	return Partie::partie();
-}*/
 
 Partie *Partie::partie() {
 	return _partie;
 }
 
-Partie::Partie() : _niveau(0), _joueur(0), _tableauDeBord(0), _marchand(0) {
+Partie::Partie() : _niveau(0), _joueur(0), _tableauDeBord(0), _marchand(0), _numeroNiveau(2) {
+	_joueur = ElementNiveau::elementNiveau<Joueur>(false, 0, 0);
+	_niveau = new Niveau(_joueur, "niveau" + nombreVersTexte(_numeroNiveau) + ".xml");
 	
+	_joueur->definirNiveau(_niveau);
+	_tableauDeBord = new TableauDeBord(_joueur);
+}
+
+Partie::Partie(TiXmlElement *sauve) : _niveau(0), _joueur(0), _tableauDeBord(0), _marchand(0), _numeroNiveau(1) {
+	sauve->FirstChildElement("Niveau")->Attribute("numero", &_numeroNiveau);
+	
+	_joueur = ElementNiveau::elementNiveau<Joueur>(false, 0, 0);
+	
+	_niveau = new Niveau(_joueur, "niveau" + nombreVersTexte(_numeroNiveau) + ".xml");
+	
+	_joueur->definirNiveau(_niveau);
+	_joueur->restaurer(sauve);
+
+	_tableauDeBord = new TableauDeBord(_joueur);
 }
 
 Partie::~Partie() {
-	if(_partie != this)
-		throw Exc_PartieDejaCreee();
-	_partie = 0;
+	delete _niveau;
+	delete _tableauDeBord;
+	delete _joueur;
+	
+	if(_partie == this)
+		_partie = 0;
 }
 
-void Partie::commencer() {
-	_joueur = ElementNiveau::elementNiveau<Joueur>(false, 0, 0);
-	_niveau = new Niveau(_joueur, "niveau1.xml");
-
-	_joueur->definirNiveau(_niveau);
-	_tableauDeBord = new TableauDeBord(_joueur);
+void Partie::sauvegarder(Image *i) {
+	TiXmlDocument sauves(Session::cheminRessources() + "parties.xml");
+	std::vector<Unichar> elements;
+	
+	TiXmlElement *slots[4] = {0, 0, 0, 0};
+	if(!sauves.LoadFile()) {
+		char const *doc = 
+		"<?xml version=\"1.0\" standalone='no' >\n"
+		"<Slots>\n"
+		"</Slots>";
 		
+		sauves.Parse(doc);
+	}
+	
+	TiXmlElement *pp = sauves.FirstChildElement("Slots");
+	for(index_t pos = 1; pos <= 4; ++pos) {
+		slots[pos - 1] = pp->FirstChildElement("Slot" + nombreVersTexte(pos));
+		if(slots[pos - 1])
+			elements.push_back("Slot " + nombreVersTexte(pos) + " (occupé)");
+		else
+			elements.push_back("Slot " + nombreVersTexte(pos) + " (vide)");
+	}
+	
+	index_t slot = 0;
+	bool choix;
+	do {
+		choix = true;
+		Menu m("Choisissez une sauvegarde :", elements);
+		
+		slot = m.afficher(0, *i);
+		
+		if(slot == 4)
+			return;
+		
+		if(slots[slot]) {
+			std::vector<Unichar> elements;
+			elements.push_back("Remplacer");
+			Menu m("Remplacer la sauvegarde ?", elements, "Annuler");
+			
+			index_t val = m.afficher(0, *i);
+			if(val == 1) {
+				choix = false;
+			}
+			else
+				pp->RemoveChild(slots[slot]);
+		}
+	} while(!choix);
+	
+	TiXmlElement s("Slot" + nombreVersTexte(slot + 1));
+	pp->InsertEndChild(s);
+	slots[slot] = pp->FirstChildElement("Slot" + nombreVersTexte(slot + 1));
+	
+	TiXmlElement *sauve = this->sauvegarde();
+	slots[slot]->InsertEndChild(*sauve);
+	delete sauve;
+	
+	sauves.SaveFile();
+}
+
+TiXmlElement *Partie::sauvegarde() {
+	TiXmlElement *sauve = new TiXmlElement("Partie");
+	
+	TiXmlElement niveau("Niveau");
+	niveau.SetAttribute("numero", _numeroNiveau);
+	sauve->InsertEndChild(niveau);
+	
+	TiXmlElement *perso = this->joueur()->sauvegarde();
+	sauve->InsertEndChild(*perso);
+	delete perso;
+	
+	return sauve;
+}
+
+TiXmlElement *Partie::charger(Image *fond, Shader const &s) {
+	TiXmlDocument sauves(Session::cheminRessources() + "parties.xml");
+	std::vector<Unichar> elements;
+	
+	TiXmlElement *slots[4] = {0, 0, 0, 0};
+	if(!sauves.LoadFile()) {
+		char const *doc = 
+		"<?xml version=\"1.0\" standalone='no' >\n"
+		"<Slots>\n"
+		"</Slots>";
+		
+		sauves.Parse(doc);
+	}
+	
+	TiXmlElement *pp = sauves.FirstChildElement("Slots");
+	for(index_t pos = 1; pos <= 4; ++pos) {
+		slots[pos - 1] = pp->FirstChildElement("Slot" + nombreVersTexte(pos));
+		if(slots[pos - 1])
+			elements.push_back("Slot " + nombreVersTexte(pos));
+	}
+	
+	if(elements.empty())
+		return 0;
+	
+	index_t slot = 0;
+	Menu m("Choisissez une sauvegarde :", elements);
+	
+	slot = m.afficher(0, *fond, s);
+	
+	if(slot == elements.size())
+		return 0;
+	while(!slots[slot]) {
+		++slot;
+		std::cout << slot << std::endl;
+	}
+	
+	return static_cast<TiXmlElement* >(slots[slot]->FirstChildElement("Partie")->Clone());
+}
+
+#define REGLAGES 0
+#define SAUVE 1
+#define CHARG 2
+#define QUIT 3
+
+TiXmlElement *Partie::commencer() {	
 	Menu *menu = 0;
 	{
 		std::vector<Unichar> elem;
 		elem.push_back("Réglages");
-		elem.push_back("Recharger le niveau");
-		elem.push_back("Ouvrir l'éditeur");
+		elem.push_back("Sauvegarder la partie");
+		elem.push_back("Charger une partie");
 		elem.push_back("Quitter");
 		
 		menu = new Menu("Menu principal", elem);
 	}
+	TiXmlElement *charge = 0;
 	
 	bool continuer = true;
 	while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, continuer)) {
@@ -114,24 +228,33 @@ void Partie::commencer() {
 			index_t selection = 0;
 			do {
 				selection = menu->afficher(0, *apercu);
-				if(selection == 0) {
+				if(selection == REGLAGES) {
 					Parametres::editerParametres(*apercu);
 				}
-				else if(selection == 1) {
+				else if(selection == SAUVE) {
+					this->sauvegarder(apercu);
+				}
+				else if(selection == CHARG) {
+					charge = this->charger(apercu);
+					if(charge) {
+						continuer = false;
+					}
+				}
+				else if(selection == -1) {
 					this->reinitialiser();
 				}
-				else if(selection == 2) {
-					Editeur *e = Editeur::editeur();
-					
-					e->editerNiveau("niveau1.xml");
-					
-					delete Editeur::editeur();
-				}
-				else if(selection == 3) {
+				else if(selection == QUIT) {
 					continuer = false;
 				}
 			} while(selection == 0);
 			delete apercu;
+		}
+		else if(Session::evenement(Session::T_e)) {
+			Editeur *e = Editeur::editeur();
+			e->editerNiveau("niveau" + nombreVersTexte(_numeroNiveau) + ".xml");
+			delete Editeur::editeur();
+			
+			this->reinitialiser();
 		}
 		if(_joueur->inventaireAffiche()) {
 			_joueur->inventaire()->gestionEvenements();
@@ -140,46 +263,31 @@ void Partie::commencer() {
 		if(Session::evenement(Session::QUITTER)) {
 			continuer = false;
 		}
-
+		
 		Ecran::maj();
 	}
-	
-	delete _niveau;
-	delete _tableauDeBord;
-	delete _joueur;
+
 	delete menu;
-	_niveau = 0;
-	_joueur = 0;
-	_tableauDeBord = 0;
+	
+	return charge;
 }
 
 void Partie::afficher() {
-/*	static Shader *s = 0;
-	static horloge_t temps;
-	if(s == 0) {
-		temps = horloge();
-		s = new Shader(Session::cheminRessources() + "aucun.vert", Session::cheminRessources() + "test.frag");
-	}*/
-	
 	_niveau->afficher();
-	/*s->activer();
-	s->definirParametre("_temps", horloge() - temps);*/
-	Ecran::afficherRectangle(Ecran::ecran(), Couleur(0, 0, 0, 1.0));
-	//s->desactiver();
 	
 	if(_joueur->inventaireAffiche()) {
 		_joueur->inventaire()->afficher();
 	}
-
+	
 	if(!_joueur->mort())
 		_tableauDeBord->afficher();
 }
 
 void Partie::reinitialiser() {
 	_joueur->renaitre();
-
+	
 	delete _niveau;
-	_niveau = new Niveau(_joueur, "niveau1.xml");
+	_niveau = new Niveau(_joueur, "niveau" + nombreVersTexte(_numeroNiveau) + ".xml");
 	_joueur->definirNiveau(_niveau);
 	_joueur->definirInventaireAffiche(false);
 	_joueur->inventaire()->vider();
@@ -240,14 +348,12 @@ void Partie::mortJoueur() {
 	bool continuer = true;
 	Image *apercu = Ecran::apercu();
 	float const dureeTransition = 3.0f;
-	char const * const t = "temps";
 	char const * const angle = "angle";
 	char const * const position = "position";
 	Shader sMort(Session::cheminRessources() + "aucun.vert", Session::cheminRessources() + "mort.frag");
 	sMort.definirParametre("duree", dureeTransition);
 	
 	Shader sTexte(Session::cheminRessources() + "rotation.vert", Session::cheminRessources() + "aucun.frag");
-	sTexte.definirParametre("axe", 1.0, 0, 0.0);
 	Texte titre("T'es mort !", POLICE_DECO, 42, Couleur::blanc);
 	Texte sousTitre("(Esc pour recommencer)", POLICE_DECO, 26, Couleur::blanc);
 	
@@ -262,22 +368,21 @@ void Partie::mortJoueur() {
 		apercu->afficher(Coordonnees::zero);
 		
 		sMort.activer();
-		sMort.definirParametre(t, horloge() - tempsInitial);
+		sMort.definirParametre(Shader::temps, horloge() - tempsInitial);
 		Ecran::afficherRectangle(Ecran::ecran(), Couleur::blanc);
 		
 		Shader::aucun().activer();
 		
+		Coordonnees pTitre = Ecran::dimensions() / 2 - titre.dimensions() / 2 - Coordonnees(0, 80);
+		titre.afficher(pTitre);
+		
 		sTexte.activer();
 		sTexte.definirParametre(angle, std::fmod(horloge() - tempsInitial, float(M_PI * 2)));
-		Coordonnees pTitre = Ecran::dimensions() / 2 - titre.dimensions() / 2 - Coordonnees(0, 80);
-		sTexte.definirParametre(position, pTitre.x, pTitre.y, 0);
-		titre.afficher(pTitre);
-
 		pTitre.x = Ecran::dimensions().x / 2 - sousTitre.dimensions().x / 2;
+		sTexte.definirParametre("axe", 0.0, 1.0, 0.0);
+		sTexte.definirParametre(position, (Ecran::largeur() / 2 - (pTitre.x + sousTitre.dimensions().x / 2)) / Ecran::largeur(), ((pTitre.y + sousTitre.dimensions().y / 2) - Ecran::hauteur() / 2) / Ecran::hauteur(), 0);
 		sousTitre.afficher(pTitre + Coordonnees(0, titre.dimensions().y + 40));
 		Shader::desactiver();
-		
-		
 		
 		Ecran::finaliser();
 		
@@ -289,7 +394,7 @@ void Partie::mortJoueur() {
 	}
 	
 	Shader::desactiver();
-
+	
 	delete apercu;
 	this->reinitialiser();
 }

@@ -12,12 +12,14 @@
 #include <string>
 #include "Geometrie.h"
 #include <exception>
-
+#include "Shader.h"
 
 class Niveau;
 class Joueur;
 class TableauDeBord;
 class Marchand;
+class TiXmlElement;
+class Image;
 
 class Partie {
 public:
@@ -28,12 +30,11 @@ public:
 		virtual const char* what() const throw() { return "Partie déjà créée !"; }
 	};
 	
-	static Partie *creerPartie() throw(Exc_PartieDejaCreee);
-	static Partie *creerPartie(std::string const &sauvegarde) throw(Exc_PartieDejaCreee);
-	static Partie *creerPartie(int numeroSecteur) throw(Exc_PartieDejaCreee);
+	static TiXmlElement *charger(Image *fond, Shader const &s = Shader::aucun());
+	static Partie *creerPartie(TiXmlElement *sauve = 0) throw(Exc_PartieDejaCreee);
 	virtual ~Partie();
 	
-	void commencer();
+	TiXmlElement *commencer();
 	void reinitialiser();
 	
 	Joueur *joueur();
@@ -51,13 +52,17 @@ private:
 	void mortJoueur();
 	
 	Partie();
-	Partie(std::string const &sauvegarde);
-	Partie(int numeroSecteur);
+	Partie(TiXmlElement *sauve);
+	
+	void sauvegarder(Image *fond);
+	TiXmlElement *sauvegarde();
 
 	Niveau *_niveau;
 	Joueur *_joueur;
 	TableauDeBord *_tableauDeBord;
 	Marchand *_marchand;
+	
+	int _numeroNiveau;
 	
 	Partie(Partie const &);
 	Partie &operator=(Partie const &);

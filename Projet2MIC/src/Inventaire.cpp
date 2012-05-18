@@ -16,6 +16,7 @@
 #include "Marchand.h"
 #include "Partie.h"
 #include "Niveau.h"
+#include "tinyxml.h"
 
 Inventaire::Inventaire(Personnage &perso) : _perso(perso), _monnaie(0) {
 	
@@ -627,3 +628,46 @@ void InventaireJoueur::definirObjetTransfert(ObjetInventaire *o) {
 		Ecran::definirPointeur(&_objetTransfert->image());
 	}
 }
+
+TiXmlElement *InventaireJoueur::sauvegarde() const {
+	TiXmlElement *e = new TiXmlElement("Inventaire");
+	
+	e->SetAttribute("monnaie", this->monnaie());
+	for(const_iterator i = this->debut(); i != this->fin(); ++i) {
+		TiXmlElement *objet = new TiXmlElement("Objet");
+		if(*i) {
+			TiXmlElement *comp = (*i)->competencesRequises().sauvegarde();
+			objet->InsertEndChild(*comp);
+			delete comp;
+			objet->SetAttribute("index", (*i)->index());
+		}
+		e->InsertEndChild(*objet);
+		delete objet;
+	}
+	
+	return e;
+}
+
+void InventaireJoueur::restaurer(TiXmlElement *sauvegarde) {
+	TiXmlElement *e = sauvegarde->FirstChildElement("Inventaire");
+	
+	ssize_t monnaie;
+	e->Attribute("monnaie", &monnaie);
+	this->modifierMonnaie(monnaie - this->monnaie());
+	
+	index_t pos = 0;
+	for(TiXmlElement *o = e->FirstChildElement(); o; o = o->NextSiblingElement(), ++pos) {
+		if(o->Attribute("index")) {
+			index_t i;
+			o->Attribute("index", &i);
+			ObjetInventaire *obj = ElementNiveau::elementNiveau<ObjetInventaire>(false, this->personnage().niveau(), i);
+			Personnage::Competences c;
+			c.restaurer(o);
+
+			obj->definirCompetencesRequises(c);
+			this->ajouterObjetEnPosition(obj, pos);
+		}
+	}
+
+}
+

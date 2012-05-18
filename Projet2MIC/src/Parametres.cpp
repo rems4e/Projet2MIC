@@ -15,20 +15,22 @@
 #include <algorithm>
 #include <numeric>
 #include "Shader.h"
+#include "tinyxml.h"
 
 namespace Parametres {
 	void charger();
 	void enregistrer();
 	void nettoyer();
 	
-	void video(Image const &fond);
-	void audio(Image const &fond);
-	void controles(Image const &fond);
+	void video(Image const &fond, Shader const &s);
+	void audio(Image const &fond, Shader const &s);
+	void controles(Image const &fond, Shader const &s);
 	void definirEvenementAction(action_t action, Session::evenement_t e);
 	void definirVolumeMusique(float v);
 	void definirVolumeEffets(float v);
 	
 	char const *transcriptionAction(action_t);
+	char const *nomBalise(action_t);
 	
 	char const *_shadVolume = "_volume";
 	char const *_shadCadre = "_cadre";
@@ -121,18 +123,75 @@ void Parametres::charger() {
 	_evenementsAction[sort3] = Session::T_e;
 	_evenementsAction[sort4] = Session::T_r;
 	
+	for(action_t a = premiereAction; a != nbActions; ++a) {
+		if(_evenementsAction[a] == Session::aucunEvenement)
+			std::cout << "Aucune valeur par défaut pour l'événement " << + transcriptionAction(a) << std::endl;
+	}
+	
 	_volumeEffets = 1.0f;
 	_volumeMusique = 1.0f;
 	
-	// ZQSD
-	/*_evenementsAction[depBas] = Session::T_s;
-	_evenementsAction[depDroite] = Session::T_d;
-	_evenementsAction[depGauche] = Session::T_q;
-	_evenementsAction[depHaut] = Session::T_z;*/
+	TiXmlDocument document(Session::cheminRessources() + "config.xml");
+	if(document.LoadFile()) {
+		TiXmlElement *config = document.FirstChildElement("Config");
+		if(config) {
+			TiXmlElement *clavier = config->FirstChildElement("Clavier");
+			for(action_t a = premiereAction; clavier && a != nbActions; ++a) {
+				TiXmlElement *action = clavier->FirstChildElement(Parametres::nomBalise(a));
+				if(!action)
+					continue;
+				char const *evenement = action->Attribute("valeur");
+				for(Session::evenement_t e = Session::PREMIER_EVENEMENT_CLAVIER; e <= Session::DERNIER_EVENEMENT_CLAVIER; ++e) {
+					std::string ee = Session::transcriptionEvenement(e);
+					if(ee == evenement) {
+						_evenementsAction[a] = e;
+						break;
+					}
+				}
+			}
+			
+			if(TiXmlElement *audio = config->FirstChildElement("Audio")) {
+				double val;
+				if(audio->Attribute("volumeEffets")) {
+					audio->Attribute("volumeEffets", &val);
+					_volumeEffets = val;
+				}
+				if(audio->Attribute("volumeMusique")) {
+					audio->Attribute("volumeMusique", &val);
+					_volumeMusique = val;
+				}
+			}
+		}
+	}
 }
 
 void Parametres::enregistrer() {
+	std::string valeurTexte;
+	char const *documentBase = 
+	"<?xml version=\"1.0\" standalone='no' >\n"
+	"<Config>\n"
+	"<Clavier>\n"
+	"</Clavier>\n"
+	"<Audio>\n"
+	"</Audio>\n"
+	"</Config>";
+	TiXmlDocument *document = new TiXmlDocument(Session::cheminRessources() + "config.xml");
+	document->Parse(documentBase);
 	
+	TiXmlElement *config = document->FirstChildElement("Config");
+	TiXmlElement *clavier = config->FirstChildElement("Clavier");
+	for(action_t a = premiereAction; a != nbActions; ++a) {
+		TiXmlElement action(Parametres::nomBalise(a));
+		action.SetAttribute("valeur", Session::transcriptionEvenement(Parametres::evenementAction(a)));
+		clavier->InsertEndChild(action);
+	}
+	
+	TiXmlElement *audio = config->FirstChildElement("Audio");
+	audio->SetAttribute("volumeEffets", Parametres::volumeEffets());
+	audio->SetAttribute("volumeMusique", Parametres::volumeMusique());
+
+	if(!document->SaveFile())
+		std::cout << "L'enregistrement du fichier de paramètres " << document->Value() << " a échoué." << std::endl;
 }
 
 void Parametres::nettoyer() {
@@ -170,7 +229,7 @@ void Parametres::definirVolumeEffets(float v) {
 	_volumeEffets = std::min(1.0f, std::max(0.0f, v));
 }
 
-void Parametres::editerParametres(Image const &fond) {
+void Parametres::editerParametres(Image const &fond, Shader const &s) {
 	std::vector<Unichar> elements;
 	elements.push_back("Réglages contrôles");
 	elements.push_back("Réglages audios");
@@ -179,26 +238,26 @@ void Parametres::editerParametres(Image const &fond) {
 	
 	index_t selection = 0;
 	do {
-		selection = menu.afficher(selection, fond);
+		selection = menu.afficher(selection, fond, s);
 		switch(selection) {
 			case 2:
-				Parametres::video(fond);
+				Parametres::video(fond, s);
 				break;
 			case 1:
-				Parametres::audio(fond);
+				Parametres::audio(fond, s);
 				break;
 			case 0:
-				Parametres::controles(fond);
+				Parametres::controles(fond, s);
 				break;
 		}
 	} while(selection != elements.size());
 }
 
-void Parametres::video(Image const &fond) {
+void Parametres::video(Image const &fond, Shader const &s) {
 	std::cout << "vidéo" << std::endl;
 }
 
-void Parametres::audio(Image const &fond) {
+void Parametres::audio(Image const &fond, Shader const &s) {
 	std::vector<etiquetteTexte_t> texte, vide;
 	texte.push_back(Unichar("Volume musique"));
 	texte.push_back(Unichar("Volume effets"));
@@ -219,7 +278,8 @@ void Parametres::audio(Image const &fond) {
 		Ecran::definirPointeurAffiche(true);
 		Ecran::effacer();
 		
-		Shader::flou(1.0f).activer();
+		s.activer();
+		s.definirParametre(Shader::temps, horloge());
 		fond.afficher(Coordonnees());
 		Shader::desactiver();
 		
@@ -262,7 +322,7 @@ void Parametres::audio(Image const &fond) {
 	}
 }
 
-void Parametres::controles(Image const &fond) {
+void Parametres::controles(Image const &fond, Shader const &s) {
 	std::vector<etiquetteTexte_t> actions, evenements;
 
 	for(action_t i = premiereAction; i != nbActions; ++i) {
@@ -280,7 +340,8 @@ void Parametres::controles(Image const &fond) {
 		Ecran::definirPointeurAffiche(true);
 		Ecran::effacer();
 		
-		Shader::flou(1.0f).activer();
+		s.activer();
+		s.definirParametre(Shader::temps, horloge());
 		fond.afficher(Coordonnees());
 		Shader::desactiver();
 		
@@ -306,6 +367,8 @@ void Parametres::controles(Image const &fond) {
 				for(Session::evenement_t e = Session::PREMIER_EVENEMENT_CLAVIER; e <= Session::DERNIER_EVENEMENT_CLAVIER; ++e) {
 					if(Session::evenement(e)) {
 						Parametres::definirEvenementAction(static_cast<action_t>(selection), e);
+						modification = false;
+						break;
 					}
 				}
 			}
@@ -518,6 +581,37 @@ char const *Parametres::transcriptionAction(action_t a) {
 			return "Sort 4";
 		case afficherJournal:
 			return "Afficher/masquer le journal";
+		case nbActions:
+			return 0;
+	}
+}
+
+char const *Parametres::nomBalise(action_t a) {
+	switch(a) {
+		case depBas:
+			return "Bas";			
+		case depHaut:
+			return "Haut";
+		case depDroite:
+			return "Droite";
+		case depGauche:
+			return "Gauche";
+		case afficherInventaire:
+			return "AfficherMasquerInventaire";
+		case ramasserObjet:
+			return "RamasserObjet";
+		case interagir:
+			return "Interagir";
+		case sort1:
+			return "Sort1";
+		case sort2:
+			return "Sort2";
+		case sort3:
+			return "Sort3";
+		case sort4:
+			return "Sort4";
+		case afficherJournal:
+			return "AfficherMasquerJournal";
 		case nbActions:
 			return 0;
 	}

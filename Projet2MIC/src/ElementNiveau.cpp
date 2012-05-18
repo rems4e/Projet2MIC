@@ -21,6 +21,12 @@
 #include "UtilitaireNiveau.h"
 #include <cstring>
 
+#include <iostream>
+
+void afficher(ElementNiveau *el) {
+	std::cout << "(" << ElementNiveau::nomCategorie(el->categorie()) << " " << el->index() << ")";
+}
+
 TiXmlDocument *ElementNiveau::_description = 0;
 
 ElementNiveau::elementNiveau_t &operator++(ElementNiveau::elementNiveau_t &e) { return e = static_cast<ElementNiveau::elementNiveau_t>(static_cast<int>(e) + 1); }
@@ -30,6 +36,8 @@ ElementNiveau *ElementNiveau::elementNiveau(bool decoupagePerspective, Niveau *n
 	switch(cat) {
 		case entiteStatique:
 			return ElementNiveau::elementNiveau<EntiteStatique>(decoupagePerspective, n, index);
+		case sol:
+			return ElementNiveau::elementNiveau<EntiteStatique>(decoupagePerspective, n, index, sol);
 		case ennemi:
 			return ElementNiveau::elementNiveau<Ennemi>(decoupagePerspective, n, index);
 		case arbre:
@@ -46,7 +54,7 @@ ElementNiveau *ElementNiveau::elementNiveau(bool decoupagePerspective, Niveau *n
 			return ElementNiveau::elementNiveau<EntiteStatique>(decoupagePerspective, n, index);
 		case marchand:
 			return ElementNiveau::elementNiveau<Marchand>(decoupagePerspective, n, index);
-		case ndef10:case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
+		case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
 		case ndef17:case ndef18:case ndef19:case ndef20:case ndef21:case ndef22:case ndef23:case ndef24:
 		case ndef25:case ndef26:case ndef27:case ndef28:case ndef29:case ndef30:case ndef31:case ndef32:
 		case ndef33:case ndef34:case ndef35:case ndef36:case ndef37:case ndef38:case ndef39:case ndef40:
@@ -58,8 +66,9 @@ ElementNiveau *ElementNiveau::elementNiveau(bool decoupagePerspective, Niveau *n
 	}
 }
 
-ElementNiveau::ElementNiveau(bool decoupagePerspective, Niveau *n, uindex_t index, elementNiveau_t cat) throw(ElementNiveau::Exc_DefinitionEntiteIncomplete) : _niveau(n), _position(), _origine(), _centrage(false), _categorie(cat), _dimX(1), _dimY(1), _decoupagePerspective(decoupagePerspective), _relief(true), _pX(0), _pY(0) {
+ElementNiveau::ElementNiveau(bool decoupagePerspective, Niveau *n, uindex_t index, elementNiveau_t cat) throw(ElementNiveau::Exc_DefinitionEntiteIncomplete) : _niveau(n), _position(), _origine(), _centrage(false), _categorie(cat), _index(index), _dimX(1), _dimY(1), _decoupagePerspective(decoupagePerspective), _relief(true), _pX(0), _pY(0) {
 	TiXmlElement *e = ElementNiveau::description(index, cat);
+
 	if(e->Attribute("x"))
 		e->Attribute("x", &_origine.x);
 	if(e->Attribute("y"))
@@ -156,6 +165,9 @@ ElementNiveau::elementNiveau_t ElementNiveau::categorie() const {
 	return _categorie;
 }
 
+uindex_t ElementNiveau::index() const {
+	return _index;
+}
 
 bool ElementNiveau::decoupagePerspective() const {
 	return _decoupagePerspective;
@@ -227,7 +239,7 @@ index_t ElementNiveau::pY() const {
 }
 
 void ElementNiveau::calcPX() {
-	_pX = std::floor((this->position().x + this->origine().x) / LARGEUR_CASE);
+	_pX = std::floor((this->position().x + 0*this->origine().x) / LARGEUR_CASE);
 }
 
 void ElementNiveau::calcPY() {
@@ -250,6 +262,8 @@ char const *ElementNiveau::nomBalise(elementNiveau_t cat) {
 	switch(cat) {
 		case entiteStatique:
 			return "EntiteStatique";
+		case sol:
+			return "Sol";
 		case ennemi:
 			return "Personnage";
 		case arbre:
@@ -266,7 +280,7 @@ char const *ElementNiveau::nomBalise(elementNiveau_t cat) {
 			return "ArbreMort";
 		case marchand:
 			return "Marchand";
-		case ndef10:case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
+		case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
 		case ndef17:case ndef18:case ndef19:case ndef20:case ndef21:case ndef22:case ndef23:case ndef24:
 		case ndef25:case ndef26:case ndef27:case ndef28:case ndef29:case ndef30:case ndef31:case ndef32:
 		case ndef33:case ndef34:case ndef35:case ndef36:case ndef37:case ndef38:case ndef39:case ndef40:
@@ -282,6 +296,8 @@ char const *ElementNiveau::nomCategorie(elementNiveau_t cat) {
 	switch(cat) {
 		case entiteStatique:
 			return "Entité statique";
+		case sol:
+			return "Sol";
 		case ennemi:
 			return "Ennemi";
 		case arbre:
@@ -298,7 +314,7 @@ char const *ElementNiveau::nomCategorie(elementNiveau_t cat) {
 			return "Arbre mort";
 		case marchand:
 			return "Marchand";
-		case ndef10:case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
+		case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
 		case ndef17:case ndef18:case ndef19:case ndef20:case ndef21:case ndef22:case ndef23:case ndef24:
 		case ndef25:case ndef26:case ndef27:case ndef28:case ndef29:case ndef30:case ndef31:case ndef32:
 		case ndef33:case ndef34:case ndef35:case ndef36:case ndef37:case ndef38:case ndef39:case ndef40:

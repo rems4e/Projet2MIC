@@ -645,7 +645,7 @@ void Editeur::enregistrer() {
 	TiXmlDocument *document = new TiXmlDocument(Session::cheminRessources() + _niveau->_fichier);
 	document->Parse(documentBase);
 	
-	TiXmlElement* n = document->FirstChildElement("Niveau");// niveau
+	TiXmlElement *n = document->FirstChildElement("Niveau");// niveau
 	
 	n->SetAttribute("dimX", _niveau->_dimX);
 	n->SetAttribute("dimY", _niveau->_dimY);
@@ -697,8 +697,8 @@ void Editeur::enregistrer() {
 		n->InsertEndChild(cc);
 	}
 	
-	if(!document->SaveFile(Session::cheminRessources() + _niveau->_fichier))
-		std::cout << "La sauvegarde du fichier de niveau " << Session::cheminRessources() + _niveau->_fichier << " a échoué. Vérifiez le chemin du fichier." << std::endl;
+	if(!document->SaveFile())
+		std::cout << "La sauvegarde du fichier de niveau " << document->Value() << " a échoué. Vérifiez le chemin du fichier." << std::endl;
 	delete document;
 	
 	_modifie = false;

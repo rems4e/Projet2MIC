@@ -13,6 +13,7 @@
 
 class Inventaire;
 class ObjetInventaire;
+class TiXmlElement;
 
 class Personnage : public EntiteMobile {
 public:
@@ -27,6 +28,9 @@ public:
 		bool operator<=(Competences const &c) const;
 		bool operator>(Competences const &c) const;
 		bool operator>=(Competences const &c) const;
+		
+		TiXmlElement *sauvegarde() const;
+		void restaurer(TiXmlElement *);
 		
 	private:
 		int _valeurs[nbCompetences];
@@ -61,6 +65,7 @@ public:
 	Inventaire const *inventaire() const;
 	
 	Competences const &competences() const;
+	void definirCompetences(Competences const &c);
 	
 	virtual bool peutEquiperObjet(ObjetInventaire *objet);
 	virtual bool peutEquiperObjet(ObjetInventaire *objet, positionTenue_t pos);

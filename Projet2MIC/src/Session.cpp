@@ -15,6 +15,8 @@
 #include "Partie.h"
 #include "Shader.h"
 #include <ctime>
+#include "Menu.h"
+#include "tinyxml.h"
 
 namespace Ecran {
 	void init(unsigned int largeur, unsigned int hauteur, unsigned int profondeur, bool pleinEcran);
@@ -59,7 +61,7 @@ namespace Session {
 	}
 	void definirQuitter(bool q) { _evenements[QUITTER] = q; }
 	
-	void gestionEvenements();
+	bool gestionEvenements();
 	void reinitialiserEvenementsClavier();
 }
 
@@ -77,7 +79,7 @@ void Session::initialiser() {
 	if(Session::_init)
 		return;
 	Session::_init = true;
-
+	
 	std::srand(static_cast<unsigned int>(std::time(0)));
 	if(SDL_Init(SDL_INIT_VIDEO) < 0) {
 		std::cerr << "Impossible d'initialiser la SDL : " << SDL_GetError() << std::endl;
@@ -113,7 +115,7 @@ void Session::initialiser() {
 	
 #endif
 	_chemin += "data/";
-
+	
 	ImagesBase::initialiser();
 	Ecran::init(LARGEUR_ECRAN, HAUTEUR_ECRAN, PROFONDEUR_COULEURS, PLEIN_ECRAN);
 	Shader::initialiser();
@@ -124,7 +126,6 @@ void Session::initialiser() {
 	Ecran::maj();
 	
 	Parametres::charger();
-	
 	Session::reinitialiserEvenements();
 }
 
@@ -136,31 +137,72 @@ void Session::nettoyer() {
 	ImagesBase::nettoyer();
 	Shader::nettoyer();
 	Ecran::nettoyageFinal();
-
+	
 	SDL_Quit();
 }
 
 void Session::menu() {
-	Partie *nouvellePartie = Partie::creerPartie();
-	nouvellePartie->commencer();
-	delete nouvellePartie;
-}
-
-void Session::gestionEvenements() {
-	static SDL_Event evenement;
-	static Uint16 correspondances[1 << (sizeof(static_cast<SDL_Event *>(0)->key.keysym.scancode) * 8)] = {0};
-	
-	if(!SDL_PollEvent(&evenement)) {
+	if(0) {
+		Partie *nouvellePartie = Partie::creerPartie();
+		nouvellePartie->commencer();
+		delete nouvellePartie;
 		return;
 	}
+	else {
+		Shader sFond(Session::cheminRessources() + "aucun.vert", Session::cheminRessources() + "menuPrincipal.frag");
+		std::vector<Unichar> elements;
+		elements.push_back("Nouvelle partie");
+		elements.push_back("Charger une partie");
+		elements.push_back("Réglages");
+		Menu menu("Menu principal", elements, "Quitter");
+		
+		Image fond(Session::cheminRessources() + "tex0.jpg");
+		index_t selection = 0;
+		
+		TiXmlElement *charge = 0;
+		do {
+			if(charge) {
+				Partie *nouvellePartie = Partie::creerPartie(charge);
+				delete charge;
+				charge = nouvellePartie->commencer();
+				delete nouvellePartie;
+			}
+			else {
+				selection = menu.afficher(0, fond, sFond);
+				if(selection == 0) {
+					Partie *nouvellePartie = Partie::creerPartie();
+					charge = nouvellePartie->commencer();
+					delete nouvellePartie;
+				}
+				else if(selection == 1) {
+					charge = Partie::charger(&fond, sFond);
+				}
+				else if(selection == 2) {
+					Parametres::editerParametres(fond, sFond);
+				}
+			}
+		} while(selection != elements.size());
+		
+		delete charge;
+	}
+}
+
+bool Session::gestionEvenements() {
+	static SDL_Event evenement;
+	static Uint16 correspondances[1 << (sizeof(static_cast<SDL_Event *>(0)->key.keysym.scancode) * 8)] = {0};
+	static bool premierSouris = false;
 	
-	_evenements[SOURIS] = false;
+	if(!SDL_PollEvent(&evenement)) {
+		return false;
+	}
 	
 	switch(evenement.type) {
 		case SDL_MOUSEMOTION:
 			_souris.x = evenement.motion.x;
 			_souris.y = evenement.motion.y;
-			_evenements[SOURIS] = true;
+			if(premierSouris)
+				_evenements[SOURIS] = true;
+			premierSouris = true;
 			break;
 		case SDL_MOUSEBUTTONDOWN:
 			_souris.x = evenement.button.x;
@@ -334,6 +376,8 @@ void Session::gestionEvenements() {
 		default:
 			break;
 	}
+	
+	return true;
 }
 
 bool Session::boucle(float freq, bool continuer) {
@@ -341,8 +385,9 @@ bool Session::boucle(float freq, bool continuer) {
 		Session::reinitialiserEvenements();
 		return false;
 	}
-		
-	Session::gestionEvenements();
+	
+	_evenements[SOURIS] = false;
+	while(Session::gestionEvenements());
 	
 	attendre(1.0f / freq - (horloge() - Session::_horlogeBoucle));
 	Session::_horlogeBoucle = horloge();

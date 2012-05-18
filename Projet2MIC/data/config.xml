@@ -1,0 +1,18 @@
+<?xml version="1.0" standalone="no" ?>
+<Config>
+    <Clavier>
+        <Gauche valeur="gauche" />
+        <Droite valeur="droite" />
+        <Haut valeur="haut" />
+        <Bas valeur="bas" />
+        <AfficherMasquerJournal valeur="tab" />
+        <AfficherMasquerInventaire valeur="i" />
+        <RamasserObjet valeur="entrée" />
+        <Interagir valeur="espace" />
+        <Sort1 valeur="a" />
+        <Sort2 valeur="z" />
+        <Sort3 valeur="e" />
+        <Sort4 valeur="r" />
+    </Clavier>
+    <Audio volumeEffets="0.452681" volumeMusique="1.000000" />
+</Config>

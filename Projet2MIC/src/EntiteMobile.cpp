@@ -84,10 +84,9 @@ EntiteMobile::~EntiteMobile() {
 	}
 }
 
-void EntiteMobile::afficher(index_t deltaY, Coordonnees const &decalage, double zoom) const {
-	_image.redimensionner(zoom);
+void EntiteMobile::afficher(index_t deltaY, Coordonnees const &decalage) const {
 	Rectangle const &cadre = this->cadre();
-	_image.afficher(this->positionAffichage() * zoom - decalage, cadre);
+	_image.afficher(this->positionAffichage() - decalage, cadre);
 }
 
 bool EntiteMobile::collision(index_t x, index_t y) const {
@@ -95,7 +94,7 @@ bool EntiteMobile::collision(index_t x, index_t y) const {
 }
 
 index_t EntiteMobile::nPX(coordonnee_t pX) const {
-	return std::floor(pX / LARGEUR_CASE);
+	return std::floor((pX + 0*this->origine().x) / LARGEUR_CASE);
 
 }
 
@@ -281,6 +280,7 @@ bool EntiteMobile::testerDeplacement(Coordonnees const &dep) {
 		y2 = y1;
 	else if(dep.y > 0)
 		y1 = y2;
+	
 	
 	for(index_t x = x1; x <= x2; ++x) {
 		for(index_t y = y1; y <= y2; ++y) {

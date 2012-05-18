@@ -15,7 +15,7 @@ uniform vec3 position;
 void main(void) {
 	gl_Position = vec4(vertCoord.x, vertCoord.y , 0.1, 1.0);
 
-	//gl_Position.xyz = (gl_Position.xyz + position / vec3(_ecran.xy, 1.0) + vec3(1.0)) / 2.0;
+	gl_Position.xyz += position * 2.0;
 	
 	vec3 u = normalize(axe);
 
@@ -27,8 +27,7 @@ void main(void) {
 			);
 		
 	gl_Position.xyz = mat * gl_Position.xyz;
-	
-	//gl_Position.xyz = gl_Position.xyz * 2.0 - position / vec3(_ecran.xy, 1.0) - vec3(1.0);
+	gl_Position.xyz -= position.xyz * 2.0;
 
 	_color = color;
 	_texCoord = texCoord;

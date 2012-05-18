@@ -26,7 +26,7 @@ namespace Session {
 
 	enum evenement_t {
 		premierEvenement,
-		SOURIS, B_GAUCHE = premierEvenement, B_DROIT,
+		SOURIS = premierEvenement, B_GAUCHE, B_DROIT,
 		PREMIER_EVENEMENT_CLAVIER,
 		/* Caractères imprimables */
 		PREMIER_EVENEMENT_IMPRIMABLE = PREMIER_EVENEMENT_CLAVIER,

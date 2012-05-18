@@ -19,6 +19,8 @@ namespace ImagesBase {
 
 char const * const Shader::rayonFlou = "rayon";
 char const * const Shader::dim = "_dim";
+char const * const Shader::pos = "_pos";
+char const * const Shader::temps = "_temps";
 
 std::map<std::pair<std::string, std::string>, std::pair<std::pair<GLint, std::pair<GLint, GLint> >, size_t> > *Shader::_programmes;
 std::map<std::string, std::pair<GLint, size_t> > *Shader::_vertexShaders;
@@ -77,7 +79,6 @@ Shader::Shader(std::string const &vert, std::string const &frag) throw(Shader::E
 			}
 		}
 		else {
-			//std::cout << vert << std::endl;
 			_vert = idVert.first;
 		}
 		
@@ -101,7 +102,7 @@ Shader::Shader(std::string const &vert, std::string const &frag) throw(Shader::E
 						
 			glShaderSource(_frag, 1, const_cast<GLchar const **>(&fragSource), &dimFrag);
 			
-			delete [] fragSource;
+			delete[] fragSource;
 			
 			try {
 				Shader::compiler(_frag);

@@ -30,9 +30,9 @@ struct Menu::TestNul {
 	}
 };
 
-Menu::Menu(Unichar const &titre, std::vector<Unichar> const &elements) : _titre(titre, POLICE_DECO, TAILLE_TITRE_MENU, Couleur::blanc), _elements(elements.begin(), elements.end()), _premierElementAffiche(0), _nbElementsAffiches(0) {
+Menu::Menu(Unichar const &titre, std::vector<Unichar> const &elements, Unichar const &dernierElement) : _titre(titre, POLICE_DECO, TAILLE_TITRE_MENU, Couleur::blanc), _elements(elements.begin(), elements.end()), _premierElementAffiche(0), _nbElementsAffiches(0) {
 	std::remove_if(_elements.begin(), _elements.end(), Menu::TestNul());
-	_elements.push_back(element_t("Retour"));
+	_elements.push_back(element_t(dernierElement));
 	size_t dim = 0;
 	for(std::vector<element_t>::iterator i = _elements.begin(); i != _elements.end(); ++i) {
 		dim += i->_texte.dimensions().y;
@@ -48,19 +48,22 @@ Menu::~Menu() {
 
 }
 
-index_t Menu::afficher(index_t selection, Image const &fond) {
+index_t Menu::afficher(index_t selection, Image const &fond, Shader const &s) {
 	bool continuer = true;
 	index_t retour = 0;
 	index_t elementSelectionne = selection;
 	horloge_t ancienDefilement = 0;
-			
+	
 	Session::reinitialiserEvenements();
+	
+	fond.redimensionner(Ecran::largeur() / fond.dimensionsReelles().x, Ecran::hauteur() / fond.dimensionsReelles().y);
 	
 	while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, continuer)) {
 		Ecran::definirPointeurAffiche(true);
 		Ecran::effacer();
 		
-		Shader::flou(1).activer();
+		s.activer();
+		s.definirParametre(Shader::temps, horloge());
 		fond.afficher(Coordonnees());
 		Shader::desactiver();
 				

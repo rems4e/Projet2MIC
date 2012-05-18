@@ -290,6 +290,9 @@ public:
 
 	ObjetInventaire *objetTransfert();
 	void definirObjetTransfert(ObjetInventaire *o);
+
+	TiXmlElement *sauvegarde() const;
+	void restaurer(TiXmlElement *sauvegarde);
 	
 private:
 	virtual void definirCapacite(size_t c);

@@ -17,15 +17,16 @@
 #include "Unichar.h"
 #include "Texte.h"
 #include "horloge.h"
+#include "Shader.h"
 
 class Image;
 
 class Menu {
 public:
-	Menu(Unichar const &titre, std::vector<Unichar> const &elements);
+	Menu(Unichar const &titre, std::vector<Unichar> const &elements, Unichar const &dernierElement = "Retour");
 	virtual ~Menu();
 	
-	index_t afficher(index_t selection, Image const &fond);
+	index_t afficher(index_t selection, Image const &fond, Shader const &s = Shader::flou(1));
 	
 protected:
 	Menu (Menu const &);

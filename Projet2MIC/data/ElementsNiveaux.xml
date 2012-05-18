@@ -15,7 +15,7 @@
 			000
 		</Element0>
 		<Element1 image="maison2.png" x=0 y=200 dimX=4 dimY=7 />
-		<Element2 image="maison3.png" x=0 y=200 dimX=4 dimY=4 />
+		<Element2 image="maison3.png" x=17 y=220 dimX=4 dimY=4 />
 	</Maison>
 	<Teleporteur>
 		<Element0 image="spawn.png" x=0 y=64 dimX=4 dimY=4 relief=0/>
@@ -29,12 +29,18 @@
 		<Element5 image="armure1.png" iX=2 iY=3 type="armure" centrage=1/>
 		<Element6 image="bouclier1.png" iX=2 iY=2 type="bouclier" centrage=1/>
 	</ObjetInventaire>
+	<Sol>
+		<Element0 image="dirt2.png" x=0 y=16 dimX=1 dimY=1 relief=0/>
+		<Element1 image="dirt.png" x=0 y=64 dimX=4 dimY=4 relief=0/>
+		<Element2 image="herbe.png" x=0 y=128 dimX=8 dimY=8 relief=/>
+		<Element3 image="dirtsand2.png" x=0 y=128 dimX=8 dimY=8 relief=0/>
+		<Element4 image="herbe2.png" x=0 y=64 dimX=4 dimY=4 relief=0/>
+		<Element5 image="bleu.png" x=0 y=16 dimX=1 dimY=1 relief=0 />
+		<Element6 image="lac.png" x=0 y=128 dimX=8 dimY=8 relief=0/>
+		<Element7 image="dirtsand.png" x=0 y=64 dimX=4 dimY=4 relief=0/>
+	</Sol>
 	<EntiteStatique>
-		<Element0 image="dirt2.png" x=0 y=16 dimX=1 dimY=1 relief=0 />
-		<Element1 image="dirt.png" x=0 y=64 dimX=4 dimY=4 relief=0 />
-		<Element2 image="herbe.png" x=0 y=128 dimX=8 dimY=8 relief=0 />
-		<Element3 image="bleu.png" x=0 y=16 dimX=1 dimY=1 relief=0 />
-		<Element4 image="lac.png" x=0 y=128 dimX=8 dimY=8 relief=0 />
+		<Element0 image="bleu.png" x=0 y=16 dimX=1 dimY=1 relief=0 />
 	</EntiteStatique>
 	<EntiteStatiqueAnimee>
 		<Element0 image="torche.png" nbPoses=20 tempsAttente=60 x=16 y=100 centrage=1 dimX=1 dimY=1 />

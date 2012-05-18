@@ -12,7 +12,7 @@
 #include "Personnage.h"
 #include "Inventaire.h"
 
-class Partie;
+class TiXmlElement;
 
 struct Joueur : public Personnage {
 	friend Joueur *ElementNiveau::elementNiveau<Joueur>(bool decoupagePerspective, Niveau *n, uindex_t i, ElementNiveau::elementNiveau_t) throw(ElementNiveau::Exc_EntiteIndefinie, ElementNiveau::Exc_DefinitionEntiteIncomplete);
@@ -22,7 +22,7 @@ public:
 	virtual void animer();
 	virtual bool interagir(Personnage *p);
 	
-	void afficher(index_t deltaY, Coordonnees const &d, double zoom = 1.0) const;
+	void afficher(index_t deltaY, Coordonnees const &d) const;
 	
 	virtual bool joueur() const;
 	virtual categorie_t categorieMobile() const;
@@ -31,6 +31,9 @@ public:
 	void definirInventaireAffiche(bool af);
 	
 	void renaitre();
+	
+	TiXmlElement *sauvegarde() const;
+	void restaurer(TiXmlElement *sauvegarde);
 			
 protected:
 	static ElementNiveau::elementNiveau_t cat() { return ElementNiveau::ennemi; }

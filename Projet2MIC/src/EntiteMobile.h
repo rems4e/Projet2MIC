@@ -23,7 +23,7 @@ public:
 			
 	virtual ~EntiteMobile();
 	
-	virtual void afficher(index_t deltaY, Coordonnees const &decalage, double zoom = 1.0) const;
+	virtual void afficher(index_t deltaY, Coordonnees const &decalage) const;
 	virtual bool collision(index_t x, index_t y) const;
 	virtual void animer();
 	virtual Coordonnees dimensions() const;

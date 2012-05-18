@@ -28,6 +28,7 @@ public:
 	bool tenue() const;
 	Coordonnees dimensionsInventaire() const;
 	Personnage::Competences const &competencesRequises() const;
+	void definirCompetencesRequises(Personnage::Competences const &);
 		
 protected:
 	static ElementNiveau::elementNiveau_t cat() { return ElementNiveau::objetInventaire; }

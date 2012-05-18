@@ -17,7 +17,7 @@ class EntiteStatique : public ElementNiveau {
 public:
 	virtual ~EntiteStatique();
 	
-	virtual void afficher(index_t deltaY, Coordonnees const &decalage, double zoom = 1.0) const;
+	virtual void afficher(index_t deltaY, Coordonnees const &decalage) const;
 	virtual void animer();
 
 	Image const &image() const;
@@ -32,6 +32,7 @@ protected:
 private:
 	Image _image;
 	Rectangle *_cadres;
+	size_t _nb;
 };
 
 #endif
