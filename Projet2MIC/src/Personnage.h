@@ -40,7 +40,7 @@ public:
 	virtual ~Personnage();
 	
 	virtual void animer();
-	virtual bool interagir(Personnage *p) = 0;
+	virtual bool interagir(Personnage *p, bool test) = 0;
 	virtual void attaquer(Personnage *p);
 	
 	virtual Coordonnees origine() const;
@@ -76,7 +76,7 @@ protected:
 	Personnage(Personnage const &);
 	Personnage &operator=(Personnage const &);
 	
-	void interagir();
+	Personnage *interagir(bool test);
 	virtual void mourir();
 	void renaitre();
 	

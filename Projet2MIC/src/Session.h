@@ -92,8 +92,6 @@ namespace Session {
 	void initialiser();
 	// À n'appeller qu'une seule fois en fin de programme
 	void nettoyer();
-	// Point d'entrée du jeu
-	void menu();
 	
 	// Retourne une chaîne de caractères associée à l'événement ou au modificateur demandé
 	Unichar transcriptionEvenement(evenement_t const &);

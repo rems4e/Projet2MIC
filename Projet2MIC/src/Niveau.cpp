@@ -81,7 +81,7 @@ Niveau::Case::Case() : _entites(), _monnaie(0), _transitions() {
 
 }
 
-Niveau::Niveau(Joueur *j, std::string const &nomFichier) : _elements(0), _dimX(0), _dimY(0), _entitesMobiles(), _perso(), _bordures(), _persoInit(), _pluie(Session::cheminRessources() + "aucun.vert", Session::cheminRessources() + "pluie.frag"), _transitionSol(Session::cheminRessources() + "aucun.vert", Session::cheminRessources() + "transitionSol.frag") {	
+Niveau::Niveau(Joueur *j, std::string const &nomFichier) : _elements(0), _dimX(0), _dimY(0), _entitesMobiles(), _perso(), _bordures(), _persoInit(), _pluie(Session::cheminRessources() + "aucun.vert", Session::cheminRessources() + "pluie.frag"), _transitionSol(Session::cheminRessources() + "aucun.vert", Session::cheminRessources() + "transitionSol.frag"), _tonnerre(0), _transitionsBordures(), _musique(0) {	
 	TiXmlDocument niveau(Session::cheminRessources() + nomFichier);
 	if(!niveau.LoadFile()) {
 		throw Exc_CreationNiveau(std::string() + "Erreur de l'ouverture du fichier de niveau (" + (Session::cheminRessources() + nomFichier) + ".");
@@ -184,6 +184,13 @@ Niveau::Niveau(Joueur *j, std::string const &nomFichier) : _elements(0), _dimX(0
 	_objet = Image(Session::cheminRessources() + "objet.png");
 	_objets = Image(Session::cheminRessources() + "objets.png");
 	_monnaie = Image(Session::cheminRessources() + "monnaie.png");
+	
+	char const *mus = n->Attribute("musique");
+	if(!mus) {
+		mus = "silence.wav";
+	}
+	_musique = Audio::chargerMusique(Session::cheminRessources() + mus);
+	_tonnerre = Audio::chargerSon(Session::cheminRessources() + "tonnerre.wav");
 
 	j->definirPosition(_persoInit);
 	this->definirJoueur(j);
@@ -413,12 +420,18 @@ Niveau::~Niveau() {
 	for(std::list<ElementNiveau *>::iterator i = _aEffacer.begin(); i != _aEffacer.end(); ++i) {
 		delete *i;
 	}
+	
+	Audio::libererSon(_tonnerre);
+	Audio::libererSon(_musique);
 }
 
 Joueur *Niveau::joueur() {
 	return _perso;
 }
 
+Audio::audio_t Niveau::musique() {
+	return _musique;
+}
 
 Niveau::listeElements_t Niveau::elements(index_t x, index_t y, Niveau::couche_t couche) {
 	if(x < 0 || y < 0 || x >= this->dimX() || y >= this->dimY()) {
@@ -596,7 +609,9 @@ void Niveau::afficher() {
 	this->afficherBordure(GAUCHE, cam);
 
 	static float tonnerre = 0;
-	if(horloge() - tonnerre > 1.0f) {
+	if(horloge() - tonnerre > nombreAleatoire(5) + 1) {
+		if(tonnerre > 0)
+			Audio::jouerSon(_tonnerre);
 		tonnerre = horloge() + 15 + nombreAleatoire(60);
 	}
 	

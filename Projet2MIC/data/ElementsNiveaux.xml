@@ -14,7 +14,15 @@
 			000
 			000
 		</Element0>
-		<Element1 image="maison2.png" x=0 y=200 dimX=4 dimY=7 />
+		<Element1 image="maison2.png" x=0 y=200 dimX=4 dimY=7>
+			1111
+			1111
+			1111
+			0111
+			1111
+			1111
+			1111
+		</Element1>
 		<Element2 image="maison3.png" x=17 y=220 dimX=4 dimY=4 />
 	</Maison>
 	<Teleporteur>

@@ -40,7 +40,7 @@ Partie *Partie::partie() {
 	return _partie;
 }
 
-Partie::Partie() : _niveau(0), _joueur(0), _tableauDeBord(0), _marchand(0), _numeroNiveau(2) {
+Partie::Partie() : _niveau(0), _joueur(0), _tableauDeBord(0), _marchand(0), _numeroNiveau(1) {
 	_joueur = ElementNiveau::elementNiveau<Joueur>(false, 0, 0);
 	_niveau = new Niveau(_joueur, "niveau" + nombreVersTexte(_numeroNiveau) + ".xml");
 	
@@ -204,6 +204,11 @@ TiXmlElement *Partie::commencer() {
 	while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, continuer)) {
 		Ecran::definirPointeurAffiche(_joueur->inventaireAffiche());
 		Ecran::definirPointeur(0);
+		
+		Audio::audio_t musique = _niveau->musique();
+		Audio::definirMusique(musique);
+		Audio::jouerMusique();
+		
 		Ecran::effacer();
 		_niveau->animer();
 		this->afficher();

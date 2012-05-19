@@ -38,8 +38,10 @@ void Joueur::animer() {
 		dep += Coordonnees(-1, 1);
 	else if(Session::evenement(Parametres::evenementAction(Parametres::depHaut)))
 		dep += Coordonnees(1, -1);
-	
+		
 	if(!dep.vecteurNul()) {
+		_interaction = ij_aucune;
+
 		dep.normaliser();
 		dep *= this->vitesse();
 		if(this->definirAction(EntiteMobile::a_deplacer)) {
@@ -47,8 +49,10 @@ void Joueur::animer() {
 		}
 	}
 	if(dep.vecteurNul()) {
+		Personnage *interaction = this->Personnage::interagir(true);
 		if(Session::evenement(Parametres::evenementAction(Parametres::interagir))) {
-			this->Personnage::interagir();
+			if(interaction)
+				this->interagir(interaction, false);
 			Session::reinitialiser(Parametres::evenementAction(Parametres::interagir));
 		}
 		else if(Session::evenement(Session::T_m)) {
@@ -76,18 +80,31 @@ void Joueur::animer() {
 	}
 }
 
-bool Joueur::interagir(Personnage *p) {
+bool Joueur::interagir(Personnage *p, bool test) {
+	_interaction = ij_aucune;
+	
 	switch(p->categorieMobile()) {
 		case EntiteMobile::em_ennemi:
-			this->attaquer(p);
+			if(!test)
+				this->attaquer(p);
+			_interaction = ij_attaquer;
+			
 			return true;
 		case EntiteMobile::em_marchand:
-			Partie::partie()->definirMarchand(static_cast<Marchand *>(p));
+			if(!test)
+				Partie::partie()->definirMarchand(static_cast<Marchand *>(p));
+			_interaction = ij_commerce;
+			
+			return true;
 		case EntiteMobile::em_joueur:
 			break;
 	}
 	
 	return false;
+}
+
+Joueur::interactionJoueur_t Joueur::interaction() const {
+	return _interaction;
 }
 
 void Joueur::mourir() {

@@ -17,10 +17,12 @@ class TiXmlElement;
 struct Joueur : public Personnage {
 	friend Joueur *ElementNiveau::elementNiveau<Joueur>(bool decoupagePerspective, Niveau *n, uindex_t i, ElementNiveau::elementNiveau_t) throw(ElementNiveau::Exc_EntiteIndefinie, ElementNiveau::Exc_DefinitionEntiteIncomplete);
 public:
+	enum interactionJoueur_t {ij_aucune, ij_attaquer, ij_commerce};
+	
 	virtual ~Joueur();
 	
 	virtual void animer();
-	virtual bool interagir(Personnage *p);
+	virtual bool interagir(Personnage *p, bool test);
 	
 	void afficher(index_t deltaY, Coordonnees const &d) const;
 	
@@ -34,6 +36,8 @@ public:
 	
 	TiXmlElement *sauvegarde() const;
 	void restaurer(TiXmlElement *sauvegarde);
+	
+	interactionJoueur_t interaction() const;
 			
 protected:
 	static ElementNiveau::elementNiveau_t cat() { return ElementNiveau::ennemi; }
@@ -48,6 +52,8 @@ protected:
 
 private:
 	bool _inventaireAffiche;
+	
+	interactionJoueur_t _interaction;
 };
 
 #endif

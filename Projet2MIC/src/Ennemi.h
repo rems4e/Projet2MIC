@@ -18,7 +18,7 @@ public:
 	virtual ~Ennemi();
 	
 	virtual void animer();
-	virtual bool interagir(Personnage *p);
+	virtual bool interagir(Personnage *p, bool test);
 	
 	virtual index_t porteeVision() const;
 	virtual double vitesse() const;

@@ -21,7 +21,7 @@ public:
 	virtual bool collision(index_t x, index_t y) const;
 
 	virtual void animer();
-	virtual bool interagir(Personnage *p);
+	virtual bool interagir(Personnage *p, bool test);
 	
 	virtual categorie_t categorieMobile() const;
 		

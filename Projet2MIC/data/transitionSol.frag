@@ -27,7 +27,7 @@ vec2 referentielEcranVersNiveau(vec2 pos) {
 
 float dX = LARGEUR_CASE / 2;
 
-void main(void) {	
+void main(void) {
 	vec4 couleur = _color * texture2D(_tex, _texCoord);
 	
 	float dim = dimTrans * LARGEUR_CASE;

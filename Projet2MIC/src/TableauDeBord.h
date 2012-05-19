@@ -3,6 +3,7 @@
 #define Projet2MIC_TableauBord_h
 
 #include "Image.h"
+#include "Texte.h"
 
 class Joueur;
 
@@ -21,6 +22,7 @@ protected:
 private:
 	Joueur *_joueur;
 	Image _fond;
+	Texte _interactionJoueur;
 };
 
 #endif

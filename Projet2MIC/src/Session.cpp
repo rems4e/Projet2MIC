@@ -17,6 +17,7 @@
 #include <ctime>
 #include "Menu.h"
 #include "tinyxml.h"
+#include "Audio.h"
 
 namespace Ecran {
 	void init(unsigned int largeur, unsigned int hauteur, unsigned int profondeur, bool pleinEcran);
@@ -33,6 +34,11 @@ namespace ImagesBase {
 namespace Parametres {
 	void charger();
 	void enregistrer();
+	void nettoyer();
+}
+
+namespace Audio {
+	void initialiser();
 	void nettoyer();
 }
 
@@ -116,6 +122,8 @@ void Session::initialiser() {
 #endif
 	_chemin += "data/";
 	
+	Audio::initialiser();
+	
 	ImagesBase::initialiser();
 	Ecran::init(LARGEUR_ECRAN, HAUTEUR_ECRAN, PROFONDEUR_COULEURS, PLEIN_ECRAN);
 	Shader::initialiser();
@@ -132,6 +140,8 @@ void Session::initialiser() {
 void Session::nettoyer() {
 	Parametres::nettoyer();
 	
+	Audio::nettoyer();
+	
 	Ecran::nettoyagePreliminaire();
 	Texte::nettoyer();
 	ImagesBase::nettoyer();
@@ -139,52 +149,6 @@ void Session::nettoyer() {
 	Ecran::nettoyageFinal();
 	
 	SDL_Quit();
-}
-
-void Session::menu() {
-	if(0) {
-		Partie *nouvellePartie = Partie::creerPartie();
-		nouvellePartie->commencer();
-		delete nouvellePartie;
-		return;
-	}
-	else {
-		Shader sFond(Session::cheminRessources() + "aucun.vert", Session::cheminRessources() + "menuPrincipal.frag");
-		std::vector<Unichar> elements;
-		elements.push_back("Nouvelle partie");
-		elements.push_back("Charger une partie");
-		elements.push_back("Réglages");
-		Menu menu("Menu principal", elements, "Quitter");
-		
-		Image fond(Session::cheminRessources() + "tex0.jpg");
-		index_t selection = 0;
-		
-		TiXmlElement *charge = 0;
-		do {
-			if(charge) {
-				Partie *nouvellePartie = Partie::creerPartie(charge);
-				delete charge;
-				charge = nouvellePartie->commencer();
-				delete nouvellePartie;
-			}
-			else {
-				selection = menu.afficher(0, fond, sFond);
-				if(selection == 0) {
-					Partie *nouvellePartie = Partie::creerPartie();
-					charge = nouvellePartie->commencer();
-					delete nouvellePartie;
-				}
-				else if(selection == 1) {
-					charge = Partie::charger(&fond, sFond);
-				}
-				else if(selection == 2) {
-					Parametres::editerParametres(fond, sFond);
-				}
-			}
-		} while(selection != elements.size());
-		
-		delete charge;
-	}
 }
 
 bool Session::gestionEvenements() {
@@ -385,6 +349,8 @@ bool Session::boucle(float freq, bool continuer) {
 		Session::reinitialiserEvenements();
 		return false;
 	}
+	
+	Audio::maj();
 	
 	_evenements[SOURIS] = false;
 	while(Session::gestionEvenements());

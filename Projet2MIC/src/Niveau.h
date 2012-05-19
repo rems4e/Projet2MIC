@@ -16,6 +16,7 @@
 #include <exception>
 #include "Image.h"
 #include "Shader.h"
+#include "Audio.h"
 
 class ElementNiveau;
 class EntiteStatique;
@@ -71,6 +72,8 @@ public:
 
 	Niveau(Joueur *j, std::string const &nomFichier);
 	virtual ~Niveau();
+	
+	Audio::audio_t musique();
 	
 	Joueur *joueur();
 	
@@ -168,6 +171,9 @@ private:
 	Image _objet;
 	Image _objets;
 	Image _monnaie;
+	
+	Audio::audio_t _tonnerre;
+	Audio::audio_t _musique;
 	
 	Coordonnees _persoInit;
 	Shader _pluie;

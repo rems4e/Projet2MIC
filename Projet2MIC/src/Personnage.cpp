@@ -119,7 +119,7 @@ void Personnage::animer() {
 		this->attaquer(0);
 	}
 	else if(this->categorieMobile() != em_joueur) {
-		this->interagir();
+		this->interagir(false);
 	}
 }
 
@@ -224,23 +224,25 @@ void Personnage::definirCompetences(Competences const &c) {
 	_competences = c;
 }
 
-void Personnage::interagir() {
+Personnage *Personnage::interagir(bool test) {
 	index_t x = this->pX(), y = this->pY();
 	
 	for(int xx = -1; xx <= 1; ++xx) {
-		for(int yy = -2; yy <= 1; ++yy) {
+		for(int yy = -1; yy <= 1; ++yy) {
 			Niveau::listeElements_t elements = this->niveau()->elements(x + xx, y + yy, this->couche());
 			for(Niveau::elements_t::iterator i = elements.first; i != elements.second; ++i) {
 				if(i->entite->mobile()) {
 					if(static_cast<EntiteMobile *>(i->entite)->personnage() && !static_cast<EntiteMobile *>(i->entite)->mort()) {
-						if(this->interagir(static_cast<Personnage *>(i->entite))) {
-							break;
+						if(this->interagir(static_cast<Personnage *>(i->entite), test)) {
+							return static_cast<Personnage *>(i->entite);
 						}
 					}
 				}
 			}
 		}
 	}
+	
+	return 0;
 }
 
 void Personnage::renaitre() {

@@ -2,10 +2,9 @@
 #include "Geometrie.h"
 #include "Ecran.h"
 #include "Joueur.h"
-#include "Texte.h"
 #include "fonctions.h"
 
-TableauDeBord::TableauDeBord(Joueur *j) : _joueur(j), _fond(Session::cheminRessources() + "clearedFont.png"){
+TableauDeBord::TableauDeBord(Joueur *j) : _joueur(j), _fond(Session::cheminRessources() + "clearedFont.png"), _interactionJoueur("", POLICE_NORMALE, 12, Couleur::noir) {
 	
 }
 
@@ -30,6 +29,21 @@ void TableauDeBord::afficher() {
 	 
 	Texte chiffresVie(nombreVersTexte(_joueur->vieActuelle()) + "/" + nombreVersTexte(_joueur->vieTotale()), POLICE_GRANDE, 16, Couleur::blanc);
 	chiffresVie.afficher(Coordonnees(50, posTab + 100) + (Coordonnees(lBarre, hBarre) - chiffresVie.dimensions()) / 2);
+	
+	char const *txt = "";
+	switch(_joueur->interaction()) {
+		case Joueur::ij_attaquer:
+			txt = "Attaquer l'ennemi";
+			break;
+		case Joueur::ij_commerce:
+			txt = "Acheter/vendre des objets";
+			break;
+		case Joueur::ij_aucune:
+			break;
+	}
+	
+	_interactionJoueur.definir(txt);
+	_interactionJoueur.afficher(Coordonnees((Ecran::largeur() - _interactionJoueur.dimensions().x) / 2, Ecran::hauteur() - _interactionJoueur.dimensions().y - 20));
 }
 
 dimension_t TableauDeBord::hauteur() const {

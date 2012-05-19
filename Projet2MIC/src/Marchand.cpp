@@ -24,7 +24,7 @@ void Marchand::animer() {
 	Personnage::animer();
 }
 
-bool Marchand::interagir(Personnage *p) {
+bool Marchand::interagir(Personnage *p, bool test) {
 	switch(p->categorieMobile()) {
 		case EntiteMobile::em_joueur:
 		case EntiteMobile::em_ennemi:

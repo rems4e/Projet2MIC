@@ -66,7 +66,7 @@ void Ennemi::animer() {
 	}
 }
 
-bool Ennemi::interagir(Personnage *p) {
+bool Ennemi::interagir(Personnage *p, bool test) {
 	switch(p->categorieMobile()) {
 		case EntiteMobile::em_joueur:
 			this->attaquer(p);

@@ -216,8 +216,9 @@ void Shader::nettoyer() {
 }
 
 void Shader::definirParametre(char const *param, float v) const {
-	if(_shaderActuel != this)
-		glUseProgram(_prog);
+	if(_shaderActuel != this) {
+		this->activer();
+	}
 	else
 		ImagesBase::changerTexture(-1);
 
@@ -225,8 +226,9 @@ void Shader::definirParametre(char const *param, float v) const {
 }
 
 void Shader::definirParametre(char const *param, float v1, float v2) const {
-	if(_shaderActuel != this)
-		glUseProgram(_prog);
+	if(_shaderActuel != this) {
+		this->activer();
+	}
 	else
 		ImagesBase::changerTexture(-1);
 
@@ -234,8 +236,9 @@ void Shader::definirParametre(char const *param, float v1, float v2) const {
 }
 
 void Shader::definirParametre(char const *param, float v1, float v2, float v3) const {
-	if(_shaderActuel != this)
-		glUseProgram(_prog);
+	if(_shaderActuel != this) {
+		this->activer();
+	}
 	else
 		ImagesBase::changerTexture(-1);
 
@@ -243,8 +246,9 @@ void Shader::definirParametre(char const *param, float v1, float v2, float v3) c
 }
 
 void Shader::definirParametre(char const *param, float v1, float v2, float v3, float v4) const {
-	if(_shaderActuel != this)
-		glUseProgram(_prog);
+	if(_shaderActuel != this) {
+		this->activer();
+	}
 	else
 		ImagesBase::changerTexture(-1);
 
@@ -252,11 +256,14 @@ void Shader::definirParametre(char const *param, float v1, float v2, float v3, f
 }
 
 GLint Shader::locParam(char const *param) const {
-	GLint &loc = _parametres[param];
-	if(loc == 0) {
-		loc = glGetUniformLocation(_prog, param);
+	GLint loc = -1;
+	std::map<char const *, GLint>::iterator i = _parametres.find(param);
+	if(i == _parametres.end()) {
+		_parametres[param] = loc = glGetUniformLocation(_prog, param);
 	}
-
+	else
+		loc = i->second;
+		
 	return loc;
 }
 
@@ -265,16 +272,13 @@ void Shader::activer() const {
 		ImagesBase::changerTexture(-1);
 		_shaderActuel = this;
 		glUseProgram(_prog);
-		
+
 		this->definirParametre("_ecran", Ecran::largeur(), Ecran::hauteur());
 	}
 }
 
 void Shader::desactiver() {
-	Shader const &aucun = Shader::aucun();
-	if(_shaderActuel != &aucun) {
-		aucun.activer();
-	}
+	Shader::aucun().activer();
 }
 
 Coordonnees Shader::versShader(Coordonnees const &c) {

@@ -66,12 +66,12 @@ index_t Menu::afficher(index_t selection, Image const &fond, Shader const &s) {
 		s.definirParametre(Shader::temps, horloge());
 		fond.afficher(Coordonnees());
 		Shader::desactiver();
-				
+		
 		Ecran::afficherRectangle(Ecran::ecran(), Couleur(0, 0, 0, 128));
 		
 		this->afficherElements(elementSelectionne);
 		Ecran::finaliser();
-				
+
 		if(Session::evenement(Session::T_ESC)) {
 			retour = _elements.size() - 1;
 			continuer = false;

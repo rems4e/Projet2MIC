@@ -115,7 +115,7 @@ void Ecran::modifierResolution(unsigned int largeur, unsigned int hauteur, unsig
 	else
 		resultat = SDL_SetVideoMode(largeur, hauteur, 32, SDL_OPENGL | SDL_ASYNCBLIT);
 	
-	glClearColor(0, 0, 0, 1.0f);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 	SDL_GL_SwapBuffers();
 
@@ -148,11 +148,16 @@ void Ecran::modifierResolution(unsigned int largeur, unsigned int hauteur, unsig
 	Ecran::definirPointeur(0);
 }
 
-
 Image *Ecran::apercu() {
 	unsigned char *pixels = new unsigned char[static_cast<int>(Ecran::_attributs->_largeur) * static_cast<int>(Ecran::_attributs->_hauteur) * 4];
 
 	glReadPixels(0, 0, static_cast<int>(Ecran::_attributs->_largeur), static_cast<int>(Ecran::_attributs->_hauteur), GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+
+	for(int y = 0; y < Ecran::hauteur(); ++y) {
+		for(int x = 0; x < Ecran::largeur(); ++x) {
+			pixels[4 * (y * Ecran::largeur() + x) + 3] = 255;
+		}
+	}
 	
 	Image *retour = new Image(pixels, static_cast<int>(Ecran::_attributs->_largeur), static_cast<int>(Ecran::_attributs->_hauteur), 4, true);
 	
@@ -195,6 +200,7 @@ void Ecran::maj() {
 
 void Ecran::finaliser() {
 	ImagesBase::changerTexture(-1);
+	Shader::aucun().activer();
 }
 
 void Ecran::effacer() {

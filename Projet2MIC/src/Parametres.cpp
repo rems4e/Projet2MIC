@@ -16,6 +16,7 @@
 #include <numeric>
 #include "Shader.h"
 #include "tinyxml.h"
+#include "Audio.h"
 
 namespace Parametres {
 	void charger();
@@ -48,6 +49,8 @@ namespace Parametres {
 	Session::evenement_t _evenementsAction[nbActions];
 	float _volumeMusique;
 	float _volumeEffets;
+	
+	Audio::audio_t _sonEffets = 0;
 
 	struct hauteurTexte_t {
 		hauteurTexte_t(dimension_t ecart) : _ecart(ecart) {
@@ -163,6 +166,8 @@ void Parametres::charger() {
 			}
 		}
 	}
+	
+	_sonEffets = Audio::chargerSon(Session::cheminRessources() + "testEffet.wav");
 }
 
 void Parametres::enregistrer() {
@@ -196,6 +201,7 @@ void Parametres::enregistrer() {
 
 void Parametres::nettoyer() {
 	Parametres::enregistrer();
+	Audio::libererSon(_sonEffets);
 }
 
 Session::evenement_t Parametres::evenementAction(action_t action) {
@@ -273,6 +279,8 @@ void Parametres::audio(Image const &fond, Shader const &s) {
 	
 	index_t selection = -1;
 	
+	horloge_t ancienSon = 0;
+	
 	Session::reinitialiserEvenements();
 	while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, continuer)) {
 		Ecran::definirPointeurAffiche(true);
@@ -314,6 +322,12 @@ void Parametres::audio(Image const &fond, Shader const &s) {
 		}
 		else {
 			*(valeur[selection]) = std::min(1.0f, std::max<float>(0.0f, (Session::souris().x - vide[selection]._cadre.gauche) / vide[selection]._cadre.largeur));
+			Audio::definirVolumeMusique(_volumeMusique);
+			Audio::definirVolumeEffets(_volumeEffets);
+			if(selection == 1 && horloge() - ancienSon > 0.2) {
+				ancienSon = horloge();
+				Audio::jouerSon(_sonEffets);
+			}
 		}
 		if(Session::evenement(Session::T_ESC))
 			continuer = false;
