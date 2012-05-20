@@ -9,6 +9,7 @@
         <AfficherMasquerInventaire valeur="i" />
         <RamasserObjet valeur="entrée" />
         <Interagir valeur="espace" />
+        <PotionVie valeur="h" />
         <Sort1 valeur="a" />
         <Sort2 valeur="z" />
         <Sort3 valeur="e" />

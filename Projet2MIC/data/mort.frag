@@ -11,9 +11,9 @@ uniform float _temps;
 uniform float duree;
 
 void main(void) {
-	gl_FragColor = _color;
+	gl_FragColor = _color * texture2D(_tex, _texCoord);
 	
-	float perturbation = sin(cos(gl_FragCoord.x / 20 + 20*cos(_temps)) + sqrt(gl_FragCoord.x));
+	float perturbation = sin(cos(gl_FragCoord.x / 20 + 20 * cos(_temps)) + sqrt(gl_FragCoord.x));
 	float avancement = min(1.0, _temps / duree);
 	
 	if(gl_FragCoord.y > (_ecran.y - avancement * _ecran.y) + 20 * (perturbation - 1)) {
@@ -24,8 +24,9 @@ void main(void) {
 		float mov2 = x / _ecran.x / 0.2;
 		float c1 = abs(sin(mov1 + _temps / 2) / 2.0 + mov2 / 2.0 - mov1 - mov2 + _temps / 2);
 		float c2 = abs(sin(c1 + sin(mov0 / 1000.0 + _temps / 2) + sin(y / 40.0 + _temps / 2) + sin((x + y) / 100.0) * 3.0));
-		gl_FragColor = vec4((c2 + 1.0) / 3, 0.0, 0.0, 0.6);
+		
+		vec4 couleur = vec4((c2 + 1.0) / 2, 0.0, 0.0, 0.6);
+		
+		gl_FragColor = mix(gl_FragColor, couleur, couleur.a);
 	}
-	else
-		gl_FragColor.a = 0.0;
 }

@@ -16,7 +16,6 @@
 
 #define NB_CANAUX 32
 
-
 static FMOD_RESULT resultat = FMOD_OK;
 
 namespace Audio {

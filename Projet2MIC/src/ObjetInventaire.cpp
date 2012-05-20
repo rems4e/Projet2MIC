@@ -108,6 +108,24 @@ int ObjetInventaire::vie() const {
 	return _vie;
 }
 
+void ObjetInventaire::definirDefense(int d) {
+	_defense = d;
+}
+
+void ObjetInventaire::definirAttaque(int a) {
+	_attaque = a;
+}
+
+void ObjetInventaire::definirVie(int v) {
+	_vie = v;
+}
+
+void ObjetInventaire::supprimerVie(int delta) {
+	if(delta >= 0) {
+		_vie = std::max(0, _vie - delta);
+	}
+}
+
 void ObjetInventaire::equilibrerAvecJoueur() {
 	_attaque = _defense = _vie = 0;
 	switch(_categorie) {

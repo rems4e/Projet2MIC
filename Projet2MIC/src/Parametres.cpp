@@ -121,6 +121,8 @@ void Parametres::charger() {
 	_evenementsAction[ramasserObjet] = Session::T_ENTREE;
 	_evenementsAction[interagir] = Session::T_ESPACE;
 
+	_evenementsAction[remplirVie] = Session::T_h;
+
 	_evenementsAction[sort1] = Session::T_a;
 	_evenementsAction[sort2] = Session::T_z;
 	_evenementsAction[sort3] = Session::T_e;
@@ -585,6 +587,8 @@ char const *Parametres::transcriptionAction(action_t a) {
 			return "Ramasser l'objet";
 		case interagir:
 			return "Interagir";
+		case remplirVie:
+			return "Potion de vie";
 		case sort1:
 			return "Sort 1";
 		case sort2:
@@ -616,6 +620,8 @@ char const *Parametres::nomBalise(action_t a) {
 			return "RamasserObjet";
 		case interagir:
 			return "Interagir";
+		case remplirVie:
+			return "PotionVie";
 		case sort1:
 			return "Sort1";
 		case sort2:

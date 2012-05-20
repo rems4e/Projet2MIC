@@ -40,7 +40,8 @@ void jeu() {
 	elements.push_back("Nouvelle partie");
 	elements.push_back("Charger une partie");
 	elements.push_back("Réglages");
-	Menu menu("Menu principal", elements, "Quitter");
+	elements.push_back("Quitter");
+	Menu menu("Menu principal", elements, "");
 	
 	Image fond(Session::cheminRessources() + "tex0.jpg");
 	index_t selection = 0;
@@ -70,7 +71,7 @@ void jeu() {
 				Parametres::editerParametres(fond, sFond);
 			}
 		}
-	} while(selection != elements.size());
+	} while(selection != 3);
 	
 	delete charge;
 	Audio::libererSon(musique);

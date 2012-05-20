@@ -87,6 +87,7 @@ private:
 		std::vector<LoiProba> _probas;
 		std::string const _fichier;
 		size_t _dimX, _dimY;
+		std::string _musique;
 	};
 
 	typedef void (Editeur::*fonctionEditeur_t)();

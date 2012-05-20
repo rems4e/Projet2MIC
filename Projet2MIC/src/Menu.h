@@ -47,6 +47,7 @@ private:
 	std::vector<element_t> _elements;
 	index_t _premierElementAffiche;
 	size_t _nbElementsAffiches;
+	bool _echap;
 };
  
 

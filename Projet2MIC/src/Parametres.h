@@ -15,7 +15,7 @@
 class Image;
 
 namespace Parametres {
-	enum action_t {premiereAction, depGauche = premiereAction, depDroite, depHaut, depBas, afficherJournal, afficherInventaire, ramasserObjet, interagir, sort1, sort2, sort3, sort4, nbActions};
+	enum action_t {premiereAction, depGauche = premiereAction, depDroite, depHaut, depBas, afficherJournal, afficherInventaire, ramasserObjet, interagir, remplirVie, sort1, sort2, sort3, sort4, nbActions};
 	Session::evenement_t evenementAction(action_t action);
 	float volumeMusique();
 	float volumeEffets();

@@ -187,6 +187,12 @@ TiXmlElement *Partie::charger(Image *fond, Shader const &s) {
 #define CHARG 2
 #define QUIT 3
 
+struct triPotions_t {
+	bool operator()(ObjetInventaire *p1, ObjetInventaire *p2) {
+		return p1->vie() < p2->vie();
+	}
+};
+
 TiXmlElement *Partie::commencer() {	
 	Menu *menu = 0;
 	{
@@ -215,7 +221,13 @@ TiXmlElement *Partie::commencer() {
 		Ecran::finaliser();
 		
 		if(_joueur->mort()) {
-			this->mortJoueur();
+			charge = this->mortJoueur(continuer);
+			if(!continuer) {
+				break;
+			}
+			else {
+				continue;
+			}
 		}
 		
 		if(Session::evenement(Parametres::evenementAction(Parametres::afficherInventaire))) {
@@ -260,6 +272,32 @@ TiXmlElement *Partie::commencer() {
 			delete Editeur::editeur();
 			
 			this->reinitialiser();
+		}
+		else if(Session::evenement(Parametres::evenementAction(Parametres::remplirVie))) {
+			InventaireJoueur *j = static_cast<InventaireJoueur *>(_joueur->inventaire());
+			std::list<ObjetInventaire *> potionsVie;
+			for(InventaireJoueur::iterator i = j->debut(); i != j->fin(); ++i) {
+				if(*i && (*i)->categorieObjet() == ObjetInventaire::potion) {
+					potionsVie.push_back(*i);
+				}
+			}
+			
+			potionsVie.sort(triPotions_t());
+
+			while(_joueur->vieActuelle() < _joueur->vieTotale() && potionsVie.size()) {
+				int diff = _joueur->vieTotale() - _joueur->vieActuelle();
+				int v = std::min(potionsVie.front()->vie(), diff);
+				_joueur->modifierVieActuelle(v);
+				potionsVie.front()->supprimerVie(v);
+				if(potionsVie.front()->vie() == 0) {
+					j->supprimerObjet(potionsVie.front());
+					delete potionsVie.front();
+					
+					potionsVie.pop_front();
+				}
+			}
+				
+			Session::reinitialiser(Parametres::evenementAction(Parametres::remplirVie));
 		}
 		if(_joueur->inventaireAffiche()) {
 			_joueur->inventaire()->gestionEvenements();
@@ -351,58 +389,43 @@ void Partie::definirMarchand(Marchand *m) {
 	}
 }
 
-void Partie::mortJoueur() {
-	bool continuer = true;
-	Image *apercu = Ecran::apercu();
+TiXmlElement *Partie::mortJoueur(bool &continuer) {
 	float const dureeTransition = 3.0f;
-	char const * const angle = "angle";
-	char const * const position = "position";
 	Shader sMort(Session::cheminRessources() + "aucun.vert", Session::cheminRessources() + "mort.frag");
 	sMort.definirParametre("duree", dureeTransition);
+
+	std::vector<Unichar> elem;
+	elem.push_back("Recommencer");
+	elem.push_back("Charger une partie");
+	elem.push_back("Menu principal");
+		
+	Menu menu("T'es mort !", elem, "");
+	Image *ap = Ecran::apercu();
 	
-	//Shader sTexte(Session::cheminRessources() + "rotation.vert", Session::cheminRessources() + "aucun.frag");
-	Texte titre("T'es mort !", POLICE_DECO, 42 * Ecran::echelleMin(), Couleur::blanc);
-	Texte sousTitre("(Esc pour recommencer)", POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
 	
-	horloge_t tempsInitial = horloge();
+	index_t selection;
 	
-	while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, continuer)) {
-		Ecran::definirPointeurAffiche(true);
-		Ecran::definirPointeur(0);
-		Ecran::effacer();
-		
-		Shader::flou(1.0).activer();
-		// REDIM
-		apercu->afficher(Coordonnees::zero);
-		
-		sMort.activer();
-		sMort.definirParametre(Shader::temps, horloge() - tempsInitial);
-		Ecran::afficherRectangle(Ecran::ecran(), Couleur::blanc);
-		
-		Shader::aucun().activer();
-		
-		Coordonnees pTitre = Ecran::dimensions() / 2 - titre.dimensions() / 2 - Coordonnees(0, 80) * Ecran::echelleMin();
-		titre.afficher(pTitre);
-		
-		//sTexte.activer();
-		//sTexte.definirParametre(angle, std::fmod(horloge() - tempsInitial, float(M_PI * 2)));
-		pTitre.x = Ecran::dimensions().x / 2 - sousTitre.dimensions().x / 2;
-		//sTexte.definirParametre("axe", 0.0, 1.0, 0.0);
-		//sTexte.definirParametre(position, (Ecran::largeur() / 2 - (pTitre.x + sousTitre.dimensions().x / 2)) / Ecran::largeur(), ((pTitre.y + sousTitre.dimensions().y / 2) - Ecran::hauteur() / 2) / Ecran::hauteur(), 0);
-		sousTitre.afficher(pTitre + Coordonnees(0, titre.dimensions().y + 40 * Ecran::echelleMin()));
-	//	Shader::desactiver();
-		
-		Ecran::finaliser();
-		
-		if(Session::evenement(Session::T_ESC)) {
-			continuer = false;
+	TiXmlElement *retour = 0;
+
+	do {
+		selection = menu.afficher(0, *ap, sMort);
+	
+		if(selection == 0) {
+			this->reinitialiser();
+			continuer = true;
+			break;
 		}
-		
-		Ecran::maj();
-	}
+		else if(selection == 1) {
+			retour = this->charger(ap);
+			continuer = !retour;
+		}
+		else if(selection == 2) {
+			continuer = false;
+			break;
+		}
+	} while(!retour);
 	
-	Shader::desactiver();
+	delete ap;
 	
-	delete apercu;
-	this->reinitialiser();
+	return retour;
 }

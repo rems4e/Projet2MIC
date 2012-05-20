@@ -649,7 +649,9 @@ void Editeur::enregistrer() {
 	
 	n->SetAttribute("dimX", _niveau->_dimX);
 	n->SetAttribute("dimY", _niveau->_dimY);
-		
+	
+	if(_niveau->_musique.size())
+		n->SetAttribute("musique", _niveau->_musique);
 	
 	TiXmlElement *probas = n->FirstChildElement("proba");
 		
@@ -1670,6 +1672,9 @@ Editeur::NiveauEditeur::NiveauEditeur(std::string const &fichier) : _fichier(fic
 	n->Attribute("dimX", &_dimX);
 	n->Attribute("dimY", &_dimY);
 	
+	if(n->Attribute("musique"))
+		_musique = n->Attribute("musique");
+
 	_elements.resize(_dimY);
 	for(Ligne::iterator i = _elements.begin(); i != _elements.end(); ++i) {
 		i->resize(_dimX);

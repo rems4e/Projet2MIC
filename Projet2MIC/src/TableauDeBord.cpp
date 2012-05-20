@@ -26,7 +26,7 @@ void TableauDeBord::afficher() {
 	size_t lBarre = 200, hBarre = 30;
 
 	for(index_t i = 0; i != hBarre; ++i) {
-		Ecran::afficherRectangle(Rectangle(50 * Ecran::echelle().x, posTab + (100 + i) * Ecran::echelle().y, lBarre, 1 * Ecran::echelle().y), Couleur(255 - 6 * std::abs(15 - i), 80, 80));
+		Ecran::afficherRectangle(Rectangle(50 * Ecran::echelle().x, posTab + (100 + i) * Ecran::echelle().y, lBarre * Ecran::echelle().x, 1 * Ecran::echelle().y), Couleur(255 - 6 * std::abs(15 - i), 80, 80));
 		Ecran::afficherRectangle(Rectangle(50 * Ecran::echelle().x, posTab + (100 + i) * Ecran::echelle().y, _joueur->vieActuelle() * lBarre / _joueur->vieTotale() * Ecran::echelle().x, 1 * Ecran::echelle().y), Couleur(230 - 8 * std::abs(15 - i), 0, 0));
 	}
 	 

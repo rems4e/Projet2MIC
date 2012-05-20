@@ -49,7 +49,7 @@ private:
 	void afficher();
 	void animer();
 	void gestionEvenements();
-	void mortJoueur();
+	TiXmlElement *mortJoueur(bool &continuer);
 	
 	Partie();
 	Partie(TiXmlElement *sauve);

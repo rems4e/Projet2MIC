@@ -28,9 +28,14 @@ struct Menu::TestNul {
 	}
 };
 
-Menu::Menu(Unichar const &titre, std::vector<Unichar> const &elements, Unichar const &dernierElement) : _titre(titre, POLICE_DECO, TAILLE_TITRE_MENU, Couleur::blanc), _elements(elements.begin(), elements.end()), _premierElementAffiche(0), _nbElementsAffiches(0) {
+Menu::Menu(Unichar const &titre, std::vector<Unichar> const &elements, Unichar const &dernierElement) : _titre(titre, POLICE_DECO, TAILLE_TITRE_MENU, Couleur::blanc), _elements(elements.begin(), elements.end()), _premierElementAffiche(0), _nbElementsAffiches(0), _echap(true) {
 	std::remove_if(_elements.begin(), _elements.end(), Menu::TestNul());
-	_elements.push_back(element_t(dernierElement));
+	if(dernierElement.size()) {
+		_elements.push_back(element_t(dernierElement));
+	}
+	else {
+		_echap = false;
+	}
 }
 
 Menu::~Menu() {
@@ -42,6 +47,8 @@ index_t Menu::afficher(index_t selection, Image const &fond, Shader const &s) {
 	index_t retour = 0;
 	index_t elementSelectionne = selection;
 	horloge_t ancienDefilement = 0;
+	
+	horloge_t const tempsInitial = horloge();
 	
 	_nbElementsAffiches = 0;
 	size_t dim = 0;
@@ -66,7 +73,7 @@ index_t Menu::afficher(index_t selection, Image const &fond, Shader const &s) {
 		Ecran::effacer();
 		
 		s.activer();
-		s.definirParametre(Shader::temps, horloge());
+		s.definirParametre(Shader::temps, horloge() - tempsInitial);
 		fond.afficher(Coordonnees());
 		Shader::desactiver();
 		
@@ -75,7 +82,7 @@ index_t Menu::afficher(index_t selection, Image const &fond, Shader const &s) {
 		this->afficherElements(elementSelectionne);
 		Ecran::finaliser();
 
-		if(Session::evenement(Session::T_ESC)) {
+		if(_echap && Session::evenement(Session::T_ESC)) {
 			retour = _elements.size() - 1;
 			continuer = false;
 		}

@@ -12,6 +12,8 @@
 #include "EntiteStatique.h"
 #include "Personnage.h"
 
+class TiXmlElement;
+
 class ObjetInventaire : public EntiteStatique {
 	friend ObjetInventaire *ElementNiveau::elementNiveau<ObjetInventaire>(bool decoupagePerspective, Niveau *n, uindex_t i, ElementNiveau::elementNiveau_t) throw(ElementNiveau::Exc_EntiteIndefinie, ElementNiveau::Exc_DefinitionEntiteIncomplete);
 	friend class ElementNiveau;
@@ -31,12 +33,16 @@ public:
 	int defense() const;
 	int attaque() const;
 	int vie() const;
+	void supprimerVie(int delta);
+	
+	void definirDefense(int d);
+	void definirAttaque(int a);
+	void definirVie(int v);
 	
 	Personnage::Competences const &competencesRequises() const;
 	void definirCompetencesRequises(Personnage::Competences const &);
 	
 	void equilibrerAvecJoueur();
-	
 	
 	char const *nomCategorieObjet() const;
 		

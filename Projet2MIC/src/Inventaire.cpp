@@ -723,6 +723,10 @@ TiXmlElement *InventaireJoueur::sauvegarde() const {
 			objet->InsertEndChild(*comp);
 			delete comp;
 			objet->SetAttribute("index", (*i)->index());
+			
+			objet->SetAttribute("attaque", (*i)->attaque());
+			objet->SetAttribute("defense", (*i)->defense());
+			objet->SetAttribute("vie", (*i)->vie());
 		}
 		e->InsertEndChild(*objet);
 		delete objet;
@@ -747,6 +751,19 @@ void InventaireJoueur::restaurer(TiXmlElement *sauvegarde) {
 			Personnage::Competences c;
 			c.restaurer(o);
 
+			if(o->Attribute("attaque")) {
+				o->Attribute("attaque", &i);
+				obj->definirAttaque(i);
+			}
+			if(o->Attribute("defense")) {
+				o->Attribute("defense", &i);
+				obj->definirDefense(i);
+			}
+			if(o->Attribute("vie")) {
+				o->Attribute("vie", &i);
+				obj->definirVie(i);
+			}
+			
 			obj->definirCompetencesRequises(c);
 			this->ajouterObjetEnPosition(obj, pos);
 		}

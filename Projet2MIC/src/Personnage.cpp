@@ -46,7 +46,12 @@ bool Personnage::Competences::operator<(Competences const &c) const {
 }
 
 bool Personnage::Competences::operator<=(Competences const &c) const {
-	return !(*this > c);
+	for(competences_t i = premiereCompetence; i != nbCompetences; ++i) {
+		if(_valeurs[i] > c._valeurs[i])
+			return false;
+	}
+	
+	return true;
 }
 
 bool Personnage::Competences::operator>(Competences const &c) const {
@@ -59,7 +64,12 @@ bool Personnage::Competences::operator>(Competences const &c) const {
 }
 
 bool Personnage::Competences::operator>=(Competences const &c) const {
-	return !(*this < c);
+	for(competences_t i = premiereCompetence; i != nbCompetences; ++i) {
+		if(_valeurs[i] < c._valeurs[i])
+			return false;
+	}
+	
+	return true;
 }
 
 TiXmlElement *Personnage::Competences::sauvegarde() const {
