@@ -29,6 +29,8 @@ struct Rectangle {
 	
 	inline Coordonnees origine() const { return Coordonnees(gauche, haut); }
 	inline Coordonnees dimensions() const { return Coordonnees(largeur, hauteur); }
+	
+	inline Rectangle etirer(Coordonnees const &c) const { return Rectangle(gauche * c.x, haut * c.y, largeur * c.x, hauteur * c.y); }
 
 	inline Rectangle operator+(Coordonnees const &c) const { return Rectangle(gauche + c.x, haut + c.y, largeur, hauteur); }
 	inline Rectangle operator+=(Coordonnees const &c) {
@@ -45,6 +47,7 @@ struct Rectangle {
 	inline Coordonnees operator-(Rectangle const &r) const {
 		return Coordonnees(gauche - r.gauche, haut - r.haut);
 	}
+	
 	inline bool operator==(Rectangle const &r) const {
 		return gauche == r.gauche && haut == r.haut && largeur == r.largeur && hauteur == r.hauteur;
 	}

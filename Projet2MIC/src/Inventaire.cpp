@@ -17,6 +17,10 @@
 #include "Partie.h"
 #include "Niveau.h"
 #include "tinyxml.h"
+#include "Texte.h"
+
+std::list<Texte *> infoObjet(ObjetInventaire *o, Personnage const &reference);
+void afficherInfos(std::list<Texte *> const &infos, Coordonnees const &position, Rectangle const &cadre);
 
 Inventaire::Inventaire(Personnage &perso) : _perso(perso), _monnaie(0) {
 	
@@ -357,7 +361,7 @@ InventaireTableau::iterator InventaireTableau::fin() {
 	return _elements.end();
 }
 
-InventaireMarchand::InventaireMarchand(Marchand &perso) : InventaireTableau(perso, LARGEUR_MARCHAND, HAUTEUR_MARCHAND), _fond(Session::cheminRessources() + "inventaireMarchand.png") {
+InventaireMarchand::InventaireMarchand(Marchand &perso) : InventaireTableau(perso, LARGEUR_MARCHAND, HAUTEUR_MARCHAND), _fond(Session::cheminRessources() + "inventaireMarchand.png"), _infos(0), _gauche(Session::cheminRessources() + "igauche.png"), _droite(Session::cheminRessources() + "idroite.png") {
 
 }
 
@@ -366,33 +370,68 @@ InventaireMarchand::~InventaireMarchand() {
 }
 
 void InventaireMarchand::afficher() const {
+	_inventaire.definirOrigine(Coordonnees(Ecran::largeur() / 2, 0) + Coordonnees(17, 8).etirer(Ecran::echelle()));
+	_inventaire.definirDimensions(Coordonnees(360, 360).etirer(Ecran::echelle()));
+
+	_fond.redimensionner(Ecran::echelle().x,  Ecran::echelle().y);
 	_fond.afficher(Coordonnees(Ecran::largeur() / 2, 0));
 	
-	Coordonnees pos(Ecran::largeur() / 2 + 28, 83);
+	_gauche.redimensionner(Ecran::echelle().x,  Ecran::echelle().y);
+	_droite.redimensionner(Ecran::echelle().x,  Ecran::echelle().y);
+
+	_cadreGauche.definirOrigine(Coordonnees(Ecran::largeur() / 2 + 200 * Ecran::echelle().x - _gauche.dimensions().x - 5 * Ecran::echelle().x, 440 * Ecran::echelle().y));
+	_cadreGauche.definirDimensions(_gauche.dimensions());
+
+	_cadreDroite.definirOrigine(Coordonnees(Ecran::largeur() / 2 + (200 + 5) * Ecran::echelle().x, 440 * Ecran::echelle().y));
+	_cadreDroite.definirDimensions(_droite.dimensions());
+	
+	_gauche.afficher(_cadreGauche.origine());
+	_droite.afficher(_cadreDroite.origine());
+	
+	Coordonnees pos(Ecran::largeur() / 2 + 28 * Ecran::echelle().x, 12 * Ecran::echelle().y);
 	index_t i = 0;
 	for(const_iterator j = this->debut(); j != this->fin(); ++j) {
 		if(*j) {
+			(*j)->image().redimensionner(Ecran::echelle().x,  Ecran::echelle().y);
 			(*j)->image().afficher(pos);
 		}
-		pos.x += 36;
+		pos.x += 36 * Ecran::echelle().x;
 		++i;
 		if((i % this->largeur()) == 0) {
-			pos.x = Ecran::largeur() / 2 + 28;
-			pos.y += 35.4;
+			pos.x = Ecran::largeur() / 2 + 28 * Ecran::echelle().x;
+			pos.y += 35.4 * Ecran::echelle().y;
 		}
 	}
 
 	if(_surlignage != Rectangle::aucun) {
 		Ecran::afficherRectangle(_surlignage, _couleurSurlignage);
 	}
+
+	if(_infos) {
+		std::list<Texte *> infos = infoObjet(_infos, *Partie::partie()->joueur());
+		Texte *t = new Texte(nombreVersTexte(Partie::partie()->marchand()->prixVente(_infos)) + " p. or");
+		if(Partie::partie()->marchand()->prixVente(_infos) > Partie::partie()->joueur()->inventaire()->monnaie())
+			t->definir(Couleur::rouge);
+		else
+			t->definir(Couleur::jaune);
+		
+		infos.push_back(t);
+		
+		afficherInfos(infos, Session::souris(), Rectangle(Ecran::largeur() / 2, 0, Ecran::largeur() / 2, Partie::partie()->zoneJeu().hauteur));
+		
+		for(std::list<Texte *>::iterator i = infos.begin(); i != infos.end(); ++i) {
+			delete *i;
+		}
+	}
 }
 
 void InventaireMarchand::gestionEvenements() {
 	_surlignage = Rectangle::aucun;
+	_infos = 0;
 	
 	if(Session::souris() < _inventaire) {
 		Coordonnees pos = Session::souris() - _inventaire.origine();
-		index_t pX = pos.x / 36, pY = pos.y / 36;
+		index_t pX = pos.x / (36 * Ecran::echelle().x), pY = pos.y / (36 * Ecran::echelle().y);
 		if(comprisEntre<index_t>(pX, 0, this->largeur() - 1) && comprisEntre<index_t>(pY, 0, this->hauteur() - 1)) {
 			if(Session::evenement(Session::B_GAUCHE)) {
 				InventaireJoueur *iJ = static_cast<InventaireJoueur *>(Partie::partie()->joueur()->inventaire());
@@ -414,13 +453,14 @@ void InventaireMarchand::gestionEvenements() {
 					ObjetInventaire *o = this->objetDansCase(pX, pY);
 					if(o) {
 						Coordonnees positionCase = this->positionObjet(o);
-						_surlignage = Rectangle(_inventaire.origine() + Coordonnees(positionCase.x * 36, positionCase.y * 35.4), Coordonnees(o->dimensionsInventaire().x * 36, o->dimensionsInventaire().y * 35.4));
+						_surlignage = Rectangle(_inventaire.origine() + Coordonnees(positionCase.x * 36 * Ecran::echelle().x, positionCase.y * 35.4 * Ecran::echelle().y), Coordonnees(o->dimensionsInventaire().x * 36 * Ecran::echelle().x, o->dimensionsInventaire().y * 35.4 * Ecran::echelle().y));
 						if(Partie::partie()->marchand()->prixVente(o) <= iJ->monnaie())
 							_couleurSurlignage = Couleur(Couleur::blanc, 66);
 						else {
 							_couleurSurlignage = Couleur(Couleur::rouge, 50);
 						}
 					}
+					_infos = o;
 				}
 			}
 		}
@@ -436,9 +476,6 @@ void InventaireMarchand::masquer() {
 }
 
 void InventaireMarchand::preparationAffichage() {
-	_inventaire.definirOrigine(Coordonnees(Ecran::largeur() / 2, 0) + Coordonnees(17, 80));
-	_inventaire.definirDimensions(Coordonnees(360, 360));
-	
 	std::cout << "Initialisation objets" << std::endl;
 }
 
@@ -446,14 +483,7 @@ void InventaireMarchand::definirCapacite(size_t c) {
 	
 }
 
-InventaireJoueur::InventaireJoueur(Joueur &perso) : InventaireTableau(perso, LARGEUR_JOUEUR, HAUTEUR_JOUEUR), _fond(Session::cheminRessources() + "inventaire.png"), _objetTransfert(0), _or("", POLICE_DECO, 20, Couleur::blanc) {
-	_inventaire = Rectangle(21, 282, 365, 150);
-	_tenue[Personnage::brasG] = Rectangle(22, 51, 76, 136);
-	_tenue[Personnage::brasD] = Rectangle(308, 51, 76, 136);
-	_tenue[Personnage::casque] = Rectangle(162, 2, 80, 72);
-	_tenue[Personnage::armure] = Rectangle(164, 83, 80, 105);
-	_tenue[Personnage::gants] = Rectangle(19, 200, 80, 75);
-	_tenue[Personnage::bottes] = Rectangle(307, 200, 80, 75);
+InventaireJoueur::InventaireJoueur(Joueur &perso) : InventaireTableau(perso, LARGEUR_JOUEUR, HAUTEUR_JOUEUR), _fond(Session::cheminRessources() + "inventaire.png"), _objetTransfert(0), _or("", POLICE_DECO, 20, Couleur::blanc), _infos(0), _inventaire() {
 }
 
 InventaireJoueur::~InventaireJoueur() {
@@ -461,21 +491,34 @@ InventaireJoueur::~InventaireJoueur() {
 }
 
 void InventaireJoueur::afficher() const {
+	_inventaire = Rectangle(21, 282, 365, 150).etirer(Ecran::echelle());
+	
+	_tenue[Personnage::brasG] = Rectangle(22, 51, 76, 136).etirer(Ecran::echelle());
+	_tenue[Personnage::brasD] = Rectangle(198, 51, 76, 136).etirer(Ecran::echelle());
+	_tenue[Personnage::casque] = Rectangle(110, 2, 80, 72).etirer(Ecran::echelle());
+	_tenue[Personnage::armure] = Rectangle(110, 83, 80, 105).etirer(Ecran::echelle());
+	_tenue[Personnage::gants] = Rectangle(19, 200, 80, 75).etirer(Ecran::echelle());
+	_tenue[Personnage::bottes] = Rectangle(198, 200, 80, 75).etirer(Ecran::echelle());
+	
 	_fond.afficher(Coordonnees());
+	_fond.redimensionner(Ecran::echelle().x, Ecran::echelle().y);
+	
+	_or.definir(20 * Ecran::echelleMin());
 	_or.definir(nombreVersTexte(this->monnaie()));
-	_or.afficher(Coordonnees(205, 450) + Coordonnees(6, -8));
+	_or.afficher(Coordonnees(205, 450).etirer(Ecran::echelle()) + Coordonnees(6, -8).etirer(Ecran::echelle()));
 
-	Coordonnees pos(32, 288);
+	Coordonnees pos = Coordonnees(32, 288).etirer(Ecran::echelle());
 	index_t i = 0;
 	for(const_iterator j = this->debut(); j != this->fin(); ++j) {
 		if(*j) {
+			(*j)->image().redimensionner(Ecran::echelle().x, Ecran::echelle().y);
 			(*j)->image().afficher(pos);
 		}
-		pos.x += 36;
+		pos.x += 36 * Ecran::echelle().x;
 		++i;
 		if((i % this->largeur()) == 0) {
-			pos.x = 32;
-			pos.y += 37;
+			pos.x = 32 * Ecran::echelle().x;
+			pos.y += 37 * Ecran::echelle().y;
 		}
 	}
 	for(Personnage::positionTenue_t i = Personnage::premierePositionTenue; i != Personnage::nbPositionsTenue; ++i) {
@@ -491,16 +534,53 @@ void InventaireJoueur::afficher() const {
 	if(_surlignageTransfert != Rectangle::aucun) {
 		Ecran::afficherRectangle(_surlignageTransfert.intersection(_inventaire), _couleurSurlignageTransfert);
 	}
+	
+	pos = Coordonnees(284, 20).etirer(Ecran::echelle());
+	std::vector<std::pair<Texte, Coordonnees> > infosJoueur;
+	Texte t;
+	t.definir(Couleur::blanc);
+	t.definir(POLICE_DECO, 14 * Ecran::echelleMin());
+	for(Personnage::competences_t c = Personnage::premiereCompetence; c != Personnage::nbCompetences; ++c) {
+		t.definir(Personnage::nomCompetence(c) + std::string(" :"));
+		infosJoueur.push_back(std::make_pair(t, pos));
+		pos.y += 5 * Ecran::echelle().y + t.dimensions().y;
+		
+		t.definir(nombreVersTexte(this->personnage().competences()[c]));
+		infosJoueur.push_back(std::make_pair(t, pos + Coordonnees(100 * Ecran::echelle().x - t.dimensions().x, 0)));
+		pos.y += 5 * Ecran::echelle().y + t.dimensions().y;		
+	}
+	
+	for(std::vector<std::pair<Texte, Coordonnees> >::const_iterator i = infosJoueur.begin(); i != infosJoueur.end(); ++i) {
+		i->first.afficher(i->second);
+	}
+
+	if(_infos) {
+		std::list<Texte *> infos = infoObjet(_infos, this->personnage());
+		if(Partie::partie()->marchand()) {
+			Texte *t = new Texte(nombreVersTexte(Partie::partie()->marchand()->prixAchat(_infos)) + " p. or");
+			t->definir(Couleur::jaune);
+			infos.push_back(t);
+		}
+
+		afficherInfos(infos, Session::souris(), Rectangle(0, 0, Ecran::largeur() / 2, Partie::partie()->zoneJeu().hauteur));
+		
+		for(std::list<Texte *>::iterator i = infos.begin(); i != infos.end(); ++i) {
+			delete *i;
+		}
+	}
 }
 
 void InventaireJoueur::gestionEvenements() {
 	_surlignage = Rectangle::aucun;
 	_surlignageTransfert = Rectangle::aucun;
+	_infos = 0;
 
 	if(Partie::partie()->marchand() && Session::souris() < static_cast<InventaireMarchand*>(Partie::partie()->marchand()->inventaire())->zoneObjets()) {
 		if(_objetTransfert && Session::evenement(Session::B_GAUCHE)) {
 			this->modifierMonnaie(Partie::partie()->marchand()->prixAchat(_objetTransfert));
-			Partie::partie()->marchand()->inventaire()->ajouterObjet(_objetTransfert);
+			if(!Partie::partie()->marchand()->inventaire()->ajouterObjet(_objetTransfert)) {
+				delete _objetTransfert;
+			}
 			_objetTransfert = 0;
 			Session::reinitialiser(Session::B_GAUCHE);
 		}
@@ -514,7 +594,7 @@ void InventaireJoueur::gestionEvenements() {
 	}
 	else if(Session::souris() < _inventaire) {
 		Coordonnees pos = Session::souris() - _inventaire.origine();
-		index_t pX = pos.x / 36, pY = pos.y / 37;
+		index_t pX = pos.x / (36 * Ecran::echelle().x), pY = pos.y / (37 * Ecran::echelle().y);
 		if(comprisEntre<index_t>(pX, 0, this->largeur() - 1) && comprisEntre<index_t>(pY, 0, this->hauteur() - 1)) {
 			if(Session::evenement(Session::B_GAUCHE)) {
 				if(_objetTransfert) {
@@ -538,17 +618,19 @@ void InventaireJoueur::gestionEvenements() {
 				ObjetInventaire *o = this->objetDansCase(pX, pY);
 				if(o) {
 					Coordonnees positionCase = this->positionObjet(o);
-					_surlignage = Rectangle(_inventaire.origine() + Coordonnees(positionCase.x * 36, positionCase.y * 37), Coordonnees(o->dimensionsInventaire().x * 36, o->dimensionsInventaire().y * 37));
+					_surlignage = Rectangle(_inventaire.origine() + Coordonnees(positionCase.x * 36.5 * Ecran::echelle().x, positionCase.y * 37 * Ecran::echelle().y), Coordonnees(o->dimensionsInventaire().x * 36.5 * Ecran::echelle().x, o->dimensionsInventaire().y * 37 * Ecran::echelle().y));
 					_couleurSurlignage = Couleur(Couleur::blanc, 66);
+					if(!_objetTransfert)
+						_infos = o;
 				}
 				if(_objetTransfert) {
-					_surlignageTransfert = Rectangle(_inventaire.origine() + Coordonnees(pX * 36, pY * 37), Coordonnees(_objetTransfert->dimensionsInventaire().x * 36, _objetTransfert->dimensionsInventaire().y * 37));
+					_surlignageTransfert = Rectangle(_inventaire.origine() + Coordonnees(pX * 36.5 * Ecran::echelle().x, pY * 37 * Ecran::echelle().y), Coordonnees(_objetTransfert->dimensionsInventaire().x * 36.5 * Ecran::echelle().x, _objetTransfert->dimensionsInventaire().y * 37 * Ecran::echelle().y));
 					ObjetInventaire *remp;
 					bool ok = this->peutPlacerObjetDansCase(pX, pY, _objetTransfert, remp);
 					if(ok) {
 						if(remp) {
 							Coordonnees positionCase = this->positionObjet(remp);
-							_surlignage = Rectangle(_inventaire.origine() + Coordonnees(positionCase.x * 36, positionCase.y * 37), Coordonnees(remp->dimensionsInventaire().x * 36, remp->dimensionsInventaire().y * 37));
+							_surlignage = Rectangle(_inventaire.origine() + Coordonnees(positionCase.x * 36.5 * Ecran::echelle().x, positionCase.y * 37 * Ecran::echelle().y), Coordonnees(remp->dimensionsInventaire().x * 36.5 * Ecran::echelle().y, remp->dimensionsInventaire().y * 37 * Ecran::echelle().y));
 							_couleurSurlignage = Couleur(Couleur::blanc, 33);
 							_couleurSurlignageTransfert = Couleur(Couleur::blanc, 66);
 						}
@@ -594,6 +676,7 @@ void InventaireJoueur::gestionEvenements() {
 					else if(this->personnage().tenue(i)) {
 						_couleurSurlignage = Couleur(Couleur::blanc, 66);
 						_surlignage = _tenue[i];
+						_infos = this->personnage().tenue(i);
 					}
 				}
 				break;
@@ -669,5 +752,78 @@ void InventaireJoueur::restaurer(TiXmlElement *sauvegarde) {
 		}
 	}
 
+}
+
+std::list<Texte *> infoObjet(ObjetInventaire *o, Personnage const &reference) {
+	std::list<Texte *> retour;
+	
+	switch(o->categorieObjet()) {
+		case ObjetInventaire::bouclier:
+		case ObjetInventaire::armure:
+		case ObjetInventaire::casque:
+		case ObjetInventaire::gants:
+		case ObjetInventaire::bottes: {
+			Texte *t = new Texte("Défense : " + nombreVersTexte(o->defense()));
+			t->definir(Couleur::bleu);
+			retour.push_back(t);
+		}
+		case ObjetInventaire::arme: {
+			for(Personnage::competences_t c = Personnage::premiereCompetence; c != Personnage::nbCompetences; ++c) {
+				Texte *t = new Texte("");
+				t->definir(Personnage::nomCompetence(c) + std::string(" : ") + nombreVersTexte(o->competencesRequises()[c]));
+				if(o->competencesRequises()[c] > reference.competences()[c])
+					t->definir(Couleur::rouge);
+				else
+					t->definir(Couleur::blanc);
+				
+				retour.push_back(t);
+			}
+			break;
+		}
+		case ObjetInventaire::potion: {
+			Texte *t = new Texte("Points de vie : " + nombreVersTexte(o->vie()));
+			t->definir(Couleur::bleu);
+			retour.push_back(t);
+		}
+	}
+	
+	if(o->categorieObjet() == ObjetInventaire::arme) {
+		Texte *t = new Texte("Attaque : " + nombreVersTexte(o->attaque()));
+		t->definir(Couleur::bleu);
+		retour.push_front(t);
+	}
+	
+	Texte *t = new Texte(o->nomCategorieObjet());
+	t->definir(Couleur::blanc);
+	retour.push_front(t);
+	
+	return retour;
+}
+
+void afficherInfos(std::list<Texte *> const &infos, Coordonnees const &position, Rectangle const &cadre) {
+	Coordonnees dim;
+	Coordonnees const ecart = Coordonnees(5, 5).etirer(Ecran::echelle());
+	for(std::list<Texte *>::const_iterator i = infos.begin(); i != infos.end(); ++i) {
+		(*i)->definir(POLICE_DECO, 12 * Ecran::echelleMin());
+		dim.x = std::max(dim.x, (*i)->dimensions().x);
+		dim.y += (*i)->dimensions().y + ecart.y;
+	}
+	dim.x += 2 * ecart.x;
+	dim.y += ecart.y;
+
+	Coordonnees pos = position + Ecran::pointeur()->dimensions();
+
+	if(pos.x + dim.x > cadre.gauche + cadre.largeur)
+		pos.x = position.x - dim.x;
+	if(pos.y + dim.y > cadre.haut + cadre.hauteur)
+		pos.y = position.y - dim.y;
+
+	Ecran::afficherRectangle(Rectangle(pos, dim), Couleur(0, 0, 0, 200));
+	pos += ecart;
+			
+	for(std::list<Texte *>::const_iterator i = infos.begin(); i != infos.end(); ++i) {
+		(*i)->afficher(pos);
+		pos.y += (*i)->dimensions().y + ecart.y;
+	}
 }
 

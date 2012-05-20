@@ -20,6 +20,8 @@ public:
 	enum competences_t {premiereCompetence, force = premiereCompetence, agilite, endurance, nbCompetences};
 	class Competences {
 	public:
+		Competences();
+		
 		int operator[](competences_t c) const;
 		int &operator[](competences_t c);
 		
@@ -35,6 +37,8 @@ public:
 	private:
 		int _valeurs[nbCompetences];
 	};
+	
+	static char const *nomCompetence(competences_t c);
 	
 	enum positionTenue_t {premierePositionTenue, brasG = premierePositionTenue, brasD, casque, armure, gants, bottes, nbPositionsTenue};
 	virtual ~Personnage();

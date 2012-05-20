@@ -11,7 +11,8 @@
 
 #define CAPACITE_ENNEMI 4
 #define LARGEUR_MARCHAND 10
-#define HAUTEUR_MARCHAND 10
+#define HAUTEUR_MARCHAND 12
+
 #define LARGEUR_JOUEUR 10
 #define HAUTEUR_JOUEUR 4
 
@@ -268,10 +269,18 @@ private:
 	virtual void definirCapacite(size_t c);
 	
 	Image _fond;
-	Rectangle _inventaire;
+	mutable Rectangle _inventaire;
 
 	Rectangle _surlignage;
 	Couleur _couleurSurlignage;
+	ObjetInventaire *_infos;
+	
+	Image _gauche;
+	Image _droite;
+	
+	mutable Rectangle _cadreGauche, _cadreDroite;
+	
+	index_t _page;
 };
 
 class InventaireJoueur : public InventaireTableau {
@@ -299,8 +308,8 @@ private:
 	Image _fond;
 	mutable Texte _or;
 	
-	Rectangle _inventaire;
-	Rectangle _tenue[Personnage::nbPositionsTenue];
+	mutable Rectangle _inventaire;
+	mutable Rectangle _tenue[Personnage::nbPositionsTenue];
 	Rectangle _surlignage;
 	Couleur _couleurSurlignage;
 	
@@ -308,6 +317,7 @@ private:
 	Couleur _couleurSurlignageTransfert;
 	
 	ObjetInventaire *_objetTransfert;
+	ObjetInventaire *_infos;
 };
 
 #endif

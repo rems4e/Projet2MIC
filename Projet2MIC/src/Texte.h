@@ -40,6 +40,7 @@ public:
 	
 	Texte &definir(Unichar const &txt);
 	Texte &definir(police_t police, taillePolice_t taille);
+	Texte &definir(taillePolice_t taille);
 	Texte &definir(Unichar const &txt, police_t police, taillePolice_t taille);
 	Texte &definir(Couleur const &coul);
 	

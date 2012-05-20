@@ -23,10 +23,6 @@
 
 #include <iostream>
 
-void afficher(ElementNiveau *el) {
-	std::cout << "(" << ElementNiveau::nomCategorie(el->categorie()) << " " << el->index() << ")";
-}
-
 TiXmlDocument *ElementNiveau::_description = 0;
 
 ElementNiveau::elementNiveau_t &operator++(ElementNiveau::elementNiveau_t &e) { return e = static_cast<ElementNiveau::elementNiveau_t>(static_cast<int>(e) + 1); }

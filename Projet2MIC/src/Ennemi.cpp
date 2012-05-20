@@ -12,6 +12,8 @@
 Ennemi::Ennemi(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : Personnage(decoupagePerspective, n, index, cat, new InventaireEnnemi(*this, CAPACITE_ENNEMI)), _recherche(false) {
 	this->definirVieTotale(10);
 	this->inventaire()->modifierMonnaie(20);
+
+	this->equilibrerAvecJoueur();
 }
 
 Ennemi::~Ennemi() {
@@ -37,7 +39,7 @@ void Ennemi::animer() {
 		}
 		else {
 			dep.normaliser();
-			dep *= this->vitesse();
+			dep *= this->vitesse() * 60.0 / Ecran::frequenceInstantanee();
 			index_t pX = this->nPX(this->position().x + dep.x), pY = this->nPY(this->position().y + dep.y);
 			suivre = j->pX() != pX || j->pY() != pY;
 			Niveau::const_listeElements_t liste = this->niveau()->elements(pX, pY, this->couche());
@@ -100,4 +102,8 @@ double Ennemi::vitesse() const {
 
 EntiteMobile::categorie_t Ennemi::categorieMobile() const {
 	return EntiteMobile::em_ennemi;
+}
+
+void Ennemi::equilibrerAvecJoueur() {
+	
 }

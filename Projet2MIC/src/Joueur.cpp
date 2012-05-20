@@ -43,7 +43,7 @@ void Joueur::animer() {
 		_interaction = ij_aucune;
 
 		dep.normaliser();
-		dep *= this->vitesse();
+		dep *= this->vitesse() * 60.0 / Ecran::frequenceInstantanee();
 		if(this->definirAction(EntiteMobile::a_deplacer)) {
 			this->deplacerPosition(dep);
 		}

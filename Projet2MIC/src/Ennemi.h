@@ -24,6 +24,8 @@ public:
 	virtual double vitesse() const;
 	virtual categorie_t categorieMobile() const;
 
+	void equilibrerAvecJoueur();
+
 protected:
 	static ElementNiveau::elementNiveau_t cat() { return ElementNiveau::ennemi; }
 

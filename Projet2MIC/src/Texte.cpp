@@ -70,8 +70,14 @@ Texte &Texte::definir(police_t police, taillePolice_t taille) {
 	_taille = taille;
 	_dimensions = Texte::dimensions(_texte, _police, _taille);
 	
-	return 
-	*this;
+	return *this;
+}
+
+Texte &Texte::definir(taillePolice_t taille) {
+	_taille = taille;
+	_dimensions = Texte::dimensions(_texte, _police, _taille);
+	
+	return *this;
 }
 
 Texte &Texte::definir(Unichar const &txt, police_t police, taillePolice_t taille) {

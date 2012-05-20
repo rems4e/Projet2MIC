@@ -13,6 +13,12 @@
 #include "Inventaire.h"
 #include "ObjetInventaire.h"
 
+Personnage::Competences::Competences() {
+	for(competences_t i = premiereCompetence; i != nbCompetences; ++i) {
+		_valeurs[i] = 1;
+	}
+}
+
 int Personnage::Competences::operator[](competences_t c) const {
 	return _valeurs[c];
 }
@@ -70,7 +76,10 @@ void Personnage::Competences::restaurer(TiXmlElement *e) {
 	TiXmlElement *el = e->FirstChildElement("Competences");
 	for(competences_t c = premiereCompetence; c != nbCompetences; ++c) {
 		std::string val = "c" + nombreVersTexte(c);
-		el->Attribute(val, &(*this)[c]);
+		if(el->Attribute(val))
+			el->Attribute(val, &(*this)[c]);
+		else
+			(*this)[c] = 1;
 	}
 }
 
@@ -103,10 +112,6 @@ Personnage::Personnage(bool decoupagePerspective, Niveau *n, uindex_t index, Ele
 	_delaisAction[a_attaquer]._cooldown = 0.5f;
 	
 	std::memset(_tenue, 0, nbPositionsTenue * sizeof(ObjetInventaire *));
-	
-	for(competences_t i = premiereCompetence; i != nbCompetences; ++i) {
-		_competences[i] = 1;
-	}
 }
 
 Personnage::~Personnage() {
@@ -267,3 +272,17 @@ void Personnage::attaquer(Personnage *p) {
 		_cibleAttaque = p;
 	}
 }
+
+char const *Personnage::nomCompetence(competences_t c) {
+	switch(c) {
+		case force:
+			return "Force";
+		case agilite:
+			return "Agilité";
+		case endurance:
+			return "Endurance";
+		case nbCompetences:
+			return 0;
+	}
+}
+

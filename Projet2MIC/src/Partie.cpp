@@ -194,9 +194,9 @@ TiXmlElement *Partie::commencer() {
 		elem.push_back("Réglages");
 		elem.push_back("Sauvegarder la partie");
 		elem.push_back("Charger une partie");
-		elem.push_back("Quitter");
+		elem.push_back("Menu principal");
 		
-		menu = new Menu("Menu principal", elem);
+		menu = new Menu("Pause", elem);
 	}
 	TiXmlElement *charge = 0;
 	
@@ -300,7 +300,9 @@ void Partie::reinitialiser() {
 
 Rectangle Partie::zoneJeu() const {
 	if(_marchand) {
-		return Rectangle::aucun;
+		Rectangle r = Rectangle::aucun;
+		r.hauteur = Ecran::hauteur() - _tableauDeBord->hauteur();
+		return r;
 	}
 	else if(!(_joueur->inventaireAffiche())) {
 		return Rectangle(Coordonnees(), Coordonnees(Ecran::largeur(), Ecran::hauteur() - _tableauDeBord->hauteur()));
@@ -358,9 +360,9 @@ void Partie::mortJoueur() {
 	Shader sMort(Session::cheminRessources() + "aucun.vert", Session::cheminRessources() + "mort.frag");
 	sMort.definirParametre("duree", dureeTransition);
 	
-	Shader sTexte(Session::cheminRessources() + "rotation.vert", Session::cheminRessources() + "aucun.frag");
-	Texte titre("T'es mort !", POLICE_DECO, 42, Couleur::blanc);
-	Texte sousTitre("(Esc pour recommencer)", POLICE_DECO, 26, Couleur::blanc);
+	//Shader sTexte(Session::cheminRessources() + "rotation.vert", Session::cheminRessources() + "aucun.frag");
+	Texte titre("T'es mort !", POLICE_DECO, 42 * Ecran::echelleMin(), Couleur::blanc);
+	Texte sousTitre("(Esc pour recommencer)", POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
 	
 	horloge_t tempsInitial = horloge();
 	
@@ -370,6 +372,7 @@ void Partie::mortJoueur() {
 		Ecran::effacer();
 		
 		Shader::flou(1.0).activer();
+		// REDIM
 		apercu->afficher(Coordonnees::zero);
 		
 		sMort.activer();
@@ -378,16 +381,16 @@ void Partie::mortJoueur() {
 		
 		Shader::aucun().activer();
 		
-		Coordonnees pTitre = Ecran::dimensions() / 2 - titre.dimensions() / 2 - Coordonnees(0, 80);
+		Coordonnees pTitre = Ecran::dimensions() / 2 - titre.dimensions() / 2 - Coordonnees(0, 80) * Ecran::echelleMin();
 		titre.afficher(pTitre);
 		
-		sTexte.activer();
-		sTexte.definirParametre(angle, std::fmod(horloge() - tempsInitial, float(M_PI * 2)));
+		//sTexte.activer();
+		//sTexte.definirParametre(angle, std::fmod(horloge() - tempsInitial, float(M_PI * 2)));
 		pTitre.x = Ecran::dimensions().x / 2 - sousTitre.dimensions().x / 2;
-		sTexte.definirParametre("axe", 0.0, 1.0, 0.0);
-		sTexte.definirParametre(position, (Ecran::largeur() / 2 - (pTitre.x + sousTitre.dimensions().x / 2)) / Ecran::largeur(), ((pTitre.y + sousTitre.dimensions().y / 2) - Ecran::hauteur() / 2) / Ecran::hauteur(), 0);
-		sousTitre.afficher(pTitre + Coordonnees(0, titre.dimensions().y + 40));
-		Shader::desactiver();
+		//sTexte.definirParametre("axe", 0.0, 1.0, 0.0);
+		//sTexte.definirParametre(position, (Ecran::largeur() / 2 - (pTitre.x + sousTitre.dimensions().x / 2)) / Ecran::largeur(), ((pTitre.y + sousTitre.dimensions().y / 2) - Ecran::hauteur() / 2) / Ecran::hauteur(), 0);
+		sousTitre.afficher(pTitre + Coordonnees(0, titre.dimensions().y + 40 * Ecran::echelleMin()));
+	//	Shader::desactiver();
 		
 		Ecran::finaliser();
 		

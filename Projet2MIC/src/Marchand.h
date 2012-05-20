@@ -24,8 +24,10 @@ public:
 	virtual bool interagir(Personnage *p, bool test);
 	
 	virtual categorie_t categorieMobile() const;
-		
+	
+	// Combien le marchand va acheter l'objet
 	ssize_t prixAchat(ObjetInventaire *o);
+	// Combien le marchand va vendre l'objet au joueur
 	ssize_t prixVente(ObjetInventaire *o);
 	
 protected:

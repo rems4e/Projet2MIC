@@ -74,6 +74,8 @@ struct Coordonnees {
 	}
 	
 	inline Coordonnees operator/(double d) const { return Coordonnees(x / d, y / d); }
+	
+	inline Coordonnees etirer(Coordonnees const &c) const { return Coordonnees(x * c.x, y * c.y); }
 		
 	// Inclusion dans @r
 	bool operator<(Rectangle const &r) const;

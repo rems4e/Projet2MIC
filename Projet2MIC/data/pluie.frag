@@ -62,7 +62,7 @@ void main(void) {
 	}
 	
 	if(indice != -1) {
-		couleur.a = 0.5;
+		couleur.a = 1.0;
 		couleur.rgb *= vec3(0.8);
 		
 		if(freq(nb[indice]) && ((nb[indice] - freqMin) / (freqMax - freqMin) * _ecran.y >= gl_FragCoord.y))

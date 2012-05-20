@@ -23,7 +23,7 @@
 #define PROFONDEUR_COULEURS 32
 #define PLEIN_ECRAN false
 #define SYNCHRO_VERTICALE true
-#define FREQUENCE_RAFRAICHISSEMENT 100
+#define FREQUENCE_RAFRAICHISSEMENT 60
 #define IPS
 
 class Texte;
@@ -40,6 +40,7 @@ struct Couleur {
 	static Couleur const rouge;
 	static Couleur const vert;
 	static Couleur const bleu;
+	static Couleur const jaune;
 	static Couleur const transparent;
 	
 	inline Couleur() : r(255), v(255), b(255), a(255) { }
@@ -91,6 +92,9 @@ namespace Ecran {
 	Image const *pointeur();
 	// Si image vaut 0, le pointeur par défaut est utilisé. La valeur decalage représente les coordonnées du point cliquable de l'image du pointeur.
 	void definirPointeur(Image const *image, Coordonnees const &decalage = Coordonnees());
+	
+	Coordonnees const &echelle();
+	coordonnee_t echelleMin();
 }
 
 #endif

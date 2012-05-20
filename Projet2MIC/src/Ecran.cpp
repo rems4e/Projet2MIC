@@ -43,6 +43,7 @@ Couleur const Couleur::blanc(255);
 Couleur const Couleur::rouge(255, 0, 0);
 Couleur const Couleur::vert(0, 255, 0);
 Couleur const Couleur::bleu(0, 0, 255);
+Couleur const Couleur::jaune(255, 255, 0);
 Couleur const Couleur::transparent(0, 0);
 
 namespace Ecran {
@@ -62,6 +63,8 @@ namespace Ecran {
 		float _frequence;
 		float _frequenceInstantanee;
 		
+		Coordonnees _echelle;
+		coordonnee_t _echelleMin;
 		
 		AttributsEcran();
 		~AttributsEcran();
@@ -146,6 +149,9 @@ void Ecran::modifierResolution(unsigned int largeur, unsigned int hauteur, unsig
 	Ecran::_attributs->_vide = Image(imageVide, 1, 1, 4);
 	
 	Ecran::definirPointeur(0);
+	
+	Ecran::_attributs->_echelle = Coordonnees(Ecran::_attributs->_largeur / 800.0f, Ecran::_attributs->_hauteur / 600.0f);
+	Ecran::_attributs->_echelleMin = std::min(Ecran::_attributs->_echelle.x, Ecran::_attributs->_echelle.y);
 }
 
 Image *Ecran::apercu() {
@@ -298,7 +304,7 @@ void Ecran::definirPointeurAffiche(bool af) {
 }
 
 Image const *Ecran::pointeur() {
-	return Ecran::_attributs->_pointeur == Ecran::_attributs->_pointeurDefaut ? 0 : Ecran::_attributs->_pointeur;
+	return Ecran::_attributs->_pointeur;
 }
 
 void Ecran::definirPointeur(Image const *image, Coordonnees const &decalage) {
@@ -311,3 +317,12 @@ void Ecran::definirPointeur(Image const *image, Coordonnees const &decalage) {
 		Ecran::_attributs->_decalagePointeur = decalage;
 	}
 }
+
+Coordonnees const &Ecran::echelle() {
+	return Ecran::_attributs->_echelle;
+}
+
+coordonnee_t Ecran::echelleMin() {
+	return Ecran::_attributs->_echelleMin;
+}
+

@@ -216,7 +216,7 @@ void Niveau::allocationCases() {
 }
 
 void Niveau::remplissageBordures() {
-	_solBordures = ElementNiveau::elementNiveau<EntiteStatique>(false, this, 1, ElementNiveau::sol);
+	_solBordures = ElementNiveau::elementNiveau<EntiteStatique>(false, this, 2, ElementNiveau::sol);
 
 	GenerateurElementAleatoire geneArbres(ElementNiveau::arbre, 1.0f);
 	for(int i = 0; i < 4; ++i) {
@@ -241,7 +241,7 @@ void Niveau::remplissageBordures() {
 }
 
 ssize_t Niveau::epaisseurBordure() {
-	return 24;
+	return 32;
 }
 
 ssize_t Niveau::longueurBordure(int cote) {

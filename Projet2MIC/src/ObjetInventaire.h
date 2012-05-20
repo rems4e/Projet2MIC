@@ -20,15 +20,25 @@ public:
 	
 	virtual ~ObjetInventaire();
 	
-	virtual void afficher(index_t deltaY, Coordonnees const &decalage, double zoom = 1.0) const;
+	virtual void afficher(index_t deltaY, Coordonnees const &decalage) const;
 	virtual void animer();
 	virtual Coordonnees dimensions() const;
 	
 	categorie_t categorieObjet() const;
 	bool tenue() const;
 	Coordonnees dimensionsInventaire() const;
+	
+	int defense() const;
+	int attaque() const;
+	int vie() const;
+	
 	Personnage::Competences const &competencesRequises() const;
 	void definirCompetencesRequises(Personnage::Competences const &);
+	
+	void equilibrerAvecJoueur();
+	
+	
+	char const *nomCategorieObjet() const;
 		
 protected:
 	static ElementNiveau::elementNiveau_t cat() { return ElementNiveau::objetInventaire; }
@@ -40,6 +50,8 @@ protected:
 	Coordonnees _dimInventaire;
 	Personnage::Competences _competencesRequises;
 	categorie_t _categorie;
+	
+	int _attaque, _defense, _vie;
 };
 
 #endif

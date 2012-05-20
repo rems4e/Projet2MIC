@@ -48,9 +48,9 @@ bool Marchand::collision(index_t x, index_t y) const {
 }
 
 ssize_t Marchand::prixAchat(ObjetInventaire *o) {
-	return 10;
+	return std::max<ssize_t>(this->prixVente(o) * 75 / 100, 1);
 }
 
-ssize_t Marchand::prixVente(ObjetInventaire *o) {
-	return 10;
+ssize_t Marchand::prixVente(ObjetInventaire *o) {	
+	return 5 * (o->attaque() + o->defense() + o->vie());
 }

@@ -392,7 +392,7 @@ void Parametres::controles(Image const &fond, Shader const &s) {
 	}
 }
 
-Parametres::etiquetteTexte_t::etiquetteTexte_t(Unichar const &t) : _texte(t, POLICE_DECO, 20, Couleur::blanc) {
+Parametres::etiquetteTexte_t::etiquetteTexte_t(Unichar const &t) : _texte(t, POLICE_DECO, 20 * Ecran::echelleMin(), Couleur::blanc) {
 
 }
 
@@ -435,40 +435,40 @@ void Parametres::afficherColonnes(Unichar const &titre, index_t premier, size_t 
 	if(!dernierAffiche)
 		--nb;
 	
-	Texte tt(titre, POLICE_DECO, 40, Couleur::blanc);
-	Texte points("...", POLICE_DECO, 20, Couleur::blanc);
+	Texte tt(titre, POLICE_DECO, 40 * Ecran::echelleMin(), Couleur::blanc);
+	Texte points("...", POLICE_DECO, 20 * Ecran::echelleMin(), Couleur::blanc);
 	
-	Rectangle cadre(Coordonnees(80, 80), tt.dimensions());
+	Rectangle cadre(Coordonnees(80, 80) * Ecran::echelleMin(), tt.dimensions());
 	tt.afficher(cadre.origine());
 	
-	cadre.haut += cadre.hauteur + 20;
-	cadre.gauche += 20;
+	cadre.haut += cadre.hauteur + 20 * Ecran::echelleMin();
+	cadre.gauche += 20 * Ecran::echelleMin();
 	
-	dimension_t largeur1 = std::max_element(colonne1.begin(), colonne1.end(), largeurTexte_t())->_texte.dimensions().x, largeur2 = -40;
+	dimension_t largeur1 = std::max_element(colonne1.begin(), colonne1.end(), largeurTexte_t())->_texte.dimensions().x, largeur2 = -40 * Ecran::echelleMin();
 	if(colonne2.size())
 		largeur2 = std::max_element(colonne2.begin(), colonne2.end(), largeurTexte_t())->_texte.dimensions().x;
 	
-	dimension_t hauteur = std::accumulate(colonne1.begin() + premier, colonne1.begin() + premier + nb, dimension_t(0), hauteurTexte_t(10)) - 10;
+	dimension_t hauteur = std::accumulate(colonne1.begin() + premier, colonne1.begin() + premier + nb, dimension_t(0), hauteurTexte_t(10 * Ecran::echelleMin())) - 10 * Ecran::echelleMin();
 	if(!premierAffiche) {
-		hauteur += points.dimensions().y + 10;
+		hauteur += points.dimensions().y + 10 * Ecran::echelleMin();
 	}
 	if(!dernierAffiche)
-		hauteur += points.dimensions().y + 10;
+		hauteur += points.dimensions().y + 10 * Ecran::echelleMin();
 	
-	Ecran::afficherRectangle(Rectangle(cadre.gauche, cadre.haut, largeur1 + largeur2 + 20 + 40, hauteur + 20), Couleur(200, 205, 220, 128));
+	Ecran::afficherRectangle(Rectangle(cadre.gauche, cadre.haut, largeur1 + largeur2 + 20 * Ecran::echelleMin() + 40 * Ecran::echelleMin(), hauteur + 20 * Ecran::echelleMin()), Couleur(200, 205, 220, 128));
 	
-	cadre += Coordonnees(10, 10);
+	cadre += Coordonnees(10, 10) * Ecran::echelleMin();
 
 	if(!premierAffiche) {
-		points.afficher(cadre.origine() + Coordonnees((largeur1 + largeur2 + 40 - points.dimensions().x) / 2, 0));
-		cadre.haut += points.dimensions().y + 10;
+		points.afficher(cadre.origine() + Coordonnees((largeur1 + largeur2 + 40 * Ecran::echelleMin() - points.dimensions().x) / 2, 0));
+		cadre.haut += points.dimensions().y + 10 * Ecran::echelleMin();
 	}
 
 	coordonnee_t sauveHaut = cadre.haut;
-	afficheurTexte_t afficheur(cadre, 10);
+	afficheurTexte_t afficheur(cadre, 10 * Ecran::echelleMin());
 	for_each(colonne1.begin() + premier, colonne1.begin() + premier + nb, afficheur);
 	cadre.haut = sauveHaut;
-	cadre.gauche += largeur1 + 40;
+	cadre.gauche += largeur1 + 40 * Ecran::echelleMin();
 	if(colonne2.size())
 		for_each(colonne2.begin() + premier, colonne2.begin() + premier + nb, afficheur);
 	if(sel1 >= 0)
@@ -476,23 +476,23 @@ void Parametres::afficherColonnes(Unichar const &titre, index_t premier, size_t 
 	if(sel2 >= 0)
 		colonne2[sel2]._texte.definir(Couleur::blanc);
 	
-	cadre.gauche -= largeur1 + 40;
-	cadre.largeur = largeur1 + 40;
+	cadre.gauche -= largeur1 + 40 * Ecran::echelleMin();
+	cadre.largeur = largeur1 + 40 * Ecran::echelleMin();
 	cadre.haut = sauveHaut;
-	initCadres_t initCadres(cadre, 10);
+	initCadres_t initCadres(cadre, 10 * Ecran::echelleMin());
 	for_each(colonne1.begin() + premier, colonne1.begin() + premier + nb, initCadres);
 	cadre.largeur = largeur2;
 	cadre.haut = sauveHaut;
-	cadre.gauche += largeur1 + 40;
+	cadre.gauche += largeur1 + 40 * Ecran::echelleMin();
 	for_each(colonne2.begin() + premier, colonne2.begin() + premier + nb, initCadres);
 	
-	cadre.gauche -= largeur1 + 40;
+	cadre.gauche -= largeur1 + 40 * Ecran::echelleMin();
 	if(!dernierAffiche) {
-		cadre += Coordonnees(10, 10);
-		points.afficher(cadre.origine() + Coordonnees((largeur1 + largeur2 + 40 - points.dimensions().x) / 2, 0));
-		cadre.haut += points.dimensions().y + 10;
+		cadre += Coordonnees(10, 10) * Ecran::echelleMin();
+		points.afficher(cadre.origine() + Coordonnees((largeur1 + largeur2 + 40 * Ecran::echelleMin() - points.dimensions().x) / 2, 0));
+		cadre.haut += points.dimensions().y + 10 * Ecran::echelleMin();
 	}
-	cadre -= Coordonnees(10, -10);
+	cadre -= Coordonnees(10, -10) * Ecran::echelleMin();
 }
 
 void Parametres::gestionEvenementsAfficheur(horloge_t &ancienDefilement, bool &continuer, index_t &premier, index_t nbAffiches, index_t &selection, bool &modification, std::vector<etiquetteTexte_t> const &colonne1, std::vector<etiquetteTexte_t> const &colonne2) {

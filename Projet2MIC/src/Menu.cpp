@@ -19,8 +19,6 @@
 #define COULEUR_ELEM Couleur(255, 160)
 
 Menu::element_t::element_t(Unichar const &u) : _texte(u), _cadre() {
-	_texte.definir(POLICE_DECO, TAILLE_ELEMENTS_MENU);
-	_cadre.definirDimensions(_texte.dimensions());
 	_texte.definir(COULEUR_ELEM);
 }
 
@@ -33,15 +31,6 @@ struct Menu::TestNul {
 Menu::Menu(Unichar const &titre, std::vector<Unichar> const &elements, Unichar const &dernierElement) : _titre(titre, POLICE_DECO, TAILLE_TITRE_MENU, Couleur::blanc), _elements(elements.begin(), elements.end()), _premierElementAffiche(0), _nbElementsAffiches(0) {
 	std::remove_if(_elements.begin(), _elements.end(), Menu::TestNul());
 	_elements.push_back(element_t(dernierElement));
-	size_t dim = 0;
-	for(std::vector<element_t>::iterator i = _elements.begin(); i != _elements.end(); ++i) {
-		dim += i->_texte.dimensions().y;
-		if(dim > Menu::tailleMax())
-			break;
-		
-		dim += ECART_ELEM;
-		++ _nbElementsAffiches;
-	}
 }
 
 Menu::~Menu() {
@@ -54,11 +43,25 @@ index_t Menu::afficher(index_t selection, Image const &fond, Shader const &s) {
 	index_t elementSelectionne = selection;
 	horloge_t ancienDefilement = 0;
 	
+	_nbElementsAffiches = 0;
+	size_t dim = 0;
+	for(std::vector<element_t>::iterator i = _elements.begin(); i != _elements.end(); ++i) {
+		dim += i->_texte.dimensions().y;
+		if(dim > Menu::tailleMax())
+			break;
+		
+		dim += ECART_ELEM * Ecran::echelleMin();
+		++ _nbElementsAffiches;
+		
+		i->_texte.definir(POLICE_DECO, TAILLE_ELEMENTS_MENU * Ecran::echelleMin());
+		i->_cadre.definirDimensions(i->_texte.dimensions());
+	}
+
 	Session::reinitialiserEvenements();
-	
-	fond.redimensionner(Ecran::largeur() / fond.dimensionsReelles().x, Ecran::hauteur() / fond.dimensionsReelles().y);
-	
+		
 	while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, continuer)) {
+		fond.redimensionner(Ecran::largeur() / fond.dimensionsReelles().x, Ecran::hauteur() / fond.dimensionsReelles().y);
+
 		Ecran::definirPointeurAffiche(true);
 		Ecran::effacer();
 		
@@ -122,16 +125,18 @@ index_t Menu::afficher(index_t selection, Image const &fond, Shader const &s) {
 }
 
 void Menu::afficherElements(index_t elementSelectionne) {
-	dimension_t ordonnee = 80;
+	dimension_t ordonnee = 80 * Ecran::echelleMin();
+	_titre.definir(TAILLE_TITRE_MENU * Ecran::echelleMin());
 	_titre.afficher(Coordonnees((Ecran::largeur() - _titre.dimensions().x) / 2, ordonnee));
-	ordonnee += _titre.dimensions().y + 40;
+	ordonnee += _titre.dimensions().y + 40 * Ecran::echelleMin();
 	
 	_elements[elementSelectionne]._texte.definir(Couleur::blanc);
 	
 	for(std::vector<element_t>::iterator i = _elements.begin() + _premierElementAffiche; i != _elements.end() && i != _elements.begin() + _premierElementAffiche + _nbElementsAffiches; ++i) {
 		i->_cadre.definirOrigine(Coordonnees((Ecran::largeur() - i->_texte.dimensions().x) / 2, ordonnee));
+		i->_texte.definir(TAILLE_ELEMENTS_MENU * Ecran::echelleMin());
 		i->_texte.afficher(i->_cadre.origine());
-		ordonnee += i->_cadre.hauteur + ECART_ELEM;
+		ordonnee += i->_cadre.hauteur + ECART_ELEM * Ecran::echelleMin();
 	}
 	
 	_elements[elementSelectionne]._texte.definir(COULEUR_ELEM);

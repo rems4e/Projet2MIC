@@ -137,6 +137,4 @@ private:
 ElementNiveau::elementNiveau_t &operator++(ElementNiveau::elementNiveau_t &c);
 ElementNiveau::elementNiveau_t operator+(ElementNiveau::elementNiveau_t, int i);
 
-void afficher(ElementNiveau *e);
-
 #endif
