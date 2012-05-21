@@ -15,5 +15,6 @@
         <Sort3 valeur="e" />
         <Sort4 valeur="r" />
     </Clavier>
-    <Audio volumeEffets="0.000000" volumeMusique="0.000000" />
+    <Audio volumeEffets="0.000000" volumeMusique="0.615291" />
+    <Video largeurEcran="800" hauteurEcran="600" pleinEcran="0" />
 </Config>

@@ -22,171 +22,172 @@ char const * const Shader::dim = "_dim";
 char const * const Shader::pos = "_pos";
 char const * const Shader::temps = "_temps";
 
-std::map<std::pair<std::string, std::string>, std::pair<std::pair<GLint, std::pair<GLint, GLint> >, size_t> > *Shader::_programmes;
-std::map<std::string, std::pair<GLint, size_t> > *Shader::_vertexShaders;
-std::map<std::string, std::pair<GLint, size_t> > *Shader::_fragmentShaders;
+std::map<std::pair<std::string, std::string>, Shader::Programme> *Shader::_programmes = 0;
+std::map<std::string, Shader::SousProgramme> *Shader::_vertexShaders = 0;
+std::map<std::string, Shader::SousProgramme> *Shader::_fragmentShaders = 0;
 
 Shader *Shader::_flou = 0;
 Shader *Shader::_aucun = 0;
 Shader const *Shader::_shaderActuel = 0;
 
+bool Shader::init() {
+	return _programmes;
+}
+
 void Shader::initialiser() {
-	_programmes = new std::map<std::pair<std::string, std::string>, std::pair<std::pair<GLint, std::pair<GLint, GLint> >, size_t> >;
-	_vertexShaders = new std::map<std::string, std::pair<GLint, size_t> >;
-	_fragmentShaders = new std::map<std::string, std::pair<GLint, size_t> >;
-	Shader::aucun().activer();
+	_programmes = new std::map<std::pair<std::string, std::string>, Programme>;
+	_vertexShaders = new std::map<std::string, SousProgramme>;
+	_fragmentShaders = new std::map<std::string, SousProgramme>;
+}
+
+void Shader::preReinitialiser() {
+	for(std::map<std::pair<std::string, std::string>, Programme>::iterator i = _programmes->begin(); i != _programmes->end(); ++i) {
+		Programme &p = i->second;
+		SousProgramme &v = *p._vert, &f = *p._frag;
+		
+		glUseProgram(0);
+		
+		glDetachShader(p._id, v._id);
+		 glDetachShader(p._id, f._id);
+		 glDeleteProgram(p._id);
+	}
+	
+	for(std::map<std::string, SousProgramme>::iterator i = _vertexShaders->begin(); i != _vertexShaders->end(); ++i) {
+		SousProgramme &v = i->second;
+		glDeleteShader(v._id);
+	}
+	
+	for(std::map<std::string, SousProgramme>::iterator i = _fragmentShaders->begin(); i != _fragmentShaders->end(); ++i) {
+		SousProgramme &f = i->second;
+		glDeleteShader(f._id);
+	}
+}
+
+void Shader::reinitialiser() throw(Shader::Exc_CreationImpossible) {
+	for(std::map<std::pair<std::string, std::string>, Programme>::iterator i = _programmes->begin(); i != _programmes->end(); ++i) {
+		Programme &p = i->second;
+		SousProgramme &v = *p._vert, &f = *p._frag;
+	}
+	
+	for(std::map<std::string, SousProgramme>::iterator i = _vertexShaders->begin(); i != _vertexShaders->end(); ++i) {
+		SousProgramme &v = i->second;
+		
+		v._id = Shader::chargerShader(v._fichier, GL_VERTEX_SHADER);
+		Shader::compiler(v._id);
+	}
+
+	for(std::map<std::string, SousProgramme>::iterator i = _fragmentShaders->begin(); i != _fragmentShaders->end(); ++i) {
+		SousProgramme &f = i->second;
+		
+		f._id = Shader::chargerShader(f._fichier, GL_FRAGMENT_SHADER);
+		Shader::compiler(f._id);
+	}
+		
+	for(std::map<std::pair<std::string, std::string>, Programme>::iterator i = _programmes->begin(); i != _programmes->end(); ++i) {
+		Programme &p = i->second;
+		SousProgramme &v = *p._vert, &f = *p._frag;
+
+		p._id = glCreateProgram();
+		
+		glAttachShader(p._id, v._id);
+		glAttachShader(p._id, f._id);
+		
+		try {
+			Shader::lier(p._id);
+		}
+		catch(Exc_CreationImpossible &e) {
+			std::cerr << "Édition des liens du programme impossible : " + v._fichier + " " + f._fichier << std::endl;
+			throw;
+		}
+		
+		p._vertCoord =  glGetAttribLocation(p._id, "vertCoord");
+		p._texCoord = glGetAttribLocation(p._id, "texCoord");
+		p._coul = glGetAttribLocation(p._id, "color");
+	}
+	
+	Shader const &a = Shader::shaderActuel();
+	_shaderActuel = 0;
+	a.activer();
 }
 
 Shader const &Shader::shaderActuel() {
 	return *_shaderActuel;
 }
 
-Shader::Shader(std::string const &vert, std::string const &frag) throw(Shader::Exc_CreationImpossible) : _frag(0), _vert(0), _prog(0) {	
-	std::pair<std::pair<GLint, std::pair<GLint, GLint> >, size_t> &idProgramme((*_programmes)[std::make_pair(vert, frag)]);
-	std::pair<GLint, size_t> &idVert((*_vertexShaders)[vert]);
-	std::pair<GLint, size_t> &idFrag((*_fragmentShaders)[frag]);
+Shader::Shader(std::string const &vert, std::string const &frag) throw(Shader::Exc_CreationImpossible) : _prog(0) {	
+	Programme &idProgramme((*_programmes)[std::make_pair(vert, frag)]);
+	SousProgramme &idVert((*_vertexShaders)[vert]);
+	SousProgramme &idFrag((*_fragmentShaders)[frag]);
 
 	// Le programme n'a pas été trouvé.
-	if(idProgramme.second == 0) {
+	if(idProgramme._ref == 0) {
 		// On charge le vertex shader
-		if(idVert.second == 0) {
-			_vert = glCreateShader(GL_VERTEX_SHADER);
-			idVert.first = _vert;
+		if(idVert._ref == 0) {
+			idVert._fichier = vert;
+			idVert._id = Shader::chargerShader(vert, GL_VERTEX_SHADER);
 			
-			std::ifstream fVert(vert.c_str(), std::ios::in);
-			if(!fVert) {
-				std::cerr << "Vertex shader introuvable : " << vert << std::endl;
-				throw Exc_CreationImpossible();
-			}
-			
-			// Chargement du contenu
-			fVert.seekg(0, std::ios::end);
-			int dimVert = fVert.tellg();
-			GLchar *vertSource = new GLchar[dimVert];
-			fVert.seekg(0, std::ios::beg);
-			fVert.read(vertSource, dimVert);
-			fVert.close();
-			
-			glShaderSource(_vert, 1, const_cast<GLchar const **>(&vertSource), &dimVert);
-			delete[] vertSource;
-			
-			try {
-				Shader::compiler(_vert);
-			}
-			catch(Exc_CreationImpossible &e) {
-				std::cerr << "Compilation du vertex shader impossible : " + vert << std::endl;
-				throw;
-			}
-		}
-		else {
-			_vert = idVert.first;
+			Shader::compiler(idVert._id);
 		}
 		
 		// On charge le fragment shader
-		if(idFrag.second == 0) {
-			_frag = glCreateShader(GL_FRAGMENT_SHADER);
-			idFrag.first = _frag;
-
-			std::ifstream fFrag(frag.c_str(), std::ios::in);
-			if(!fFrag) {
-				std::cerr << "Fragment shader introuvable : " << frag << std::endl;
-				throw Exc_CreationImpossible();
-			}
+		if(idFrag._ref == 0) {
+			idFrag._fichier = frag;
+			idFrag._id = Shader::chargerShader(frag, GL_FRAGMENT_SHADER);
 			
-			fFrag.seekg(0, std::ios::end);
-			int dimFrag = fFrag.tellg();
-			GLchar *fragSource = new GLchar[dimFrag];
-			fFrag.seekg(0, std::ios::beg);
-			fFrag.read(fragSource, dimFrag);
-			fFrag.close();
-						
-			glShaderSource(_frag, 1, const_cast<GLchar const **>(&fragSource), &dimFrag);
-			
-			delete[] fragSource;
-			
-			try {
-				Shader::compiler(_frag);
-			}
-			catch(Exc_CreationImpossible &e) {
-				std::cerr << "Compilation du fragment shader impossible : " + frag << std::endl;
-				throw;
-			}
-		}
-		else {
-			_frag = idFrag.first;
+			Shader::compiler(idFrag._id);
 		}
 		
-		_prog = glCreateProgram();
-		idProgramme.first.first = _prog;
-		idProgramme.first.second.first = _vert;
-		idProgramme.first.second.second = _frag;
+		idProgramme._id = glCreateProgram();
+		idProgramme._vert = &idVert;
+		idProgramme._frag = &idFrag;
 		
-		glAttachShader(_prog, _vert);
-		glAttachShader(_prog, _frag);
+		glAttachShader(idProgramme._id, idVert._id);
+		glAttachShader(idProgramme._id, idFrag._id);
 		
 		try {
-			Shader::lier(_prog);
+			Shader::lier(idProgramme._id);
 		}
 		catch(Exc_CreationImpossible &e) {
 			std::cerr << "Édition des liens du programme impossible : " + vert + " " + frag << std::endl;
 			throw;
 		}
 		
-		_vertCoord =  glGetAttribLocation(_prog, "vertCoord");
-		_texCoord = glGetAttribLocation(_prog, "texCoord");
-		_coul = glGetAttribLocation(_prog, "color");
+		idProgramme._vertCoord =  glGetAttribLocation(idProgramme._id, "vertCoord");
+		idProgramme._texCoord = glGetAttribLocation(idProgramme._id, "texCoord");
+		idProgramme._coul = glGetAttribLocation(idProgramme._id, "color");
 	}
-	else {
-		_prog = idProgramme.first.first;
-		_vert = idProgramme.first.second.first;
-		_frag = idProgramme.first.second.second;
-	}
-	++idProgramme.second;
-	++idVert.second;
-	++idFrag.second;
+
+	++idProgramme._ref;
+	++idVert._ref;
+	++idFrag._ref;
+	
+	_prog = &idProgramme;
 }
 
 Shader::~Shader() {
 	if(_shaderActuel == this) {
 		Shader::desactiver();
 	}
-
-	std::map<std::pair<std::string, std::string>, std::pair<std::pair<GLint, std::pair<GLint, GLint> >, size_t> >::iterator prog = _programmes->begin();
-	std::map<std::string, std::pair<GLint, size_t> >::iterator vert = _vertexShaders->begin();
-	std::map<std::string, std::pair<GLint, size_t> >::iterator frag = _fragmentShaders->begin();
-
-	for(; prog != _programmes->end(); ++prog) {
-		if(prog->second.first.first == _prog)
-			break;
-	}
-	for(; vert != _vertexShaders->end(); ++vert) {
-		if(vert->second.first == _vert)
-			break;
-	}
-	for(; frag != _fragmentShaders->end(); ++frag) {
-		if(frag->second.first == _frag)
-			break;
-	}
 		
-	--prog->second.second;
-	--vert->second.second;
-	--frag->second.second;
+	--_prog->_ref;
+	--_prog->_vert->_ref;
+	--_prog->_frag->_ref;
 		
-	if(prog->second.second == 0) {		
-		glDetachShader(_prog, _vert);
-		glDetachShader(_prog, _frag);
-		glDeleteProgram(_prog);
+	if(_prog->_ref == 0) {		
+		glDetachShader(_prog->_id, _prog->_vert->_id);
+		glDetachShader(_prog->_id, _prog->_frag->_id);
+		glDeleteProgram(_prog->_id);
 		
-		_programmes->erase(prog);
+		_programmes->erase(std::make_pair(_prog->_vert->_fichier, _prog->_frag->_fichier));
 	}
 	
-	if(vert->second.second == 0) {
-		glDeleteShader(_vert);
-		_vertexShaders->erase(vert);
+	if(_prog->_vert->_ref == 0) {
+		glDeleteShader(_prog->_vert->_id);
+		_vertexShaders->erase(_prog->_vert->_fichier);
 	}
-	if(frag->second.second == 0) {
-		glDeleteShader(_frag);
-		_fragmentShaders->erase(frag);
+	if(_prog->_frag->_ref == 0) {
+		glDeleteShader(_prog->_frag->_id);
+		_fragmentShaders->erase(_prog->_frag->_fichier);
 	}
 }
 
@@ -259,7 +260,7 @@ GLint Shader::locParam(char const *param) const {
 	GLint loc = -1;
 	std::map<char const *, GLint>::iterator i = _parametres.find(param);
 	if(i == _parametres.end()) {
-		_parametres[param] = loc = glGetUniformLocation(_prog, param);
+		_parametres[param] = loc = glGetUniformLocation(_prog->_id, param);
 	}
 	else
 		loc = i->second;
@@ -271,7 +272,7 @@ void Shader::activer() const {
 	if(_shaderActuel != this) {
 		ImagesBase::changerTexture(-1);
 		_shaderActuel = this;
-		glUseProgram(_prog);
+		glUseProgram(_prog->_id);
 
 		this->definirParametre("_ecran", Ecran::largeur(), Ecran::hauteur());
 	}
@@ -288,6 +289,29 @@ Coordonnees Shader::versShader(Coordonnees const &c) {
 Rectangle Shader::versShader(Rectangle const &r) {
 	return Rectangle(versShader(r.origine()), Coordonnees(r.largeur / Ecran::largeur(), r.hauteur / Ecran::hauteur()));
 
+}
+
+GLint Shader::chargerShader(std::string const &chemin, GLint type) throw(Shader::Exc_CreationImpossible) {
+	GLint shad = glCreateShader(type);
+	
+	std::ifstream fShad(chemin.c_str(), std::ios::in);
+	if(!fShad) {
+		std::cerr << "Shader introuvable : " << chemin << std::endl;
+		throw Exc_CreationImpossible();
+	}
+	
+	fShad.seekg(0, std::ios::end);
+	int dimShad = fShad.tellg();
+	GLchar *shadSource = new GLchar[dimShad];
+	fShad.seekg(0, std::ios::beg);
+	fShad.read(shadSource, dimShad);
+	fShad.close();
+	
+	glShaderSource(shad, 1, const_cast<GLchar const **>(&shadSource), &dimShad);
+	
+	delete[] shadSource;
+	
+	return shad;
 }
 
 void Shader::compiler(GLuint shader) throw(Shader::Exc_CreationImpossible) {
@@ -312,7 +336,7 @@ void Shader::compiler(GLuint shader) throw(Shader::Exc_CreationImpossible) {
 			delete[] log;
 		}
 		
-		std::cerr << "Erreur de compilation : " << str << std::endl;
+		std::cerr << "Erreur de compilation du shader : " << str << std::endl;
 		throw Exc_CreationImpossible();
 	}
 }

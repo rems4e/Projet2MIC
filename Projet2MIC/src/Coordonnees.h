@@ -14,7 +14,6 @@ struct Rectangle;
 
 typedef double coordonnee_t;
 typedef coordonnee_t dimension_t;
-typedef coordonnee_t facteur_t;
 
 struct Coordonnees {
 	static inline bool valeurNulle(coordonnee_t v) { return (v < 0 ? -v : v) < 0.001; }

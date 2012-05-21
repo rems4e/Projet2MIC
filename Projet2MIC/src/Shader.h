@@ -14,6 +14,7 @@
 #include <map>
 #include <string>
 #include "Geometrie.h"
+#include "Ecran.h"
 
 #ifdef __MACOSX__
 #include <OpenGL/gl.h>
@@ -32,6 +33,8 @@ namespace Session {
 class Shader {
 	friend void Session::nettoyer();
 	friend void Session::initialiser();
+	friend void Ecran::modifierResolution(unsigned int largeur, unsigned int hauteur, bool pleinEcran) throw(Ecran::Exc_InitialisationImpossible);
+
 public:
 	static char const * const rayonFlou;
 	static char const * const dim;
@@ -59,9 +62,9 @@ public:
 
 	void activer() const;
 	
-	GLint vertCoord() const { return _vertCoord; }
-	GLint texCoord() const { return _texCoord; }
-	GLint coul() const { return _coul; }
+	GLint vertCoord() const { return _prog->_vertCoord; }
+	GLint texCoord() const { return _prog->_texCoord; }
+	GLint coul() const { return _prog->_coul; }
 	
 	static void desactiver();
 	
@@ -73,28 +76,47 @@ protected:
 	static void compiler(GLuint shader) throw(Exc_CreationImpossible);
 	static void lier(GLint prog) throw(Exc_CreationImpossible);
 	
+	static GLint chargerShader(std::string const &chemin, GLint type) throw(Exc_CreationImpossible);
+	
 	GLint locParam(char const *param) const;
 
 private:
-	GLint _vert;
-	GLint _frag;
-	GLint _prog;
+	struct SousProgramme;
+	struct Programme {
+		GLint _id;
+		SousProgramme *_vert, *_frag;
+
+		GLint _vertCoord, _texCoord, _coul;
+		
+		size_t _ref;
+	};
 	
-	GLint _vertCoord, _texCoord, _coul;
-			
+	struct SousProgramme {
+		GLint _id;
+		size_t _ref;
+		
+		std::string _fichier;
+	};
+
+	Programme *_prog;
+				
 	mutable std::map<char const *, GLint> _parametres;
 
-	static std::map<std::pair<std::string, std::string>, std::pair<std::pair<GLint, std::pair<GLint, GLint> >, size_t> > *_programmes;
-	static std::map<std::string, std::pair<GLint, size_t> > *_vertexShaders;
-	static std::map<std::string, std::pair<GLint, size_t> > *_fragmentShaders;
+	static std::map<std::pair<std::string, std::string>, Programme> *_programmes;
+	static std::map<std::string, SousProgramme> *_vertexShaders;
+	static std::map<std::string, SousProgramme> *_fragmentShaders;
 	static Shader *_flou;
 	static Shader *_aucun;
 	
+	static void preReinitialiser();
+	static void initialiser();
+	static void reinitialiser() throw(Exc_CreationImpossible);
+	static void nettoyer();
+	
+	static bool init();
+
 	static Shader const *_shaderActuel;
 	
-	static void initialiser();
-	static void nettoyer();
-
 	Shader &operator=(Shader const &);
 	Shader(Shader const &);
 };

@@ -67,7 +67,7 @@ index_t Menu::afficher(index_t selection, Image const &fond, Shader const &s) {
 	Session::reinitialiserEvenements();
 		
 	while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, continuer)) {
-		fond.redimensionner(Ecran::largeur() / fond.dimensionsReelles().x, Ecran::hauteur() / fond.dimensionsReelles().y);
+		fond.redimensionner(Coordonnees(Ecran::largeur() / fond.dimensionsReelles().x, Ecran::hauteur() / fond.dimensionsReelles().y));
 
 		Ecran::definirPointeurAffiche(true);
 		Ecran::effacer();

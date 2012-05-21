@@ -18,6 +18,7 @@
 #include <limits>
 #include <cassert>
 #include <algorithm>
+#include "Shader.h"
 
 #ifdef __MACOSX__
 #include <OpenGL/gl.h>
@@ -31,6 +32,8 @@
 namespace ImagesBase {
 	void changerTexture(GLint tex);
 	void ajouterSommet(Coordonnees const &pos, Coordonnees const &posTex, Couleur const &couleur);
+	void reinitialiser();
+	void preReinitialiser();
 }
 
 Couleur teinte = Couleur(255, 255, 255);
@@ -76,14 +79,22 @@ namespace Ecran {
 	
 	AttributsEcran *_attributs;
 
-	void init(unsigned int largeur, unsigned int hauteur, unsigned int profondeur, bool pleinEcran);
+	void init(unsigned int largeur, unsigned int hauteur, bool pleinEcran);
 	void nettoyagePreliminaire();
 	void nettoyageFinal();
 }
 
-void Ecran::init(unsigned int largeur, unsigned int hauteur, unsigned int profondeur, bool pleinEcran) {
+void Ecran::init(unsigned int largeur, unsigned int hauteur, bool pleinEcran) {
 	_attributs = new AttributsEcran;
-	Ecran::modifierResolution(largeur, hauteur, profondeur, pleinEcran);
+	Ecran::modifierResolution(largeur, hauteur, pleinEcran);
+	unsigned char imageVide[4] = {255, 255, 255, 255};
+
+	Ecran::_attributs->_vide = Image(imageVide, 1, 1, 4);
+	Ecran::_attributs->_pointeurDefaut = new Image(Session::cheminRessources() + "souris.png");
+	Ecran::_attributs->_texte = new Texte("", POLICE_NORMALE, 12, Couleur::blanc);
+
+	Ecran::definirPointeur(0);
+	SDL_ShowCursor(SDL_DISABLE);
 }
 
 Ecran::AttributsEcran::AttributsEcran() : _largeur(0L), _hauteur(0L), _profondeur(0), _pleinEcran(false), _frequence(1.0f), _frequenceInstantanee(1.0f), _texte(0), _pointeur(0), _pointeurDefaut(0), _decalagePointeur(), _pointeurAffiche() {
@@ -109,14 +120,31 @@ Ecran::AttributsEcran::~AttributsEcran() {
 	}
 }
 
-void Ecran::modifierResolution(unsigned int largeur, unsigned int hauteur, unsigned int profondeur, bool pleinEcran) throw(Ecran::Exc_InitialisationImpossible) {
+void Ecran::modifierResolution(unsigned int largeur, unsigned int hauteur, bool pleinEcran) throw(Ecran::Exc_InitialisationImpossible) {
+	if(Shader::init()) {
+		ImagesBase::preReinitialiser();
+		Shader::preReinitialiser();
+	}
+	
+	Ecran::_attributs->_largeur = largeur;
+	Ecran::_attributs->_hauteur = hauteur;
+	Ecran::_attributs->_profondeur = 32;
+	Ecran::_attributs->_pleinEcran = pleinEcran;
+	
+	Ecran::_attributs->_frequence = 0.0f;
+	Ecran::_attributs->_pointeurAffiche = false;
+	
+	Ecran::_attributs->_echelle = Coordonnees(Ecran::_attributs->_largeur / 800.0f, Ecran::_attributs->_hauteur / 600.0f);
+	Ecran::_attributs->_echelleMin = std::min(Ecran::_attributs->_echelle.x, Ecran::_attributs->_echelle.y);
+
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL, SYNCHRO_VERTICALE);
+	
 	SDL_Surface *resultat = 0;
 	if(pleinEcran)
-		resultat = SDL_SetVideoMode(largeur, hauteur, 32, SDL_OPENGL | SDL_FULLSCREEN | SDL_ASYNCBLIT);
+		resultat = SDL_SetVideoMode(largeur, hauteur, 32, SDL_OPENGL | SDL_FULLSCREEN);
 	else
-		resultat = SDL_SetVideoMode(largeur, hauteur, 32, SDL_OPENGL | SDL_ASYNCBLIT);
+		resultat = SDL_SetVideoMode(largeur, hauteur, 32, SDL_OPENGL);
 	
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -130,28 +158,68 @@ void Ecran::modifierResolution(unsigned int largeur, unsigned int hauteur, unsig
 		std::cerr << "Impossible de définir l'écran à une résolution de " << largeur << "*" << hauteur << "*" << profondeur << " (plein écran : " << pleinEcran << "). Erreur : " << SDL_GetError() << std::endl;
 		throw Exc_InitialisationImpossible();
 	}
-	SDL_ShowCursor(SDL_DISABLE);
+	
+	if(!Shader::init()) {
+		Shader::initialiser();
+		Shader::aucun().activer();
+	}
+	else {
+		Shader::reinitialiser();
+		ImagesBase::reinitialiser();
+	}
+}
 
-	Ecran::_attributs->_largeur = largeur;
-	Ecran::_attributs->_hauteur = hauteur;
-	Ecran::_attributs->_profondeur = profondeur;
-	Ecran::_attributs->_pleinEcran = pleinEcran;
+struct cmpCoord_t {
+	inline bool operator()(Coordonnees const &c1, Coordonnees const &c2) {
+		return c1.x < c2.x || (c1.x == c2.x && c1.y < c2.y);
+	}
+};
+
+std::list<Coordonnees> Ecran::resolutionsDisponibles(bool pleinEcran) {
+	std::list<Coordonnees> retour;
+
+	Uint32 flags = SDL_OPENGL;
+	if(pleinEcran)
+		flags |= SDL_FULLSCREEN;
 	
-	Ecran::_attributs->_frequence = 0.0f;
-	Ecran::_attributs->_pointeurAffiche = false;
-	delete Ecran::_attributs->_pointeurDefaut;
-	Ecran::_attributs->_pointeurDefaut = new Image(Session::cheminRessources() + "souris.png");
+	SDL_Rect **liste = SDL_ListModes(0, flags);
+	if(liste == 0) {
+		std::cerr << "Aucune résolution d'écran disponible (plein écran : " << pleinEcran << "). Plantage attendu…" << std::endl;
+		retour.push_back(Coordonnees(640, 480));
+	}
+	else if(liste == reinterpret_cast<SDL_Rect **>(-1)) {
+		retour.push_back(Coordonnees(640, 400));
+		retour.push_back(Coordonnees(640, 480));
+		retour.push_back(Coordonnees(720, 480));
+		retour.push_back(Coordonnees(800, 500));
+		retour.push_back(Coordonnees(800, 600));
+		retour.push_back(Coordonnees(1024, 640));
+		retour.push_back(Coordonnees(1024, 768));
+		retour.push_back(Coordonnees(1152, 720));
+		retour.push_back(Coordonnees(1280, 800));
+		retour.push_back(Coordonnees(1280, 960));
+		retour.push_back(Coordonnees(1280, 1024));
+		retour.push_back(Coordonnees(1344, 840));
+		retour.push_back(Coordonnees(1360, 850));
+		retour.push_back(Coordonnees(1440, 900));
+		retour.push_back(Coordonnees(1600, 1200));
+		retour.push_back(Coordonnees(1680, 1050));
+		retour.push_back(Coordonnees(1920, 1080));
+		retour.push_back(Coordonnees(1920, 1200));
+		retour.push_back(Coordonnees(2048, 1280));
+		retour.push_back(Coordonnees(2048, 1536));
+		retour.push_back(Coordonnees(2560, 1440));
+		retour.push_back(Coordonnees(2560, 1600));
+	}
+	else {
+		for(int i = 0; liste[i]; ++i) {
+			retour.push_back(Coordonnees(liste[i]->w, liste[i]->h));
+		}
+		
+		retour.sort(cmpCoord_t());
+	}
 	
-	delete Ecran::_attributs->_texte;
-	Ecran::_attributs->_texte = new Texte("", POLICE_NORMALE, 12, Couleur::blanc);
-	
-	unsigned char imageVide[4] = {255, 255, 255, 255};
-	Ecran::_attributs->_vide = Image(imageVide, 1, 1, 4);
-	
-	Ecran::definirPointeur(0);
-	
-	Ecran::_attributs->_echelle = Coordonnees(Ecran::_attributs->_largeur / 800.0f, Ecran::_attributs->_hauteur / 600.0f);
-	Ecran::_attributs->_echelleMin = std::min(Ecran::_attributs->_echelle.x, Ecran::_attributs->_echelle.y);
+	return retour;
 }
 
 Image *Ecran::apercu() {

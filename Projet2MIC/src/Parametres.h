@@ -20,6 +20,10 @@ namespace Parametres {
 	float volumeMusique();
 	float volumeEffets();
 	
+	int largeurEcran();
+	int hauteurEcran();
+	bool pleinEcran();
+	
 	void editerParametres(Image const &fond, Shader const &s = Shader::flou(1.0));
 }
 

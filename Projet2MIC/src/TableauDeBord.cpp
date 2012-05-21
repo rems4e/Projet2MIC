@@ -17,7 +17,7 @@ void TableauDeBord::afficher() {
 	dimension_t posTab = Ecran::hauteur() - this->hauteur();
 	
 	float facteur = Ecran::largeur() / _fond.dimensionsReelles().x;
-	_fond.redimensionner(facteur, Ecran::echelle().y);
+	_fond.redimensionner(Coordonnees(facteur, Ecran::echelle().y));
 
 	Image::definirOpacite(220);
 	_fond.afficher(Coordonnees(0, posTab));

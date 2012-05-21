@@ -13,14 +13,11 @@
 #include "Geometrie.h"
 #include <string>
 #include <list>
-#include <stack>
 #include "fonctions.h"
-#include "Shader.h"
 #include <exception>
 
 #define LARGEUR_ECRAN 800
 #define HAUTEUR_ECRAN 600
-#define PROFONDEUR_COULEURS 32
 #define PLEIN_ECRAN false
 #define SYNCHRO_VERTICALE true
 #define FREQUENCE_RAFRAICHISSEMENT 100
@@ -57,7 +54,7 @@ namespace Ecran {
 		virtual const char* what() const throw() { return "Impossible de définir la résolution de l'écran."; }
 	};
 	
-	void modifierResolution(unsigned int largeur, unsigned int hauteur, unsigned int profondeur, bool pleinEcran) throw(Exc_InitialisationImpossible);
+	void modifierResolution(unsigned int largeur, unsigned int hauteur, bool pleinEcran) throw(Exc_InitialisationImpossible);
 	
 	Coordonnees dimensions();
 	int largeur();
@@ -95,6 +92,9 @@ namespace Ecran {
 	
 	Coordonnees const &echelle();
 	coordonnee_t echelleMin();
+	
+	// Les résolutions disponibles pour la fenêtre/le plein écran.
+	std::list<Coordonnees> resolutionsDisponibles(bool pleinEcran);
 }
 
 #endif

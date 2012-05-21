@@ -54,7 +54,7 @@ ObjetInventaire::~ObjetInventaire() {
 }
 
 void ObjetInventaire::afficher(index_t deltaY, Coordonnees const &decalage) const {
-	this->image().redimensionner(Ecran::echelle().x, Ecran::echelle().y);
+	this->image().redimensionner(Ecran::echelle());
 	this->image().afficher(this->positionAffichage() - decalage);
 }
 

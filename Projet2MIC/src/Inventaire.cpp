@@ -373,11 +373,11 @@ void InventaireMarchand::afficher() const {
 	_inventaire.definirOrigine(Coordonnees(Ecran::largeur() / 2, 0) + Coordonnees(17, 8).etirer(Ecran::echelle()));
 	_inventaire.definirDimensions(Coordonnees(360, 360).etirer(Ecran::echelle()));
 
-	_fond.redimensionner(Ecran::echelle().x,  Ecran::echelle().y);
+	_fond.redimensionner(Ecran::echelle());
 	_fond.afficher(Coordonnees(Ecran::largeur() / 2, 0));
 	
-	_gauche.redimensionner(Ecran::echelle().x,  Ecran::echelle().y);
-	_droite.redimensionner(Ecran::echelle().x,  Ecran::echelle().y);
+	_gauche.redimensionner(Ecran::echelle());
+	_droite.redimensionner(Ecran::echelle());
 
 	_cadreGauche.definirOrigine(Coordonnees(Ecran::largeur() / 2 + 200 * Ecran::echelle().x - _gauche.dimensions().x - 5 * Ecran::echelle().x, 440 * Ecran::echelle().y));
 	_cadreGauche.definirDimensions(_gauche.dimensions());
@@ -392,7 +392,7 @@ void InventaireMarchand::afficher() const {
 	index_t i = 0;
 	for(const_iterator j = this->debut(); j != this->fin(); ++j) {
 		if(*j) {
-			(*j)->image().redimensionner(Ecran::echelle().x,  Ecran::echelle().y);
+			(*j)->image().redimensionner(Ecran::echelle().x);
 			(*j)->image().afficher(pos);
 		}
 		pos.x += 36 * Ecran::echelle().x;
@@ -501,7 +501,7 @@ void InventaireJoueur::afficher() const {
 	_tenue[Personnage::bottes] = Rectangle(198, 200, 80, 75).etirer(Ecran::echelle());
 	
 	_fond.afficher(Coordonnees());
-	_fond.redimensionner(Ecran::echelle().x, Ecran::echelle().y);
+	_fond.redimensionner(Ecran::echelle());
 	
 	_or.definir(20 * Ecran::echelleMin());
 	_or.definir(nombreVersTexte(this->monnaie()));
@@ -511,7 +511,7 @@ void InventaireJoueur::afficher() const {
 	index_t i = 0;
 	for(const_iterator j = this->debut(); j != this->fin(); ++j) {
 		if(*j) {
-			(*j)->image().redimensionner(Ecran::echelle().x, Ecran::echelle().y);
+			(*j)->image().redimensionner(Ecran::echelle());
 			(*j)->image().afficher(pos);
 		}
 		pos.x += 36 * Ecran::echelle().x;

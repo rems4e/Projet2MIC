@@ -19,8 +19,21 @@
 
 namespace ImagesBase {
 	std::map<std::string, ImageBase *> *_images = 0;
+	std::list<ImageBase *> _imagesSansFichier;
+	
 	void initialiser();
+	void preReinitialiser();
+	void reinitialiser();
+	
 	void nettoyer();
+	
+	struct SauveImage {
+		int _largeur, _hauteur;
+		unsigned char *_pixels;
+	};
+	
+	std::list<SauveImage> _sauveImages;
+	
 	GLint _tex = -1;
 	std::vector<float> _vertCoords;
 	std::vector<float> _texCoords;
@@ -28,7 +41,6 @@ namespace ImagesBase {
 	size_t _nbSommets = 0;
 		
 	void changerTexture(GLint tex);
-	
 	void ajouterSommet(Coordonnees const &pos, Coordonnees const &posTex, Couleur const &couleur);
 }
 
@@ -43,7 +55,7 @@ struct ImageBase {
 	
 	ImageBase *charger(std::string const &fichier);
 	ImageBase *charger(unsigned char *pixels, int largeur, int hauteur, int profondeur, bool retourner);
-	
+		
 	unsigned char const *pixels() const;
 		
 	GLuint _tex;
@@ -67,6 +79,38 @@ void ImagesBase::initialiser() {
 	_texCoords.resize(2 * TAMPON_SOMMETS);
 }
 
+void ImagesBase::preReinitialiser() {
+	for(std::list<ImageBase *>::iterator i = ImagesBase::_imagesSansFichier.begin(); i != ImagesBase::_imagesSansFichier.end(); ++i) {
+		SauveImage sauve;
+		sauve._largeur = (*i)->_dimensions.x;
+		sauve._hauteur = (*i)->_dimensions.y;
+		sauve._pixels = new unsigned char[sauve._largeur * sauve._hauteur * 4];
+		glBindTexture(GL_TEXTURE_2D, (*i)->_tex);
+		glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, sauve._pixels);
+		_sauveImages.push_back(sauve);
+
+		glDeleteTextures(1, &((*i)->_tex));
+	}
+		
+	for(std::map<std::string, ImageBase *>::iterator i = ImagesBase::_images->begin(); i != ImagesBase::_images->end(); ++i) {
+		glDeleteTextures(1, &i->second->_tex);
+	}
+}
+
+void ImagesBase::reinitialiser() {
+	for(std::map<std::string, ImageBase *>::iterator i = ImagesBase::_images->begin(); i != ImagesBase::_images->end(); ++i) {
+		i->second->charger(i->second->_fichier);
+	}
+	
+	for(std::list<ImageBase *>::iterator i = ImagesBase::_imagesSansFichier.begin(); i != ImagesBase::_imagesSansFichier.end(); ++i) {
+		SauveImage sauve = _sauveImages.front();
+
+		(*i)->charger(sauve._pixels, sauve._largeur, sauve._hauteur, 4, false);
+		delete[] sauve._pixels;
+		_sauveImages.pop_front();
+	}
+}
+
 void ImagesBase::ajouterSommet(Coordonnees const &pos, Coordonnees const &posTex, Couleur const &couleur) {
 	if(_vertCoords.size() / 2 <= _nbSommets) {
 		_vertCoords.resize(_vertCoords.size() + _vertCoords.size() / 10);
@@ -76,14 +120,6 @@ void ImagesBase::ajouterSommet(Coordonnees const &pos, Coordonnees const &posTex
 		std::cout << "Dimensionnement des tableaux de sommets sous-évalués. Nouvelle taille : " << _vertCoords.size() / 2 << std::endl;
 	}
 	
-/*	if(vertBuf == -1) {
-		glGenBuffers(1, &vertBuf);
-
-		glBindBuffer(GL_ARRAY_BUFFER, vertBuf);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * TAMPON_SOMMETS * 2, 0, GL_DYNAMIC_DRAW);
-
-	}*/
-
 	_vertCoords[_nbSommets * 2] = pos.x / Ecran::largeur() * 2 - 1;
 	_vertCoords[_nbSommets * 2 + 1] = -(pos.y / Ecran::hauteur() * 2 - 1);
 
@@ -155,7 +191,10 @@ ImageBase *ImageBase::imageBase(std::string const &fichier) {
 }
 
 ImageBase *ImageBase::imageBase(unsigned char *img, int largeur, int hauteur, int profondeur, bool retourner) {
-	return new ImageBase(img, largeur, hauteur, profondeur, retourner);
+	ImageBase *image = new ImageBase(img, largeur, hauteur, profondeur, retourner);
+	ImagesBase::_imagesSansFichier.push_back(image);
+	
+	return image;
 }
 
 void ImageBase::detruire() {
@@ -163,6 +202,9 @@ void ImageBase::detruire() {
 	if(_nombreReferences <= 0) {
 		if(!_fichier.empty()) {
 			ImagesBase::_images->erase(_fichier);
+		}
+		else {
+			ImagesBase::_imagesSansFichier.remove(this);
 		}
 		
 		delete this;
@@ -225,7 +267,7 @@ ImageBase *ImageBase::charger(unsigned char *img, int largeur, int hauteur, int 
 		
 		img = imageRetournee;
 	}
-		
+	
 	_dimensions.x = largeur;
 	_dimensions.y = hauteur;
 	
@@ -236,7 +278,7 @@ ImageBase *ImageBase::charger(unsigned char *img, int largeur, int hauteur, int 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glPixelStorei(GL_UNPACK_ROW_LENGTH, largeur);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, largeur, hauteur, 0, GL_RGBA, GL_UNSIGNED_BYTE, img);
-	
+
 	if(retourner) {
 		delete[] img;
 	}
@@ -251,24 +293,24 @@ unsigned char const *ImageBase::pixels() const {
 	return pix;
 }
 
-Image::Image(std::string const &fichier) : _base(0), _facteurX(1.0f), _facteurY(1.0f), _angle(0.0f) {
+Image::Image(std::string const &fichier) : _base(0), _facteur(Coordonnees::un), _angle(0.0f) {
 	if(fichier.size())
 		_base = ImageBase::imageBase(fichier);
 }
 
-Image::Image(unsigned char *pixels, int largeur, int hauteur, int profondeur, bool retourner) : _base(0), _facteurX(1.0f), _facteurY(1.0f), _angle(0.0f) {
+Image::Image(unsigned char *pixels, int largeur, int hauteur, int profondeur, bool retourner) : _base(0), _facteur(Coordonnees::un), _angle(0.0f) {
 	_base = ImageBase::imageBase(pixels, largeur, hauteur, profondeur, retourner);
 
 }
 
-Image::Image(Image const &img) : _base(0), _facteurX(1.0f), _facteurY(1.0f), _angle(0.0f) {
+Image::Image(Image const &img) : _base(0), _facteur(Coordonnees::un), _angle(0.0f) {
 	if(img.valide()) {
 		_base = img._base;
 		++_base->_nombreReferences;
 	}
 }
 
-Image::Image() : _base(0), _facteurX(1.0f), _facteurY(1.0f), _angle(0.0f) {
+Image::Image() : _base(0), _facteur(Coordonnees::un), _angle(0.0f) {
 	
 }
 
@@ -277,8 +319,7 @@ Image &Image::operator=(Image const &img) {
 	if(_base)
 		++_base->_nombreReferences;
 		
-	_facteurX = img._facteurX;
-	_facteurY = img._facteurY;
+	_facteur = img._facteur;
 
 	_angle = img._angle;
 	
@@ -308,7 +349,7 @@ void Image::definirOpacite(unsigned char o) {
 }
 
 Coordonnees Image::dimensions() const {
-	return Coordonnees(_base->_dimensions.x * _facteurX, _base->_dimensions.y * _facteurY);
+	return _base->_dimensions.etirer(_facteur);
 }
 
 Coordonnees Image::dimensionsReelles() const {
@@ -333,19 +374,18 @@ Image const &Image::tourner(float angle) const {
 	return *this;
 }
 
-Image const &Image::redimensionner(facteur_t facteur) const {
-	return this->redimensionner(facteur, facteur);
+Image const &Image::redimensionner(coordonnee_t facteur) const {
+	return this->redimensionner(Coordonnees::un * facteur);
 }
 
-Image const &Image::redimensionner(facteur_t facteurX, facteur_t facteurY) const {
-	_facteurX = facteurX;
-	_facteurY = facteurY;
+Image const &Image::redimensionner(Coordonnees const &facteur) const {
+	_facteur = facteur;
 	
 	return *this;
 }
 
 void Image::afficher(Coordonnees const &position, Rectangle const &filtre) const {
-	Rectangle vert(position, Coordonnees(filtre.largeur * _facteurX, filtre.hauteur * _facteurY));
+	Rectangle vert(position, Coordonnees(filtre.largeur * _facteur.x, filtre.hauteur * _facteur.y));
 	
 	if(!vert.superposition(Ecran::ecran()))
 		return;

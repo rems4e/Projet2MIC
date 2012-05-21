@@ -56,8 +56,8 @@ public:
 	
 	// Transformations de l'image
 	Image const &tourner(float angle) const;
-	Image const &redimensionner(facteur_t facteur) const;
-	Image const &redimensionner(facteur_t facteurX, facteur_t facteurY) const;
+	Image const &redimensionner(coordonnee_t facteur) const;
+	Image const &redimensionner(Coordonnees const &facteur) const;
 	
 	// Affichage de l'image à une position donnée
 	inline void afficher(Coordonnees const &position) const { this->afficher(position, Rectangle(Coordonnees(), this->dimensionsReelles())); }
@@ -80,7 +80,7 @@ public:
 private:
 	ImageBase *_base;
 	
-	mutable facteur_t _facteurX, _facteurY;
+	mutable Coordonnees _facteur;
 	mutable float _angle;
 	static Couleur _teinte;
 	static unsigned char _opacite;

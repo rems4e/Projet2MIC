@@ -20,7 +20,7 @@
 #include "Audio.h"
 
 namespace Ecran {
-	void init(unsigned int largeur, unsigned int hauteur, unsigned int profondeur, bool pleinEcran);
+	void init(unsigned int largeur, unsigned int hauteur, bool pleinEcran);
 	void nettoyagePreliminaire();
 	void nettoyageFinal();
 }
@@ -123,17 +123,15 @@ void Session::initialiser() {
 	_chemin += "data/";
 	
 	Audio::initialiser();
-	
 	ImagesBase::initialiser();
-	Ecran::init(LARGEUR_ECRAN, HAUTEUR_ECRAN, PROFONDEUR_COULEURS, PLEIN_ECRAN);
-	Shader::initialiser();
+	Parametres::charger();
+	Ecran::init(Parametres::largeurEcran(), Parametres::hauteurEcran(), Parametres::pleinEcran());
 	
 	Texte txt("Chargement programme", POLICE_DECO, TAILLE_TEXTE_CHARGEMENT, Couleur::blanc);
 	Ecran::afficherRectangle(Ecran::ecran(), Couleur::noir);
 	txt.afficher(Coordonnees((Ecran::dimensions().x - txt.dimensions().x) / 2, (Ecran::dimensions().y - txt.dimensions().y) / 2 - 50));
 	Ecran::maj();
 	
-	Parametres::charger();
 	Session::reinitialiserEvenements();
 }
 
