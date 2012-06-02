@@ -2,8 +2,8 @@
 //  Ennemi.h
 //  Projet2MIC
 //
-//  Created by Rémi Saurel on 02/03/12.
-//  Copyright (c) 2012 Rémi Saurel. All rights reserved.
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
 //
 
 #ifndef Projet2MIC_Ennemi_h
@@ -34,10 +34,13 @@ protected:
 	Ennemi &operator=(Ennemi const &);
 
 	virtual void jeterObjets();
+	void mourir();
 
 private:
 	Coordonnees _cible;
 	bool _recherche;
+	
+	double _coef[Personnage::nbCompetences];
 };
 
 #endif

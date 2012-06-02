@@ -1,11 +1,11 @@
-/*
- *  fonctions.cpp
- *  Jeu C++
- *
- *  Created by Rémi on 23/07/07.
- *  Copyright 2007 Rémi Saurel. All rights reserved.
- *
- */
+//
+//  fonctions.cpp
+//  Projet2MIC
+//
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
+//
+
 
 #include "fonctions.h"
 #include "Session.h"
@@ -103,13 +103,13 @@ char base64VersCaractere(int c) {
 	if(c < 26)
 		return 'A' + c;
 	if(c < 26 * 2)
-		return 'a' + c;
+		return 'a' + c - 26;
 	if(c < 26 * 2 + 10)
-		return '0' + c;
+		return '0' + c - 26 - 26;
 	if(c == 26 * 2 + 10)
 		return '+';
 	if(c == 26 * 2 + 10 + 1)
-		return '/';
+		return '/' ;
 	
 	return 0;
 }

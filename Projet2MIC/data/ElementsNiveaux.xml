@@ -27,6 +27,7 @@
 	</Maison>
 	<Teleporteur>
 		<Element0 image="spawn.png" x=0 y=64 dimX=4 dimY=4 relief=0/>
+		<Element1 image="arrivee.png" x=0 y=64 dimX=4 dimY=4 relief=0/>
 	</Teleporteur>
 	<ObjetInventaire>
 		<Element0 image="epee1.png" iX=2 iY=3 type="arme" centrage=1/>
@@ -36,6 +37,7 @@
 		<Element4 image="bottes1.png" iX=2 iY=2 type="bottes" centrage=1/>
 		<Element5 image="armure1.png" iX=2 iY=3 type="armure" centrage=1/>
 		<Element6 image="bouclier1.png" iX=2 iY=2 type="bouclier" centrage=1/>
+		<Element666 image="cle.png" iX=2 iY=1 type="cle" centrage=1/>
 	</ObjetInventaire>
 	<Sol>
 		<Element0 image="dirt2.png" x=0 y=16 dimX=1 dimY=1 relief=0/>
@@ -77,32 +79,40 @@
 		<Element5 image="a19.png" x=42 y=92 centrage=1 dimX=1 dimY=1 />
 		<Element6 image="a20.png" x=50 y=100 centrage=1 dimX=1 dimY=1 />
 	</ArbreMort>
+	<Boss>
+		<Element0 image="wyvern_noshadow.png" blocX=256 blocY=256 c0=2.0 c1=2.0 c2=4.0 >
+			<Immobile nbPoses=8 tempsAttente=100 />
+			<Deplacer nbPoses=8 tempsAttente=100 />
+			<Attaque nbPoses=8 tempsAttente=50 />
+			<Mourir nbPoses=8 tempsAttente=100 />
+		</Element0>
+	</Boss>
 	<Personnage>
-		<Element0 image="perso.png" blocX=128 blocY=128 >
+		<Element0 image="perso.png" blocX=128 blocY=128 c0=1.0 c1=1.0 c2=1.0 >
 			<Immobile nbPoses=6 tempsAttente=100 />
 			<Deplacer nbPoses=8 tempsAttente=100 />
 			<Attaque nbPoses=5 tempsAttente=50 />
 			<Mourir nbPoses=6 premiere=24 tempsAttente=100 />
 		</Element0>
-		<Element1 image="perso1.png" vitesse=7 blocX=128 blocY=128 >
+		<Element1 image="perso1.png" vitesse=7 blocX=128 blocY=128 c0=1.5 c1=1.2 c2=1.2 >
 			<Immobile nbPoses=4 tempsAttente=100 />
 			<Deplacer nbPoses=8 tempsAttente=100 />
 			<Attaque nbPoses=5 tempsAttente=50 />
 			<Mourir nbPoses=6 premiere=18 tempsAttente=100 />
 		</Element1>
-		<Element2 image="werebear_0.png" vitesse=7 blocX=128 blocY=128 >
+		<Element2 image="werebear_0.png" vitesse=7 blocX=128 blocY=128 c0=1.5 c1=1.2 c2=1.2 >
 			<Immobile nbPoses=4 tempsAttente=100 />
 			<Deplacer nbPoses=8 tempsAttente=100 />
 			<Attaque nbPoses=5 tempsAttente=50 />
 			<Mourir nbPoses=6 premiere=18 tempsAttente=100 />
 		</Element2>
-		<Element3 image="orc_heavy_1.png" blocX=128 blocY=128 >
+		<Element3 image="orc_heavy_1.png" blocX=128 blocY=128 c0=1.0 c1=1.5 c2=0.8 >
 			<Immobile nbPoses=4 tempsAttente=100 />
 			<Deplacer nbPoses=8 tempsAttente=100 />
 			<Attaque nbPoses=5 tempsAttente=80 />
 			<Mourir nbPoses=6 premiere=18 tempsAttente=100 />
 		</Element3>
-		<Element4 image="spider_giant.png" vitesse=15 blocX=128 blocY=128 >
+		<Element4 image="spider_giant.png" vitesse=15 blocX=128 blocY=128 c0=0.5 c1=1.2 c2=1.5 >
 			<Immobile nbPoses=4 tempsAttente=100 />
 			<Deplacer nbPoses=8 tempsAttente=50 />
 			<Attaque nbPoses=5 tempsAttente=80 />

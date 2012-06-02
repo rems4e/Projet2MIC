@@ -2,8 +2,8 @@
 //  Parametres.h
 //  Projet2MIC
 //
-//  Created by Rémi Saurel on 13/04/12.
-//  Copyright (c) 2012 Rémi Saurel. All rights reserved.
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
 //
 
 #ifndef Projet2MIC_Parametres_h
@@ -15,7 +15,7 @@
 class Image;
 
 namespace Parametres {
-	enum action_t {premiereAction, depGauche = premiereAction, depDroite, depHaut, depBas, afficherJournal, afficherInventaire, ramasserObjet, interagir, remplirVie, sort1, sort2, sort3, sort4, nbActions};
+	enum action_t {premiereAction, depGauche = premiereAction, depDroite, depHaut, depBas, afficherJournal, afficherInventaire, interagir, remplirVie, nbActions};
 	Session::evenement_t evenementAction(action_t action);
 	float volumeMusique();
 	float volumeEffets();

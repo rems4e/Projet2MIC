@@ -2,8 +2,8 @@
 //  Editeur.h
 //  Projet2MIC
 //
-//  Created by Rémi Saurel on 11/03/12.
-//  Copyright (c) 2012 Rémi Saurel. All rights reserved.
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
 //
 
 #ifndef Projet2MIC_Editeur_h
@@ -23,7 +23,9 @@ class Editeur {
 public:
 	class Exc_ChargementEditeur : public std::exception {
 	public:
-		Exc_ChargementEditeur(std::string const &v) throw() : std::exception(), _valeur(v) { }
+		Exc_ChargementEditeur(std::string const &v) throw() : std::exception(), _valeur(v) {
+			std::cerr << v << std::endl;
+		}
 		virtual ~Exc_ChargementEditeur() throw() { }
 		virtual const char* what() const throw() { return _valeur.c_str(); }
 	private:

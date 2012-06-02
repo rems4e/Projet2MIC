@@ -2,18 +2,16 @@
 //  Marchand.cpp
 //  Projet2MIC
 //
-//  Created by Rémi Saurel on 18/04/12.
-//  Copyright (c) 2012 Rémi Saurel. All rights reserved.
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
 //
+
 
 #include "Marchand.h"
 #include "Session.h"
 
 Marchand::Marchand(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : Personnage(decoupagePerspective, n, index, cat, new InventaireMarchand(*this)) {
-	for(int i = 0; i < 20; ++i) {
-		ObjetInventaire *e = ElementNiveau::elementNiveau<ObjetInventaire>(false, this->niveau(), nombreAleatoire(6));
-		this->inventaire()->ajouterObjet(e);
-	}
+
 }
 
 Marchand::~Marchand() {
@@ -52,5 +50,5 @@ ssize_t Marchand::prixAchat(ObjetInventaire *o) {
 }
 
 ssize_t Marchand::prixVente(ObjetInventaire *o) {	
-	return 5 * (o->attaque() + o->defense() + o->vie());
+	return 5 * (o->attaque() + o->defense()) + o->vie();
 }

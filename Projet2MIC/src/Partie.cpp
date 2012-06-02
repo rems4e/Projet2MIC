@@ -2,8 +2,8 @@
 //  Partie.cpp
 //  Projet2MIC
 //
-//  Created by Rémi Saurel on 07/02/12.
-//  Copyright (c) 2012 Rémi Saurel. All rights reserved.
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
 //
 
 #include "Partie.h"
@@ -22,52 +22,48 @@
 
 Partie *Partie::_partie = 0;
 
-Partie *Partie::creerPartie(TiXmlElement *sauve) throw(Partie::Exc_PartieDejaCreee) {
-	if(_partie != 0) {
-		delete _partie;
-		throw Exc_PartieDejaCreee();
-	}
-	
-	if(sauve)
-		_partie = new Partie(sauve);
-	else
-		_partie = new Partie;
-	
-	return Partie::partie();
-}
-
 Partie *Partie::partie() {
+	if(_partie == 0)
+		_partie = new Partie;
 	return _partie;
 }
 
-Partie::Partie() : _niveau(0), _joueur(0), _tableauDeBord(0), _marchand(0), _numeroNiveau(1) {
+Partie::Partie() : _niveau(0), _joueur(0), _tableauDeBord(0), _marchand(0), _numeroNiveau(1), _niveauTermine(false), _derniereSauvegarde(0) {
 	_joueur = ElementNiveau::elementNiveau<Joueur>(false, 0, 0);
-	_niveau = new Niveau(_joueur, "niveau" + nombreVersTexte(_numeroNiveau) + ".xml");
-	
-	_joueur->definirNiveau(_niveau);
 	_tableauDeBord = new TableauDeBord(_joueur);
 }
 
-Partie::Partie(TiXmlElement *sauve) : _niveau(0), _joueur(0), _tableauDeBord(0), _marchand(0), _numeroNiveau(1) {
-	sauve->FirstChildElement("Niveau")->Attribute("numero", &_numeroNiveau);
+void Partie::restaurer(TiXmlElement *sauve) {
+	if(sauve != _derniereSauvegarde)
+		delete _derniereSauvegarde;
 	
-	_joueur = ElementNiveau::elementNiveau<Joueur>(false, 0, 0);
+	if(sauve) {
+		sauve->FirstChildElement("Niveau")->Attribute("numero", &_numeroNiveau);
+	}
+	else {
+		_joueur->modifierVieActuelle(-_joueur->vieActuelle() + _joueur->vieTotale());
+		_joueur->renaitre();
+	}
 	
+	delete _niveau;
 	_niveau = new Niveau(_joueur, "niveau" + nombreVersTexte(_numeroNiveau) + ".xml");
 	
 	_joueur->definirNiveau(_niveau);
-	_joueur->restaurer(sauve);
 
-	_tableauDeBord = new TableauDeBord(_joueur);
+	if(sauve) {
+		_joueur->restaurer(sauve);
+	}
+	
+	_derniereSauvegarde = sauve;
 }
 
 Partie::~Partie() {
 	delete _niveau;
 	delete _tableauDeBord;
 	delete _joueur;
+	delete _derniereSauvegarde;
 	
-	if(_partie == this)
-		_partie = 0;
+	_partie = 0;
 }
 
 void Partie::sauvegarder(Image *i) {
@@ -176,7 +172,6 @@ TiXmlElement *Partie::charger(Image *fond, Shader const &s) {
 		return 0;
 	while(!slots[slot]) {
 		++slot;
-		std::cout << slot << std::endl;
 	}
 	
 	return static_cast<TiXmlElement* >(slots[slot]->FirstChildElement("Partie")->Clone());
@@ -205,9 +200,13 @@ TiXmlElement *Partie::commencer() {
 		menu = new Menu("Pause", elem);
 	}
 	TiXmlElement *charge = 0;
+	Image *apercu = 0;
 	
 	bool continuer = true;
 	while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, continuer)) {
+		delete apercu;
+		apercu = 0;
+		
 		Ecran::definirPointeurAffiche(_joueur->inventaireAffiche());
 		Ecran::definirPointeur(0);
 		
@@ -229,6 +228,18 @@ TiXmlElement *Partie::commencer() {
 				continue;
 			}
 		}
+		else if(_niveauTermine) {
+			++_numeroNiveau;
+			_niveauTermine = false;
+			for(InventaireJoueur::iterator i = static_cast<InventaireJoueur *>(_joueur->inventaire())->debut(); i != static_cast<InventaireJoueur *>(_joueur->inventaire())->fin(); ++i) {
+				if(*i && (*i)->index() == 666) {
+					_joueur->inventaire()->supprimerObjet(*i);
+					break;
+				}
+			}
+
+			this->restaurer(this->sauvegarde());
+		}
 		
 		if(Session::evenement(Parametres::evenementAction(Parametres::afficherInventaire))) {
 			if(_joueur->inventaireAffiche()) {
@@ -240,8 +251,13 @@ TiXmlElement *Partie::commencer() {
 			_joueur->definirInventaireAffiche(!_joueur->inventaireAffiche());
 			Session::reinitialiser(Parametres::evenementAction(Parametres::afficherInventaire));
 		}
+		if(Session::evenement(Session::T_ENTREE)) {
+			_joueur->definirInvicible(!_joueur->invincible());
+			Session::reinitialiser(Session::T_ENTREE);
+		}
 		if(Session::evenement(Session::T_ESC)) {
-			Image *apercu = Ecran::apercu();
+			if(!apercu)
+				apercu = Ecran::apercu();
 			index_t selection = 0;
 			do {
 				selection = menu->afficher(0, *apercu);
@@ -264,7 +280,6 @@ TiXmlElement *Partie::commencer() {
 					continuer = false;
 				}
 			} while(selection == 0);
-			delete apercu;
 		}
 		else if(Session::evenement(Session::T_e)) {
 			Editeur *e = Editeur::editeur();
@@ -300,19 +315,44 @@ TiXmlElement *Partie::commencer() {
 			Session::reinitialiser(Parametres::evenementAction(Parametres::remplirVie));
 		}
 		if(_joueur->inventaireAffiche()) {
-			_joueur->inventaire()->gestionEvenements();
+			if(!_joueur->inventaire()->gestionEvenements()) {
+				_joueur->definirInventaireAffiche(false);
+			}
 		}
 		
 		if(Session::evenement(Session::QUITTER)) {
 			continuer = false;
 		}
 		
+		if(!continuer) {
+			if(!apercu)
+				apercu = Ecran::apercu();
+
+			std::vector<Unichar> e;
+			e.push_back("Quitter");
+			Menu m("Quitter sans sauvegarder ?", e, "Retour");
+			if(m.afficher(0, *apercu) == 1) {
+				continuer = true;
+				delete charge;
+				charge = 0;
+			}
+		}
+
 		Ecran::maj();
 	}
 
+	delete apercu;
 	delete menu;
 	
 	return charge;
+}
+
+void Partie::terminerNiveau() {
+	_niveauTermine = true;
+}
+
+bool Partie::niveauTermine() const {
+	return _niveauTermine;
 }
 
 void Partie::afficher() {
@@ -327,13 +367,7 @@ void Partie::afficher() {
 }
 
 void Partie::reinitialiser() {
-	_joueur->renaitre();
-	
-	delete _niveau;
-	_niveau = new Niveau(_joueur, "niveau" + nombreVersTexte(_numeroNiveau) + ".xml");
-	_joueur->definirNiveau(_niveau);
-	_joueur->definirInventaireAffiche(false);
-	_joueur->inventaire()->vider();
+	this->restaurer(_derniereSauvegarde);
 }
 
 Rectangle Partie::zoneJeu() const {
@@ -375,8 +409,8 @@ void Partie::definirMarchand(Marchand *m) {
 			
 			Ecran::finaliser();
 			
-			_joueur->inventaire()->gestionEvenements();
-			_marchand->inventaire()->gestionEvenements();
+			continuer &= _joueur->inventaire()->gestionEvenements();
+			continuer &= _marchand->inventaire()->gestionEvenements();
 			if(Session::evenement(Session::T_ESC)) {
 				continuer = false;
 			}
@@ -408,7 +442,7 @@ TiXmlElement *Partie::mortJoueur(bool &continuer) {
 	TiXmlElement *retour = 0;
 
 	do {
-		selection = menu.afficher(0, *ap, sMort);
+		selection = menu.afficher(0, *ap, sMort, false);
 	
 		if(selection == 0) {
 			this->reinitialiser();

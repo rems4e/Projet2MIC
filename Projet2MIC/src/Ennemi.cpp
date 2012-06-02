@@ -2,18 +2,27 @@
 //  Ennemi.cpp
 //  Projet2MIC
 //
-//  Created by Rémi Saurel on 02/03/12.
-//  Copyright (c) 2012 Rémi Saurel. All rights reserved.
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
 //
 
 #include "Ennemi.h"
 #include "Joueur.h"
+#include "tinyxml.h"
 
 Ennemi::Ennemi(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : Personnage(decoupagePerspective, n, index, cat, new InventaireEnnemi(*this, CAPACITE_ENNEMI)), _recherche(false) {
-	this->definirVieTotale(10);
-	this->inventaire()->modifierMonnaie(20);
+	TiXmlElement *e = ElementNiveau::description(index, cat);
+	for(competences_t c = premiereCompetence; c != nbCompetences; ++c) {
+		_coef[c] = 1.0;
+		std::string val = "c" + nombreVersTexte(c);
+		if(e->Attribute(val))
+			e->Attribute(val, &(_coef[c]));
+	}
 
 	this->equilibrerAvecJoueur();
+	if(cat == boss) {
+		this->inventaire()->ajouterObjet(ElementNiveau::elementNiveau<ObjetInventaire>(false, n, 666));
+	}
 }
 
 Ennemi::~Ennemi() {
@@ -54,7 +63,7 @@ void Ennemi::animer() {
 				}
 			}
 		}
-		if(suivre && this->definirAction(EntiteMobile::a_deplacer) && this->deplacerPosition(dep)) {
+		if(suivre && this->deplacerPosition(dep) && this->definirAction(EntiteMobile::a_deplacer)) {
 			
 		}
 		else {
@@ -105,5 +114,24 @@ EntiteMobile::categorie_t Ennemi::categorieMobile() const {
 }
 
 void Ennemi::equilibrerAvecJoueur() {
-	
+	Competences cc = this->niveau()->joueur()->competences();
+	for(competences_t c = premiereCompetence; c != nbCompetences; ++c) {
+		double nb = (nombreAleatoire(21) - 10) / 100.0;
+		cc[c] *= std::max(0.0, _coef[c] + nb);
+		cc[c] = std::max<size_t>(cc[c] / 1.5, 1);
+	}
+	this->definirCompetences(cc);
+	this->modifierVieActuelle(cc[endurance] * 10);
+
+	if(nombreAleatoire(2))
+		this->inventaire()->modifierMonnaie(10 + 10 * this->niveau()->joueur()->niveauXp());
+	else {
+		ObjetInventaire *o = ElementNiveau::elementNiveau<ObjetInventaire>(false, this->niveau(), nombreAleatoire(ElementNiveau::nombreEntites(ElementNiveau::objetInventaire)));
+		this->inventaire()->ajouterObjet(o);
+	}
+}
+
+void Ennemi::mourir() {
+	this->Personnage::mourir();
+	this->niveau()->joueur()->gagnerXp(this);
 }

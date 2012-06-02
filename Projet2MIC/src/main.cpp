@@ -2,9 +2,10 @@
 //  main.cpp
 //  Projet2MIC
 //
-//  Created by Rémi Saurel on 31/01/12.
-//  Copyright (c) 2012 Rémi Saurel. All rights reserved.
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
 //
+
 
 #include "Session.h"
 #include "Shader.h"
@@ -49,8 +50,8 @@ void jeu() {
 	TiXmlElement *charge = 0;
 	do {		
 		if(charge) {
-			Partie *nouvellePartie = Partie::creerPartie(charge);
-			delete charge;
+			Partie *nouvellePartie = Partie::partie();
+			nouvellePartie->restaurer(charge);
 			charge = nouvellePartie->commencer();
 			delete nouvellePartie;
 		}
@@ -60,7 +61,8 @@ void jeu() {
 			
 			selection = menu.afficher(0, fond, sFond);
 			if(selection == 0) {
-				Partie *nouvellePartie = Partie::creerPartie();
+				Partie *nouvellePartie = Partie::partie();
+				nouvellePartie->restaurer(0);
 				charge = nouvellePartie->commencer();
 				delete nouvellePartie;
 			}

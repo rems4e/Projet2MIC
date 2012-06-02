@@ -2,8 +2,8 @@
 //  ObjetInventaire.h
 //  Projet2MIC
 //
-//  Created by Rémi Saurel on 08/04/12.
-//  Copyright (c) 2012 Rémi Saurel. All rights reserved.
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
 //
 
 #ifndef Projet2MIC_ObjetInventaire_h
@@ -18,7 +18,7 @@ class ObjetInventaire : public EntiteStatique {
 	friend ObjetInventaire *ElementNiveau::elementNiveau<ObjetInventaire>(bool decoupagePerspective, Niveau *n, uindex_t i, ElementNiveau::elementNiveau_t) throw(ElementNiveau::Exc_EntiteIndefinie, ElementNiveau::Exc_DefinitionEntiteIncomplete);
 	friend class ElementNiveau;
 public:
-	enum categorie_t {arme, bouclier, armure, casque, gants, bottes, potion};
+	enum categorie_t {arme, bouclier, armure, casque, gants, bottes, potion, cle};
 	
 	virtual ~ObjetInventaire();
 	

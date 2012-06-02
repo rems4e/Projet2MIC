@@ -23,7 +23,7 @@ void main(void) {
 		float mov1 = y / _ecran.y / 0.2 + _temps / 2;
 		float mov2 = x / _ecran.x / 0.2;
 		float c1 = abs(sin(mov1 + _temps / 2) / 2.0 + mov2 / 2.0 - mov1 - mov2 + _temps / 2);
-		float c2 = abs(sin(c1 + sin(mov0 / 1000.0 + _temps / 2) + sin(y / 40.0 + _temps / 2) + sin((x + y) / 100.0) * 3.0));
+		float c2 = abs(sin(c1 + sin(mov0 / 1000.0 + _temps / 2) + sin(y / 40.0 + _temps / 2) + sin((x / 20 + y) / 100.0) * 3.0));
 		
 		vec4 couleur = vec4((c2 + 1.0) / 2, 0.0, 0.0, 0.6);
 		

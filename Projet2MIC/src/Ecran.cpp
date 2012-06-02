@@ -1,11 +1,10 @@
-/*
- *  Ecran.cpp
- *  Jeu C++
- *
- *  Created by Rémi on 06/07/07.
- *  Copyright 2007 Rémi Saurel. All rights reserved.
- *
- */
+//
+//  Ecran.cpp
+//  Projet2MIC
+//
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
+//
 
 #include "Ecran.h"
 #include "Constantes.h"
@@ -60,7 +59,6 @@ namespace Ecran {
 		
 		int _largeur;
 		int _hauteur;
-		int _profondeur;
 		bool _pleinEcran;
 						
 		float _frequence;
@@ -97,7 +95,7 @@ void Ecran::init(unsigned int largeur, unsigned int hauteur, bool pleinEcran) {
 	SDL_ShowCursor(SDL_DISABLE);
 }
 
-Ecran::AttributsEcran::AttributsEcran() : _largeur(0L), _hauteur(0L), _profondeur(0), _pleinEcran(false), _frequence(1.0f), _frequenceInstantanee(1.0f), _texte(0), _pointeur(0), _pointeurDefaut(0), _decalagePointeur(), _pointeurAffiche() {
+Ecran::AttributsEcran::AttributsEcran() : _largeur(0L), _hauteur(0L), _pleinEcran(false), _frequence(1.0f), _frequenceInstantanee(1.0f), _texte(0), _pointeur(0), _pointeurDefaut(0), _decalagePointeur(), _pointeurAffiche() {
 
 }
 
@@ -128,7 +126,6 @@ void Ecran::modifierResolution(unsigned int largeur, unsigned int hauteur, bool 
 	
 	Ecran::_attributs->_largeur = largeur;
 	Ecran::_attributs->_hauteur = hauteur;
-	Ecran::_attributs->_profondeur = 32;
 	Ecran::_attributs->_pleinEcran = pleinEcran;
 	
 	Ecran::_attributs->_frequence = 0.0f;
@@ -155,7 +152,7 @@ void Ecran::modifierResolution(unsigned int largeur, unsigned int hauteur, bool 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
 	if(resultat == 0) {
-		std::cerr << "Impossible de définir l'écran à une résolution de " << largeur << "*" << hauteur << "*" << profondeur << " (plein écran : " << pleinEcran << "). Erreur : " << SDL_GetError() << std::endl;
+		std::cerr << "Impossible de définir l'écran à une résolution de " << largeur << "*" << hauteur << "*" << 32 << " (plein écran : " << pleinEcran << "). Erreur : " << SDL_GetError() << std::endl;
 		throw Exc_InitialisationImpossible();
 	}
 	
@@ -345,10 +342,6 @@ int Ecran::largeur() {
 
 int Ecran::hauteur() {
 	return Ecran::_attributs->_hauteur;
-}
-
-int Ecran::profondeur() {
-	return Ecran::_attributs->_profondeur;
 }
 
 bool Ecran::pleinEcran() {

@@ -2,9 +2,10 @@
 //  Joueur.h
 //  Projet2MIC
 //
-//  Created by Rémi Saurel on 11/02/12.
-//  Copyright (c) 2012 Rémi Saurel. All rights reserved.
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
 //
+
 
 #ifndef Projet2MIC_Joueur_h
 #define Projet2MIC_Joueur_h
@@ -17,7 +18,7 @@ class TiXmlElement;
 struct Joueur : public Personnage {
 	friend Joueur *ElementNiveau::elementNiveau<Joueur>(bool decoupagePerspective, Niveau *n, uindex_t i, ElementNiveau::elementNiveau_t) throw(ElementNiveau::Exc_EntiteIndefinie, ElementNiveau::Exc_DefinitionEntiteIncomplete);
 public:
-	enum interactionJoueur_t {ij_aucune, ij_attaquer, ij_commerce};
+	enum interactionJoueur_t {ij_aucune, ij_attaquer, ij_commerce, ij_ramasser, ij_finirNiveau};
 	
 	virtual ~Joueur();
 	
@@ -32,12 +33,26 @@ public:
 	bool inventaireAffiche() const;
 	void definirInventaireAffiche(bool af);
 	
+	bool peutTerminerNiveau() const;
+		
 	void renaitre();
-	
+
 	TiXmlElement *sauvegarde() const;
 	void restaurer(TiXmlElement *sauvegarde);
 	
 	interactionJoueur_t interaction() const;
+	std::pair<size_t, size_t> nombreObjets() const;
+	Personnage *attaque() const;
+	
+	size_t xp() const;
+	size_t xpTotale() const;
+	index_t niveauXp() const;
+
+	void gagnerXp(Personnage *p);
+	bool invincible() const;
+	void definirInvicible(bool i);
+
+	void modifierVieActuelle(int delta);
 			
 protected:
 	static ElementNiveau::elementNiveau_t cat() { return ElementNiveau::ennemi; }
@@ -54,6 +69,12 @@ private:
 	bool _inventaireAffiche;
 	
 	interactionJoueur_t _interaction;
+	std::pair<size_t, size_t> _nombreObjets;
+	Personnage *_attaque;
+	
+	size_t _xp;
+	index_t _niveauXp;
+	bool _invincible;
 };
 
 #endif

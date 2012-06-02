@@ -3,7 +3,7 @@
 uniform sampler2D _tex;
 uniform vec2 _dim;
 uniform vec2 _ecran;
-uniform float _temps;
+uniform float _tempsAbsolu;
 
 varying vec2 _texCoord;
 varying vec4 _color;
@@ -250,8 +250,8 @@ void main( void )
 	vec2 p = -1.0 + 2.0 * gl_FragCoord.xy / _ecran.xy;
 	p *= vec2(_ecran.x/_ecran.y,1.0);
 	
-	fpar00[0] = vec4( 1.2*sin( 6.2831*.33*_temps + 0.0 ), 0.0,  1.8*sin( 6.2831*.39*_temps + 1.0 ), 1 );
-	fpar00[1] = vec4( 1.5*sin( 6.2831*.31*_temps + 4.0 ), 1.0*sin( 6.2831*.29*_temps + 1.9),  1.8*sin( 6.2831*.29*_temps + 0.0 ), 1 );
+	fpar00[0] = vec4( 1.2*sin( 6.2831*.33*_tempsAbsolu + 0.0 ), 0.0,  1.8*sin( 6.2831*.39*_tempsAbsolu + 1.0 ), 1 );
+	fpar00[1] = vec4( 1.5*sin( 6.2831*.31*_tempsAbsolu + 4.0 ), 1.0*sin( 6.2831*.29*_tempsAbsolu + 1.9),  1.8*sin( 6.2831*.29*_tempsAbsolu + 0.0 ), 1 );
 	fpar00[2] = vec4( -1.2, 0.0, -0.0, 0.4 );
 	fpar00[3] = vec4(  1.2, 0.0, -0.0, 0.4 );
 	fpar00[4] = vec4(  0.0, 1.0, 0.0, 2.0 );
@@ -264,7 +264,7 @@ void main( void )
 	fpar01[4] = vec4( 1.0, 0.9, 0.9, 2.0 );
 	fpar01[5] = vec4( 1.0, 0.9, 0.9, 2.0 );
 	
-	float an = .15*_temps;
+	float an = .15*_tempsAbsolu;
 	float di = 2.0 + 2.0;
 	vec2 sc = vec2(cos(an),sin(an));
 	vec3 rd = normalize(vec3(p.x*sc.x-sc.y,p.y,sc.x+p.x*sc.y));

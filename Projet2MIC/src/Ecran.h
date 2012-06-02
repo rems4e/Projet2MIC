@@ -1,11 +1,10 @@
-/*
- *  Ecran.h
- *  Jeu C++
- *
- *  Created by Rémi on 06/07/07.
- *  Copyright 2007 Rémi Saurel. All rights reserved.
- *
- */
+//
+//  Ecran.h
+//  Projet2MIC
+//
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
+//
 
 #ifndef EN_TETE_ECRAN
 #define EN_TETE_ECRAN
@@ -49,7 +48,9 @@ struct Couleur {
 namespace Ecran {
 	class Exc_InitialisationImpossible : public std::exception {
 	public:
-		Exc_InitialisationImpossible() throw() : std::exception() { }
+		Exc_InitialisationImpossible() throw() : std::exception() {
+			std::cerr << this->what() << std::endl;
+		}
 		virtual ~Exc_InitialisationImpossible() throw() { }
 		virtual const char* what() const throw() { return "Impossible de définir la résolution de l'écran."; }
 	};
@@ -59,7 +60,6 @@ namespace Ecran {
 	Coordonnees dimensions();
 	int largeur();
 	int hauteur();
-	int profondeur();
 	
 	Rectangle ecran();
 	

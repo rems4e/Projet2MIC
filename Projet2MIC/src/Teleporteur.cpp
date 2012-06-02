@@ -2,8 +2,8 @@
 //  Teleporteur.cpp
 //  Projet2MIC
 //
-//  Created by Rémi Saurel on 09/04/12.
-//  Copyright (c) 2012 Rémi Saurel. All rights reserved.
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
 //
 
 #include "Teleporteur.h"

@@ -2,8 +2,8 @@
 //  Audio.h
 //  Projet2MIC
 //
-//  Created by Rémi Saurel on 18/05/12.
-//  Copyright (c) 2012 Rémi Saurel. All rights reserved.
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
 //
 
 #ifndef Projet2MIC_Audio_h
@@ -36,7 +36,7 @@ namespace Audio {
 	
 	void libererSon(audio_t son);
 	
-	void jouerSon(audio_t son) throw(Exc_Son);
+	void jouerSon(audio_t son, bool boucle = false) throw(Exc_Son);
 	
 	void definirMusique(audio_t m);
 	void jouerMusique() throw(Exc_Son);

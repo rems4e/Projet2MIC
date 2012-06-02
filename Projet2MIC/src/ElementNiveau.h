@@ -2,8 +2,8 @@
 //  ElementNiveau.h
 //  Projet2MIC
 //
-//  Created by Rémi Saurel on 03/02/12.
-//  Copyright (c) 2012 Rémi Saurel. All rights reserved.
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
 //
 
 #ifndef Projet2MIC_ElementNiveau_h
@@ -23,7 +23,7 @@ class TiXmlDocument;
 class ElementNiveau {
 public:
 	enum elementNiveau_t {premierTypeElement = 0, entiteStatique = premierTypeElement, ennemi, arbre, entiteStatiqueAnimee, objetInventaire, teleporteur, maison, arbreMort,
-		marchand, sol, ndef11, ndef12, ndef13, ndef14, ndef15, ndef16, ndef17, ndef18, ndef19, ndef20, ndef21, ndef22, ndef23, ndef24,
+		marchand, sol, boss, ndef12, ndef13, ndef14, ndef15, ndef16, ndef17, ndef18, ndef19, ndef20, ndef21, ndef22, ndef23, ndef24,
 		ndef25, ndef26, ndef27, ndef28, ndef29, ndef30, ndef31, ndef32, ndef33, ndef34, ndef35, ndef36, ndef37, ndef38, ndef39, ndef40,
 		ndef41, ndef42, ndef43, ndef44, ndef45, ndef46, ndef47, ndef48, ndef49, ndef50, ndef51, ndef52, ndef53, ndef54, ndef55, ndef56,
 		ndef57, ndef58, ndef59, ndef60, ndef61, ndef62, ndef63, ndef64, nbTypesElement};
@@ -31,7 +31,9 @@ public:
 	// Exception lancée si une entité n'a pu être créée
 	class Exc_EntiteIndefinie : public std::exception {
 	public:
-		Exc_EntiteIndefinie() throw() : std::exception() { }
+		Exc_EntiteIndefinie() throw() : std::exception() {
+			std::cerr << this->what() << std::endl;
+		}
 		virtual ~Exc_EntiteIndefinie() throw() { }
 		virtual const char* what() const throw() { return "Création de l'entité impossible !"; }
 	};
@@ -39,7 +41,9 @@ public:
 	// Exception lancée si la définition de l'entité dans le .xml est incomplète (manque le fichier image…)
 	class Exc_DefinitionEntiteIncomplete : public std::exception {
 	public:
-		Exc_DefinitionEntiteIncomplete() throw() : std::exception() { }
+		Exc_DefinitionEntiteIncomplete() throw() : std::exception() {
+			std::cerr << this->what() << std::endl;
+		}
 		virtual ~Exc_DefinitionEntiteIncomplete() throw() { }
 		virtual const char* what() const throw() { return "Définition de l'entité incomplète !"; }
 	};
@@ -85,7 +89,7 @@ public:
 	virtual size_t dimY() const;
 	
 	Niveau *niveau();
-	void definirNiveau(Niveau *n);
+	virtual void definirNiveau(Niveau *n);
 	// Position en pixels, après changement de repère depuis celui du niveau vers celui de l'écran.
 	Coordonnees positionAffichage() const;
 	

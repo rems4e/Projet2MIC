@@ -2,8 +2,8 @@
 //  Inventaire.h
 //  Projet2MIC
 //
-//  Created by Rémi Saurel on 08/04/12.
-//  Copyright (c) 2012 Rémi Saurel. All rights reserved.
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
 //
 
 #ifndef Projet2MIC_Inventaire_h
@@ -75,10 +75,12 @@ public:
 	virtual void vider() = 0;
 	
 	virtual void afficher() const = 0;
-	virtual void gestionEvenements() = 0;
+	virtual bool gestionEvenements() = 0;
 	
 	virtual void preparationAffichage() = 0;
 	virtual void masquer() = 0;
+	
+	virtual void definirNiveau(Niveau *n) = 0;
 
 	const_iterator const &debut() const;
 	const_iterator const &fin() const;
@@ -162,6 +164,8 @@ public:
 	virtual iterator debut() = 0;
 	virtual iterator fin() = 0;
 	
+	void definirNiveau(Niveau *n);
+	
 protected:
 	Conteneur<ObjetInventaire *> _elements;
 
@@ -186,7 +190,7 @@ public:
 			
 private:
 	virtual void afficher() const;
-	virtual void gestionEvenements();
+	virtual bool gestionEvenements();
 	
 	virtual void preparationAffichage();
 	virtual void masquer();
@@ -205,7 +209,7 @@ public:
 	~InventaireSol();
 
 	virtual void afficher() const;
-	virtual void gestionEvenements();
+	virtual bool gestionEvenements();
 	
 private:
 	virtual void definirCapacite(size_t c);
@@ -258,7 +262,7 @@ public:
 	virtual ~InventaireMarchand();
 		
 	virtual void afficher() const;
-	virtual void gestionEvenements();
+	virtual bool gestionEvenements();
 	
 	virtual void preparationAffichage();
 	virtual void masquer();
@@ -280,7 +284,7 @@ private:
 	
 	mutable Rectangle _cadreGauche, _cadreDroite;
 	
-	index_t _page;
+	mutable Rectangle _sortie;
 };
 
 class InventaireJoueur : public InventaireTableau {
@@ -292,7 +296,7 @@ public:
 	virtual ~InventaireJoueur();
 	
 	virtual void afficher() const;
-	virtual void gestionEvenements();
+	virtual bool gestionEvenements();
 	
 	virtual void preparationAffichage();
 	virtual void masquer();
@@ -318,6 +322,8 @@ private:
 	
 	ObjetInventaire *_objetTransfert;
 	ObjetInventaire *_infos;
+	
+	mutable Rectangle _sortie;
 };
 
 #endif

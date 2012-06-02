@@ -2,8 +2,8 @@
 //  Audio.cpp
 //  Projet2MIC
 //
-//  Created by Rémi Saurel on 18/05/12.
-//  Copyright (c) 2012 Rémi Saurel. All rights reserved.
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
 //
 
 #include "Audio.h"
@@ -22,7 +22,7 @@ namespace Audio {
 	void initialiser();
 	void nettoyer();
 	
-
+	// Affiche l'erreur rencontrée par l'API. La variable nb est là pour voir de quelle fonction provient l'erreur... Pas très joli, mais efficace :p
 	bool erreur(FMOD_RESULT code, int nb) throw(Exc_Son);
 	
 	FMOD::System *_systeme = 0;
@@ -70,24 +70,25 @@ void Audio::initialiser() {
 
 void Audio::nettoyer() {
 	resultat = _systeme->close();
-	erreur(resultat, 3);
+	erreur(resultat, 2);
 
 	resultat = _systeme->release();
-	erreur(resultat, 4);
+	erreur(resultat, 3);
 }
 
 Audio::audio_t Audio::chargerSon(std::string const &chemin) throw(Audio::Exc_Son) {
 	audio_t son = 0;
-	resultat = _systeme->createSound(chemin.c_str(), FMOD_CREATESAMPLE, 0, &son);
-	erreur(resultat, 5);
+	resultat = _systeme->createSound(chemin.c_str(), FMOD_CREATESAMPLE | FMOD_2D | FMOD_LOOP_NORMAL, 0, &son);
+	erreur(resultat, 4);
 	
+
 	return son;
 }
 
 Audio::audio_t Audio::chargerMusique(std::string const &chemin) throw(Audio::Exc_Son) {
 	audio_t son = 0;
 	resultat = _systeme->createSound(chemin.c_str(), FMOD_SOFTWARE | FMOD_2D | FMOD_CREATESTREAM | FMOD_LOOP_NORMAL, 0, &son);
-	erreur(resultat, 6);
+	erreur(resultat, 5);
 	
 	son->setLoopCount(-1);
 	
@@ -96,13 +97,18 @@ Audio::audio_t Audio::chargerMusique(std::string const &chemin) throw(Audio::Exc
 
 void Audio::libererSon(audio_t son) {
 	resultat = son->release();
-	erreur(resultat, 7);
+	erreur(resultat, 6);
 }
 
-void Audio::jouerSon(audio_t son) throw(Audio::Exc_Son) {
+void Audio::jouerSon(audio_t son, bool boucle) throw(Audio::Exc_Son) {
+	if(boucle)
+		son->setLoopCount(-1);
+	else
+		son->setLoopCount(0);
+
 	FMOD::Channel *c = 0;
 	resultat = _systeme->playSound(FMOD_CHANNEL_FREE, son, false, &c);
-	erreur(resultat, 8);
+	erreur(resultat, 7);
 	
 	int nb;
 	c->getIndex(&nb);
@@ -133,7 +139,7 @@ void Audio::jouerMusique() throw(Audio::Exc_Son) {
 	}
 	
 	resultat = _systeme->playSound(FMOD_CHANNEL_FREE, _musique, false, &_canalMusique);
-	erreur(resultat, 12);
+	erreur(resultat, 8);
 	
 	int nb;
 	_canalMusique->getIndex(&nb);
@@ -170,6 +176,6 @@ void Audio::definirVolumeEffets(float v) {
 
 void Audio::maj() throw(Exc_Son) {
 	resultat = _systeme->update();
-	erreur(resultat, 30);
+	erreur(resultat, 9);
 }
 

@@ -1,11 +1,10 @@
-/*
- *  Session.h
- *  Jeu C++
- *
- *  Created by Rémi on 24/07/07.
- *  Copyright 2007 Rémi Saurel. All rights reserved.
- *
- */
+//
+//  Session.h
+//  Projet2MIC
+//
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
+//
 
 #ifndef EN_TETE_SESSION
 #define EN_TETE_SESSION

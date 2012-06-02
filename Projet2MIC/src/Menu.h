@@ -1,11 +1,11 @@
-/*
- *  Menu.h
- *  Jeu C++
- *
- *  Created by Rémi on 17/12/07.
- *  Copyright 2007 Rémi Saurel. All rights reserved.
- *
- */
+//
+//  Menu.h
+//  Projet2MIC
+//
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
+//
+
 
 #ifndef EN_TETE_MENU
 #define EN_TETE_MENU
@@ -26,7 +26,7 @@ public:
 	Menu(Unichar const &titre, std::vector<Unichar> const &elements, Unichar const &dernierElement = "Retour");
 	virtual ~Menu();
 	
-	index_t afficher(index_t selection, Image const &fond, Shader const &s = Shader::flou(1));
+	index_t afficher(index_t selection, Image const &fond, Shader const &s = Shader::flou(1), bool voile = true);
 	
 protected:
 	Menu (Menu const &);

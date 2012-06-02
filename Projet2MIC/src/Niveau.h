@@ -2,8 +2,8 @@
 //  Niveau.h
 //  Projet2MIC
 //
-//  Created by Rémi Saurel on 03/02/12.
-//  Copyright (c) 2012 Rémi Saurel. All rights reserved.
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
 //
 
 #ifndef Projet2MIC_Niveau_h
@@ -61,7 +61,9 @@ public:
 	
 	class Exc_CreationNiveau : public std::exception {
 	public:
-		Exc_CreationNiveau(std::string const &v) throw() : std::exception(), _valeur(v) { }
+		Exc_CreationNiveau(std::string const &v) throw() : std::exception(), _valeur(v) {
+			std::cerr << this->what() << std::endl;
+		}
 		virtual ~Exc_CreationNiveau() throw() { }
 		virtual const char* what() const throw() { return _valeur.c_str(); }
 	private:
@@ -74,6 +76,7 @@ public:
 	virtual ~Niveau();
 	
 	Audio::audio_t musique();
+	Audio::audio_t attaque();
 	
 	Joueur *joueur();
 	
@@ -174,6 +177,8 @@ private:
 	
 	Audio::audio_t _tonnerre;
 	Audio::audio_t _musique;
+	Audio::audio_t _attaque;
+	Audio::audio_t _sonPluie;
 	
 	Coordonnees _persoInit;
 	Shader _pluie;

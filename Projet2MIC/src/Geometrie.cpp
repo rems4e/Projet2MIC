@@ -1,11 +1,11 @@
-/*
- *  Geometrie.cpp
- *  Jeu C++
- *
- *  Created by Rémi on 07/06/08.
- *  Copyright 2008 Rémi Saurel. All rights reserved.
- *
- */
+//
+//  Geometrie.cpp
+//  Projet2MIC
+//
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
+//
+
 
 #include "Geometrie.h"
 #include <limits>

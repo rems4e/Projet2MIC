@@ -2,8 +2,8 @@
 //  Personnage.h
 //  Projet2MIC
 //
-//  Created by Rémi Saurel on 07/02/12.
-//  Copyright (c) 2012 Rémi Saurel. All rights reserved.
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
 //
 
 #ifndef Projet2MIC_Personnage_h
@@ -45,7 +45,7 @@ public:
 	
 	virtual void animer();
 	virtual bool interagir(Personnage *p, bool test) = 0;
-	virtual void attaquer(Personnage *p);
+	virtual bool attaquer(Personnage *p);
 	
 	virtual Coordonnees origine() const;
 	virtual bool centrage() const;
@@ -53,11 +53,10 @@ public:
 	// Le coefficient multiplicateur de la vitesse de déplacement de l'entité
 	virtual double vitesse() const;
 	
-	unsigned int vieActuelle() const;
-	void modifierVieActuelle(int delta);
+	size_t vieActuelle() const;
+	virtual void modifierVieActuelle(int delta);
 	
-	virtual unsigned int vieTotale() const;
-	void definirVieTotale(int vie);
+	virtual size_t vieTotale() const;
 	
 	virtual bool definirAction(action_t a);
 	virtual Niveau::couche_t couche() const;
@@ -69,11 +68,13 @@ public:
 	Inventaire const *inventaire() const;
 	
 	Competences const &competences() const;
+	Competences &competences();
 	void definirCompetences(Competences const &c);
 	
 	virtual bool peutEquiperObjet(ObjetInventaire *objet);
 	virtual bool peutEquiperObjet(ObjetInventaire *objet, positionTenue_t pos);
 	
+	void definirNiveau(Niveau *n);
 
 protected:
 	Personnage(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t, Inventaire *inventaire);
@@ -82,13 +83,11 @@ protected:
 	
 	Personnage *interagir(bool test);
 	virtual void mourir();
-	void renaitre();
 	
 	virtual void jeterObjets() = 0;
 
 private:
 	int _vieActuelle;
-	int _vieTotale;
 	double _vitesse;
 	struct DelaisAction {
 		horloge_t _cooldown;

@@ -2,8 +2,8 @@
 //  EntiteMobile.h
 //  Projet2MIC
 //
-//  Created by Rémi Saurel on 06/02/12.
-//  Copyright (c) 2012 Rémi Saurel. All rights reserved.
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
 //
 
 #ifndef Projet2MIC_EntiteMobile_h
@@ -50,6 +50,7 @@ public:
 	index_t nPY(coordonnee_t pY) const;
 
 	bool mort() const;
+	virtual void renaitre();
 
 protected:
 	Rectangle const &cadre() const;
@@ -66,7 +67,6 @@ protected:
 	action_t actionActuelle() const { return _action; }
 			
 	void mourir();
-	void renaitre();
 	
 private:
 	size_t _nbImages[nbActions];

@@ -2,8 +2,8 @@
 //  Shader.h
 //  Projet2MIC
 //
-//  Created by Rémi Saurel on 11/04/12.
-//  Copyright (c) 2012 Rémi Saurel. All rights reserved.
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
 //
 
 #ifndef Projet2MIC_Shader_h
@@ -40,10 +40,13 @@ public:
 	static char const * const dim;
 	static char const * const pos;
 	static char const * const temps;
+	static char const * const tempsAbsolu;
 		
 	class Exc_CreationImpossible : public std::exception {
 	public:
-		Exc_CreationImpossible() throw() : std::exception() { }
+		Exc_CreationImpossible() throw() : std::exception() {
+			std::cerr << this->what() << std::endl;
+		}
 		virtual ~Exc_CreationImpossible() throw() { }
 		virtual const char* what() const throw() { return "Création shader impossible"; }
 	};

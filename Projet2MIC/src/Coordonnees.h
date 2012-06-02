@@ -1,11 +1,10 @@
-/*
- *  Coordonnees.h
- *  Jeu C++
- *
- *  Created by Rémi on 28/07/11.
- *  Copyright 2011 Rémi Saurel. All rights reserved.
- *
- */
+//
+//  Coordonnees.h
+//  Projet2MIC
+//
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
+//
 
 #ifndef COORDONNEES_H
 #define COORDONNEES_H

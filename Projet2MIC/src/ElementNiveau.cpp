@@ -2,8 +2,8 @@
 //  ElementNiveau.cpp
 //  Projet2MIC
 //
-//  Created by Rémi Saurel on 03/02/12.
-//  Copyright (c) 2012 Rémi Saurel. All rights reserved.
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
 //
 
 #include "ElementNiveau.h"
@@ -47,10 +47,12 @@ ElementNiveau *ElementNiveau::elementNiveau(bool decoupagePerspective, Niveau *n
 		case maison:
 			return ElementNiveau::elementNiveau<EntiteStatique>(decoupagePerspective, n, index, maison);
 		case arbreMort:
-			return ElementNiveau::elementNiveau<EntiteStatique>(decoupagePerspective, n, index);
+			return ElementNiveau::elementNiveau<EntiteStatique>(decoupagePerspective, n, index, arbreMort);
 		case marchand:
 			return ElementNiveau::elementNiveau<Marchand>(decoupagePerspective, n, index);
-		case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
+		case boss:
+			return ElementNiveau::elementNiveau<Ennemi>(decoupagePerspective, n, index, boss);
+		case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
 		case ndef17:case ndef18:case ndef19:case ndef20:case ndef21:case ndef22:case ndef23:case ndef24:
 		case ndef25:case ndef26:case ndef27:case ndef28:case ndef29:case ndef30:case ndef31:case ndef32:
 		case ndef33:case ndef34:case ndef35:case ndef36:case ndef37:case ndef38:case ndef39:case ndef40:
@@ -209,8 +211,12 @@ size_t ElementNiveau::nombreEntites(elementNiveau_t categorie) {
 			char const *nom = ElementNiveau::nomBalise(i);
 			if(nom) {
 				TiXmlElement *cat = element->FirstChildElement(nom);
-				if(cat)
-					for(TiXmlNode *n = cat->FirstChild(); n; n = n->NextSibling(), ++nb[i]);
+				if(cat) {
+					for(TiXmlElement *n = cat->FirstChildElement(); n; n = n->NextSiblingElement(), ++nb[i]) {
+						if(n->Value() != "Element" + nombreVersTexte(nb[i]))
+							break;
+					}
+				}
 			}
 		}
 	}
@@ -276,7 +282,9 @@ char const *ElementNiveau::nomBalise(elementNiveau_t cat) {
 			return "ArbreMort";
 		case marchand:
 			return "Marchand";
-		case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
+		case boss:
+			return "Boss";
+		case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
 		case ndef17:case ndef18:case ndef19:case ndef20:case ndef21:case ndef22:case ndef23:case ndef24:
 		case ndef25:case ndef26:case ndef27:case ndef28:case ndef29:case ndef30:case ndef31:case ndef32:
 		case ndef33:case ndef34:case ndef35:case ndef36:case ndef37:case ndef38:case ndef39:case ndef40:
@@ -310,7 +318,9 @@ char const *ElementNiveau::nomCategorie(elementNiveau_t cat) {
 			return "Arbre mort";
 		case marchand:
 			return "Marchand";
-		case ndef11:case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
+		case boss:
+			return "Boss";
+		case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
 		case ndef17:case ndef18:case ndef19:case ndef20:case ndef21:case ndef22:case ndef23:case ndef24:
 		case ndef25:case ndef26:case ndef27:case ndef28:case ndef29:case ndef30:case ndef31:case ndef32:
 		case ndef33:case ndef34:case ndef35:case ndef36:case ndef37:case ndef38:case ndef39:case ndef40:

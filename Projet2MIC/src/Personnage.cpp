@@ -2,8 +2,8 @@
 //  Personnage.cpp
 //  Projet2MIC
 //
-//  Created by Rémi Saurel on 09/02/12.
-//  Copyright (c) 2012 Rémi Saurel. All rights reserved.
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
 //
 
 #include "Personnage.h"
@@ -103,16 +103,10 @@ Personnage::positionTenue_t &operator++(Personnage::positionTenue_t &p) {
 	return p;
 }
 
-Personnage::Personnage(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat, Inventaire *inventaire) : EntiteMobile(decoupagePerspective, n, index, cat), _vitesse(10), _vieActuelle(0), _vieTotale(200), _delaisAction(), _inventaire(inventaire), _competences(), _cibleAttaque(0) {
+Personnage::Personnage(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat, Inventaire *inventaire) : EntiteMobile(decoupagePerspective, n, index, cat), _vitesse(10), _vieActuelle(0), _delaisAction(), _inventaire(inventaire), _competences(), _cibleAttaque(0) {
 	TiXmlElement *e = ElementNiveau::description(index, cat);
-	int t;
 	if(e->Attribute("vitesse"))
 		e->Attribute("vitesse", &_vitesse);
-	if(e->Attribute("vie")) {
-		e->Attribute("vie", &t);
-		_vieTotale = t; 
-	}
-	_vieActuelle = _vieTotale;
 	
 	
 	for(EntiteMobile::action_t a = EntiteMobile::premiereAction; a != EntiteMobile::nbActions; ++a) {
@@ -150,24 +144,19 @@ double Personnage::vitesse() const {
 	return _vitesse;
 }
 
-unsigned int Personnage::vieActuelle() const {
+size_t Personnage::vieActuelle() const {
 	return _vieActuelle;
 }
 
 void Personnage::modifierVieActuelle(int delta) {
-	_vieActuelle = std::min<ssize_t>(_vieTotale, std::max<ssize_t>(0, _vieActuelle + delta));
+	_vieActuelle = std::min<ssize_t>(this->vieTotale(), std::max<ssize_t>(0, _vieActuelle + delta));
 	if(_vieActuelle == 0) {
 		this->mourir();
 	}
 }
 
-unsigned int Personnage::vieTotale() const {
-	return _vieTotale;
-}
-
-void Personnage::definirVieTotale(int vie) {
-	_vieTotale = vie;
-	_vieActuelle = std::min(_vieActuelle, _vieTotale);
+size_t Personnage::vieTotale() const {
+	return this->competences()[endurance] * 10;
 }
 
 bool Personnage::definirAction(action_t a) {
@@ -235,6 +224,10 @@ Personnage::Competences const &Personnage::competences() const {
 	return _competences;
 }
 
+Personnage::Competences &Personnage::competences() {
+	return _competences;
+}
+
 void Personnage::definirCompetences(Competences const &c) {
 	_competences = c;
 }
@@ -260,11 +253,6 @@ Personnage *Personnage::interagir(bool test) {
 	return 0;
 }
 
-void Personnage::renaitre() {
-	this->EntiteMobile::renaitre();
-	_vieActuelle = _vieTotale;
-}
-
 void Personnage::mourir() {
 	this->EntiteMobile::mourir();
 	this->niveau()->modifierMonnaie(this->pX(), this->pY(), this->inventaire()->monnaie());
@@ -272,15 +260,29 @@ void Personnage::mourir() {
 	this->jeterObjets();
 }
 
-void Personnage::attaquer(Personnage *p) {
-	if(_cibleAttaque && !p) {
-		_cibleAttaque->modifierVieActuelle(-2);
+bool Personnage::attaquer(Personnage *p) {
+	if(_cibleAttaque && !p && (this->position() - _cibleAttaque->position()).norme() < 2 * LARGEUR_CASE) {
+		int degats = this->competences()[force];
+		int defense = _cibleAttaque->competences()[agilite];
+		for(positionTenue_t p = premierePositionTenue; p != nbPositionsTenue; ++p) {
+			if(this->tenue(p))
+				degats += this->tenue(p)->attaque();
+			if(_cibleAttaque->tenue(p))
+				defense += _cibleAttaque->tenue(p)->defense();
+		}
+		
+		_cibleAttaque->modifierVieActuelle(-degats * (1 - std::min(defense, 100) / 100.0));
 		_cibleAttaque = 0;
+		Audio::jouerSon(this->niveau()->attaque());
+		
+		return true;
 	}
 	else {
 		this->definirAction(EntiteMobile::a_attaquer);
 		_cibleAttaque = p;
 	}
+	
+	return false;
 }
 
 char const *Personnage::nomCompetence(competences_t c) {
@@ -295,4 +297,10 @@ char const *Personnage::nomCompetence(competences_t c) {
 			return 0;
 	}
 }
+
+void Personnage::definirNiveau(Niveau *n) {
+	this->EntiteMobile::definirNiveau(n);
+	_inventaire->definirNiveau(n);
+}
+
 

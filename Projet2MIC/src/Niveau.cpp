@@ -1,10 +1,11 @@
 //
-//  Niveau.cpp
+//  Niveau.h
 //  Projet2MIC
 //
-//  Created by Rémi Saurel on 03/02/12.
-//  Copyright (c) 2012 Rémi Saurel. All rights reserved.
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
 //
+
 
 #include "Niveau.h"
 #include "ElementNiveau.h"
@@ -23,7 +24,9 @@ class GenerateurElementAleatoire {
 public:
 	class Exc_ProbaInvalide : public std::exception {
 	public:
-		Exc_ProbaInvalide() : std::exception() { }
+		Exc_ProbaInvalide() : std::exception() {
+			std::cerr << this->what() << std::endl;
+		}
 		virtual ~Exc_ProbaInvalide() throw() { }
 		char const *what() const throw() { return "Proba invalide"; }
 	};
@@ -98,6 +101,8 @@ Niveau::Niveau(Joueur *j, std::string const &nomFichier) : _elements(0), _dimX(0
 	this->allocationCases();
 	this->remplissageBordures();
 	
+	_perso = j;
+
 	GenerateurElementAleatoire **generateurs = 0;
 	size_t nbGenerateurs = 0;
 	{
@@ -191,7 +196,11 @@ Niveau::Niveau(Joueur *j, std::string const &nomFichier) : _elements(0), _dimX(0
 	}
 	_musique = Audio::chargerMusique(Session::cheminRessources() + mus);
 	_tonnerre = Audio::chargerSon(Session::cheminRessources() + "tonnerre.wav");
+	_attaque = Audio::chargerSon(Session::cheminRessources() + "attaque.wav");
+	_sonPluie = Audio::chargerSon(Session::cheminRessources() + "pluie.wav");
 
+	Audio::jouerSon(_sonPluie, true);
+	
 	j->definirPosition(_persoInit);
 	this->definirJoueur(j);
 }
@@ -225,10 +234,10 @@ void Niveau::remplissageBordures() {
 			ElementNiveau *e = geneArbres(this);
 			_bordures[i][x] = e;
 			if(i == GAUCHE) {
-				e->definirPosition(Coordonnees(-1, x) * LARGEUR_CASE);
+				e->definirPosition(Coordonnees(-1, x - 1) * LARGEUR_CASE);
 			}
 			else if(i == DROITE) {
-				e->definirPosition(Coordonnees(_dimX, x) * LARGEUR_CASE);
+				e->definirPosition(Coordonnees(_dimX, x - 1) * LARGEUR_CASE);
 			}
 			else if(i == HAUT) {
 				e->definirPosition(Coordonnees(dim - x - 1, -1) * LARGEUR_CASE);
@@ -248,7 +257,7 @@ ssize_t Niveau::longueurBordure(int cote) {
 	switch(cote) {
 		case GAUCHE:
 		case DROITE:
-			return _dimY;
+			return _dimY + 2;
 		case HAUT:
 		case BAS:
 			return _dimX;
@@ -298,12 +307,6 @@ void Niveau::transitionSol(index_t x, index_t y, int position) {
 			_elements[yy][xx]._transitions[position]._exterieure = (yy != y) || (xx != x);
 		}
 	}
-	if(position == TRANSITION_BAS && dim + x < _dimX) {
-		_elements[y][dim + x]._transitions[TRANSITION_ANGLE]._element = ElementNiveau::elementNiveau(false, this, transition->index(), transition->categorie());
-		_elements[y][dim + x]._transitions[TRANSITION_ANGLE]._dim = 1;
-		_elements[y][dim + x]._transitions[TRANSITION_ANGLE]._exterieure = false;
-		_elements[y][dim + x]._transitions[TRANSITION_ANGLE]._element->definirPosition(Coordonnees(x + dim, y) * LARGEUR_CASE);
-	}
 
 	caseTransition._element->definirPosition(Coordonnees(x, y) * LARGEUR_CASE);
 }
@@ -320,6 +323,20 @@ void Niveau::remplissageTransitionsSol() {
 			}
 			for(int xx = 0; xx < el->dimX(); ++xx) {
 				this->transitionSol(x + xx, y, TRANSITION_BAS);
+			}
+			
+			ElementNiveau *angle = 0;
+			if(x > 0 && y > 0) {
+				angle = _elements[y - 1][x - 1]._entites[cn_sol].front().entite;
+			}
+			else {
+				angle = _solBordures;
+			}
+			if(angle) {
+				_elements[y][x]._transitions[TRANSITION_ANGLE]._element = ElementNiveau::elementNiveau(false, this, angle->index(), angle->categorie());
+				_elements[y][x]._transitions[TRANSITION_ANGLE]._dim = 1;
+				_elements[y][x]._transitions[TRANSITION_ANGLE]._exterieure = false;
+				_elements[y][x]._transitions[TRANSITION_ANGLE]._element->definirPosition(Coordonnees(x + 0*el->dimX(), y) * LARGEUR_CASE);
 			}
 		}
 	}
@@ -423,6 +440,8 @@ Niveau::~Niveau() {
 	
 	Audio::libererSon(_tonnerre);
 	Audio::libererSon(_musique);
+	Audio::libererSon(_attaque);
+	Audio::libererSon(_sonPluie);
 }
 
 Joueur *Niveau::joueur() {
@@ -431,6 +450,10 @@ Joueur *Niveau::joueur() {
 
 Audio::audio_t Niveau::musique() {
 	return _musique;
+}
+
+Audio::audio_t Niveau::attaque() {
+	return _attaque;
 }
 
 Niveau::listeElements_t Niveau::elements(index_t x, index_t y, Niveau::couche_t couche) {
@@ -635,12 +658,12 @@ void Niveau::afficherObjetsInventaire(Coordonnees const &cam) {
 			else if(nb > 1)
 				img = &_objets;
 			if(img) {
-				Coordonnees pos = referentielNiveauVersEcran(Coordonnees(x, y) * LARGEUR_CASE) - Coordonnees(11, 18) + Coordonnees(LARGEUR_CASE, 0) / 2;
+				Coordonnees pos = referentielNiveauVersEcran(Coordonnees(x, y) * LARGEUR_CASE) - Coordonnees(11, 18) + Coordonnees(LARGEUR_CASE, 0);
 				img->afficher(pos - cam);
 			}
 			
 			if(_elements[y][x]._monnaie) {
-				Coordonnees pos = referentielNiveauVersEcran(Coordonnees(x, y) * LARGEUR_CASE) - Coordonnees(20, 15) * 0.7 + Coordonnees(LARGEUR_CASE, 0) / 2;
+				Coordonnees pos = referentielNiveauVersEcran(Coordonnees(x, y) * LARGEUR_CASE) - Coordonnees(20, 15) * 0.7 + Coordonnees(LARGEUR_CASE, 0);
 				_monnaie.redimensionner(0.7);
 				_monnaie.afficher(pos - cam);
 			}

@@ -2,8 +2,8 @@
 //  Shader.cpp
 //  Projet2MIC
 //
-//  Created by Rémi Saurel on 11/04/12.
-//  Copyright (c) 2012 Rémi Saurel. All rights reserved.
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
 //
 
 #include "Shader.h"
@@ -21,6 +21,7 @@ char const * const Shader::rayonFlou = "rayon";
 char const * const Shader::dim = "_dim";
 char const * const Shader::pos = "_pos";
 char const * const Shader::temps = "_temps";
+char const * const Shader::tempsAbsolu = "_tempsAbsolu";
 
 std::map<std::pair<std::string, std::string>, Shader::Programme> *Shader::_programmes = 0;
 std::map<std::string, Shader::SousProgramme> *Shader::_vertexShaders = 0;
@@ -64,11 +65,6 @@ void Shader::preReinitialiser() {
 }
 
 void Shader::reinitialiser() throw(Shader::Exc_CreationImpossible) {
-	for(std::map<std::pair<std::string, std::string>, Programme>::iterator i = _programmes->begin(); i != _programmes->end(); ++i) {
-		Programme &p = i->second;
-		SousProgramme &v = *p._vert, &f = *p._frag;
-	}
-	
 	for(std::map<std::string, SousProgramme>::iterator i = _vertexShaders->begin(); i != _vertexShaders->end(); ++i) {
 		SousProgramme &v = i->second;
 		
@@ -172,7 +168,9 @@ Shader::~Shader() {
 	--_prog->_ref;
 	--_prog->_vert->_ref;
 	--_prog->_frag->_ref;
-		
+	
+	SousProgramme *vert = _prog->_vert, *frag = _prog->_frag;
+	
 	if(_prog->_ref == 0) {		
 		glDetachShader(_prog->_id, _prog->_vert->_id);
 		glDetachShader(_prog->_id, _prog->_frag->_id);
@@ -180,14 +178,14 @@ Shader::~Shader() {
 		
 		_programmes->erase(std::make_pair(_prog->_vert->_fichier, _prog->_frag->_fichier));
 	}
-	
-	if(_prog->_vert->_ref == 0) {
-		glDeleteShader(_prog->_vert->_id);
-		_vertexShaders->erase(_prog->_vert->_fichier);
+
+	if(vert->_ref == 0) {
+		glDeleteShader(vert->_id);
+		_vertexShaders->erase(vert->_fichier);
 	}
-	if(_prog->_frag->_ref == 0) {
-		glDeleteShader(_prog->_frag->_id);
-		_fragmentShaders->erase(_prog->_frag->_fichier);
+	if(frag->_ref == 0) {
+		glDeleteShader(frag->_id);
+		_fragmentShaders->erase(frag->_fichier);
 	}
 }
 

@@ -2,8 +2,8 @@
 //  Editeur.cpp
 //  Projet2MIC
 //
-//  Created by Rémi Saurel on 11/03/12.
-//  Copyright (c) 2012 Rémi Saurel. All rights reserved.
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
 //
 
 #include "Editeur.h"
@@ -1366,7 +1366,7 @@ static index_t choisirElement(std::vector<Unichar> const &el, index_t sel, Unich
 	cadres.reserve(elements.size());
 	
 	index_t premierAffiche = 0;
-	size_t nbAffiches = std::min(size_t(10), elements.size());
+	size_t nbAffiches = std::min(size_t(15), elements.size());
 	
 	Image *ap = apercu ? apercu : Ecran::apercu();
 	

@@ -7,14 +7,9 @@
         <Bas valeur="bas" />
         <AfficherMasquerJournal valeur="tab" />
         <AfficherMasquerInventaire valeur="i" />
-        <RamasserObjet valeur="entrée" />
         <Interagir valeur="espace" />
         <PotionVie valeur="h" />
-        <Sort1 valeur="a" />
-        <Sort2 valeur="z" />
-        <Sort3 valeur="e" />
-        <Sort4 valeur="r" />
     </Clavier>
-    <Audio volumeEffets="0.000000" volumeMusique="0.615291" />
-    <Video largeurEcran="800" hauteurEcran="600" pleinEcran="0" />
+    <Audio volumeEffets="0.803263" volumeMusique="0.949464" />
+    <Video largeurEcran="1024" hauteurEcran="768" pleinEcran="0" />
 </Config>

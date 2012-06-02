@@ -1,11 +1,11 @@
-/*
- *  Menu.cpp
- *  Jeu C++
- *
- *  Created by Rémi on 17/12/07.
- *  Copyright 2007 Rémi Saurel. All rights reserved.
- *
- */
+//
+//  Menu.cpp
+//  Projet2MIC
+//
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
+//
+
 
 #include "Menu.h"
 #include "Image.h"
@@ -42,7 +42,7 @@ Menu::~Menu() {
 
 }
 
-index_t Menu::afficher(index_t selection, Image const &fond, Shader const &s) {
+index_t Menu::afficher(index_t selection, Image const &fond, Shader const &s, bool voile) {
 	bool continuer = true;
 	index_t retour = 0;
 	index_t elementSelectionne = selection;
@@ -74,10 +74,12 @@ index_t Menu::afficher(index_t selection, Image const &fond, Shader const &s) {
 		
 		s.activer();
 		s.definirParametre(Shader::temps, horloge() - tempsInitial);
+		s.definirParametre(Shader::tempsAbsolu, horloge());
 		fond.afficher(Coordonnees());
 		Shader::desactiver();
 		
-		Ecran::afficherRectangle(Ecran::ecran(), Couleur(0, 0, 0, 128));
+		if(voile)
+			Ecran::afficherRectangle(Ecran::ecran(), Couleur(0, 0, 0, 128));
 		
 		this->afficherElements(elementSelectionne);
 		Ecran::finaliser();

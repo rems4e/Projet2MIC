@@ -2,11 +2,12 @@
 //  ObjetInvenaire.cpp
 //  Projet2MIC
 //
-//  Created by Rémi Saurel on 08/04/12.
-//  Copyright (c) 2012 Rémi Saurel. All rights reserved.
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
 //
 
 #include "ObjetInventaire.h"
+#include "Joueur.h"
 #include "tinyxml.h"
 
 ObjetInventaire::ObjetInventaire(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : EntiteStatique(decoupagePerspective, n, index, cat), _dimInventaire(1, 1), _competencesRequises(), _attaque(0), _defense(0), _vie(0) {
@@ -44,6 +45,9 @@ ObjetInventaire::ObjetInventaire(bool decoupagePerspective, Niveau *n, uindex_t 
 	else if(typ == "casque") {
 		_categorie = casque;
 		_defense = 1;
+	}
+	else if(typ == "cle") {
+		_categorie = cle;
 	}
 
 	this->equilibrerAvecJoueur();
@@ -93,6 +97,8 @@ bool ObjetInventaire::tenue() const {
 			return true;
 		case potion:
 			return false;
+		case cle:
+			return false;
 	}
 }
 
@@ -127,44 +133,49 @@ void ObjetInventaire::supprimerVie(int delta) {
 }
 
 void ObjetInventaire::equilibrerAvecJoueur() {
-	_attaque = _defense = _vie = 0;
-	switch(_categorie) {
-		case arme:
-			_attaque = std::max(1, nombreAleatoire(20));
-			break;
-		case bouclier:
-			_defense = std::max(1, nombreAleatoire(15));
-			break;
-		case armure:
-			_defense = std::max(1, nombreAleatoire(20));
-			break;
-		case bottes:
-			_defense = std::max(1, nombreAleatoire(5));
-			break;
-		case gants:
-			_defense = std::max(1, nombreAleatoire(5));
-			break;
-		case casque:
-			_defense = std::max(1, nombreAleatoire(8));
-			break;
-		case potion:
-			_vie = std::max(1, nombreAleatoire(1000));
-	}
-	
 	if(_categorie == potion) {
 		for(Personnage::competences_t c = Personnage::premiereCompetence; c != Personnage::nbCompetences; ++c) {
 			_competencesRequises[c] = 0;
 		}
 	}
 	else {
-		_competencesRequises[Personnage::force] = 3 * _attaque + 1 * _defense;
-		_competencesRequises[Personnage::endurance] = 3 * _defense + 1 * _attaque;
-		_competencesRequises[Personnage::endurance] = 2 * _defense;
+		Personnage::Competences comp = this->niveau()->joueur()->competences();
+		_competencesRequises[Personnage::force] = std::max<int>(1, comp[Personnage::force] * (1 + (nombreAleatoire(31) - 20) / 100.0));
+		_competencesRequises[Personnage::endurance] = std::max<int>(1, comp[Personnage::endurance] * (1 + (nombreAleatoire(31) - 20) / 100.0));
+		_competencesRequises[Personnage::agilite] = std::max<int>(1, comp[Personnage::agilite] * (1 + (nombreAleatoire(31) - 20) / 100.0));
+	}
 
-		for(Personnage::competences_t c = Personnage::premiereCompetence; c != Personnage::nbCompetences; ++c) {
-			_competencesRequises[c] += (nombreAleatoire(60) - 30) * _competencesRequises[c] / 100;
-			_competencesRequises[c] = std::max(1, _competencesRequises[c]);
+	switch(_categorie) {
+		case arme:
+			_attaque = _competencesRequises[Personnage::force] / 4;
+			break;
+		case bouclier:
+			_defense = _competencesRequises[Personnage::agilite] / 8;
+			break;
+		case armure:
+			_defense = _competencesRequises[Personnage::agilite] / 5;
+			break;
+		case bottes:
+			_defense = _competencesRequises[Personnage::agilite] / 12;
+			break;
+		case gants:
+			_defense = _competencesRequises[Personnage::agilite] / 12;
+			break;
+		case casque:
+			_defense = _competencesRequises[Personnage::agilite] / 10;
+			break;
+		case potion: {
+			_vie = this->niveau()->joueur()->vieTotale() / 2;
+			_vie = std::max(1, _vie);
+			_attaque = _defense = 0;
+		case cle:
+			_attaque = _defense = _vie = 0;
 		}
+	}
+	
+	if(this->categorieObjet() != potion && this->categorieObjet() != cle) {
+		_attaque = std::max(1, _attaque);
+		_defense = std::max(1, _defense);
 	}
 }
 
@@ -184,6 +195,8 @@ char const *ObjetInventaire::nomCategorieObjet() const {
 			return "Casque";
 		case potion:
 			return "Potion";
+		case cle:
+			return "Cle";
 	}
 }
 

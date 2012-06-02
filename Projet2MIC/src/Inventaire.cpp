@@ -2,8 +2,8 @@
 //  Inventaire.cpp
 //  Projet2MIC
 //
-//  Created by Rémi Saurel on 08/04/12.
-//  Copyright (c) 2012 Rémi Saurel. All rights reserved.
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
 //
 
 #include "Inventaire.h"
@@ -133,6 +133,15 @@ void InventaireC<Conteneur>::vider() {
 	_elements.clear();
 }
 
+template <template <class e, class = std::allocator<e> > class Conteneur>
+void InventaireC<Conteneur>::definirNiveau(Niveau *n) {
+	for(iterator i = debut(); i != fin(); ++i) {
+		if(*i) {
+			(*i)->definirNiveau(n);
+		}
+	}
+}
+
 template<typename InputIterator>
 InventaireListe::InventaireListe(Personnage &perso, size_t capacite, InputIterator debut, InputIterator fin) : InventaireC<std::list>(perso, capacite, debut, fin) {
 	
@@ -150,8 +159,8 @@ void InventaireListe::afficher() const {
 
 }
 
-void InventaireListe::gestionEvenements() {
-	
+bool InventaireListe::gestionEvenements() {
+	return true;
 }
 
 void InventaireListe::masquer() {
@@ -199,8 +208,8 @@ void InventaireSol::afficher() const {
 	
 }
 
-void InventaireSol::gestionEvenements() {
-	
+bool InventaireSol::gestionEvenements() {
+	return true;
 }
 
 template<typename InputIterator>
@@ -370,6 +379,9 @@ InventaireMarchand::~InventaireMarchand() {
 }
 
 void InventaireMarchand::afficher() const {
+	_sortie = Rectangle(15, 440, 46, 49).etirer(Ecran::echelle());
+	_sortie.definirOrigine(_sortie.origine() + Coordonnees(Ecran::largeur() / 2, 0));
+	
 	_inventaire.definirOrigine(Coordonnees(Ecran::largeur() / 2, 0) + Coordonnees(17, 8).etirer(Ecran::echelle()));
 	_inventaire.definirDimensions(Coordonnees(360, 360).etirer(Ecran::echelle()));
 
@@ -392,7 +404,7 @@ void InventaireMarchand::afficher() const {
 	index_t i = 0;
 	for(const_iterator j = this->debut(); j != this->fin(); ++j) {
 		if(*j) {
-			(*j)->image().redimensionner(Ecran::echelle().x);
+			(*j)->image().redimensionner(Ecran::echelle());
 			(*j)->image().afficher(pos);
 		}
 		pos.x += 36 * Ecran::echelle().x;
@@ -425,11 +437,16 @@ void InventaireMarchand::afficher() const {
 	}
 }
 
-void InventaireMarchand::gestionEvenements() {
+bool InventaireMarchand::gestionEvenements() {
+	bool sortie = false;
 	_surlignage = Rectangle::aucun;
 	_infos = 0;
 	
-	if(Session::souris() < _inventaire) {
+	if(Session::souris() < _sortie && Session::evenement(Session::B_GAUCHE)) {
+		sortie = true;
+		Session::reinitialiser(Session::B_GAUCHE);
+	}
+	else if(Session::souris() < _inventaire) {
 		Coordonnees pos = Session::souris() - _inventaire.origine();
 		index_t pX = pos.x / (36 * Ecran::echelle().x), pY = pos.y / (36 * Ecran::echelle().y);
 		if(comprisEntre<index_t>(pX, 0, this->largeur() - 1) && comprisEntre<index_t>(pY, 0, this->hauteur() - 1)) {
@@ -465,6 +482,8 @@ void InventaireMarchand::gestionEvenements() {
 			}
 		}
 	}
+	
+	return !sortie;
 }
 
 Rectangle const &InventaireMarchand::zoneObjets() const {
@@ -472,11 +491,19 @@ Rectangle const &InventaireMarchand::zoneObjets() const {
 }
 
 void InventaireMarchand::masquer() {
-	
+	for(iterator i = this->debut(); i != this->fin(); ++i) {
+		if(*i) {
+			delete *i;
+		}
+	}
+	this->vider();	
 }
 
 void InventaireMarchand::preparationAffichage() {
-	std::cout << "Initialisation objets" << std::endl;
+	for(int i = 0; i < 20; ++i) {
+		ObjetInventaire *e = ElementNiveau::elementNiveau<ObjetInventaire>(false, this->personnage().niveau(), nombreAleatoire(6));
+		this->ajouterObjet(e);
+	}
 }
 
 void InventaireMarchand::definirCapacite(size_t c) {
@@ -500,6 +527,8 @@ void InventaireJoueur::afficher() const {
 	_tenue[Personnage::gants] = Rectangle(19, 200, 80, 75).etirer(Ecran::echelle());
 	_tenue[Personnage::bottes] = Rectangle(198, 200, 80, 75).etirer(Ecran::echelle());
 	
+	_sortie = Rectangle(341, 442, 46, 49).etirer(Ecran::echelle());
+		
 	_fond.afficher(Coordonnees());
 	_fond.redimensionner(Ecran::echelle());
 	
@@ -524,6 +553,7 @@ void InventaireJoueur::afficher() const {
 	for(Personnage::positionTenue_t i = Personnage::premierePositionTenue; i != Personnage::nbPositionsTenue; ++i) {
 		if(this->personnage().tenue(i)) {
 			Image const &img = this->personnage().tenue(i)->image();
+			img.redimensionner(Ecran::echelle());
 			img.afficher(_tenue[i].origine() + (_tenue[i].dimensions() - img.dimensions()) / 2);
 		}
 	}
@@ -556,7 +586,7 @@ void InventaireJoueur::afficher() const {
 
 	if(_infos) {
 		std::list<Texte *> infos = infoObjet(_infos, this->personnage());
-		if(Partie::partie()->marchand()) {
+		if(Partie::partie()->marchand() && _infos->categorieObjet() != ObjetInventaire::cle) {
 			Texte *t = new Texte(nombreVersTexte(Partie::partie()->marchand()->prixAchat(_infos)) + " p. or");
 			t->definir(Couleur::jaune);
 			infos.push_back(t);
@@ -570,13 +600,19 @@ void InventaireJoueur::afficher() const {
 	}
 }
 
-void InventaireJoueur::gestionEvenements() {
+bool InventaireJoueur::gestionEvenements() {
+	bool sortie = false;
+	
 	_surlignage = Rectangle::aucun;
 	_surlignageTransfert = Rectangle::aucun;
 	_infos = 0;
 
-	if(Partie::partie()->marchand() && Session::souris() < static_cast<InventaireMarchand*>(Partie::partie()->marchand()->inventaire())->zoneObjets()) {
-		if(_objetTransfert && Session::evenement(Session::B_GAUCHE)) {
+	if(Session::souris() < _sortie && Session::evenement(Session::B_GAUCHE)) {
+		sortie = true;
+		Session::reinitialiser(Session::B_GAUCHE);
+	}
+	else 	if(Partie::partie()->marchand() && Session::souris() < static_cast<InventaireMarchand*>(Partie::partie()->marchand()->inventaire())->zoneObjets()) {
+		if(_objetTransfert && Session::evenement(Session::B_GAUCHE)  && _objetTransfert->categorieObjet() != ObjetInventaire::cle) {
 			this->modifierMonnaie(Partie::partie()->marchand()->prixAchat(_objetTransfert));
 			if(!Partie::partie()->marchand()->inventaire()->ajouterObjet(_objetTransfert)) {
 				delete _objetTransfert;
@@ -684,6 +720,8 @@ void InventaireJoueur::gestionEvenements() {
 		}
 	}
 	this->definirObjetTransfert(_objetTransfert);
+	
+	return !sortie;
 }
 
 void InventaireJoueur::masquer() {
@@ -801,6 +839,10 @@ std::list<Texte *> infoObjet(ObjetInventaire *o, Personnage const &reference) {
 			Texte *t = new Texte("Points de vie : " + nombreVersTexte(o->vie()));
 			t->definir(Couleur::bleu);
 			retour.push_back(t);
+			break;
+		}
+		case ObjetInventaire::cle: {
+			break;
 		}
 	}
 	

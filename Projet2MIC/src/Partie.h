@@ -2,8 +2,8 @@
 //  Partie.h
 //  Projet2MIC
 //
-//  Created by Rémi Saurel on 07/02/12.
-//  Copyright (c) 2012 Rémi Saurel. All rights reserved.
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
 //
 
 #ifndef Projet2MIC_Partie_h
@@ -23,18 +23,17 @@ class Image;
 
 class Partie {
 public:
-	class Exc_PartieDejaCreee : public std::exception {
-	public:
-		Exc_PartieDejaCreee() throw() : std::exception() { }
-		virtual ~Exc_PartieDejaCreee() throw() { }
-		virtual const char* what() const throw() { return "Partie déjà créée !"; }
-	};
-	
 	static TiXmlElement *charger(Image *fond, Shader const &s = Shader::aucun());
-	static Partie *creerPartie(TiXmlElement *sauve = 0) throw(Exc_PartieDejaCreee);
+	
+	void restaurer(TiXmlElement *sauve);
+	
+	// Retourne la partie en cours. Créé une partie s'il n'en existe pas déjà une. Elle doit être effacée avec delete après son utilisation.
+	static Partie *partie();
 	virtual ~Partie();
 	
 	TiXmlElement *commencer();
+	void terminerNiveau();
+	bool niveauTermine() const;
 	void reinitialiser();
 	
 	Joueur *joueur();
@@ -43,17 +42,14 @@ public:
 	
 	Rectangle zoneJeu() const;
 	
-	static Partie *partie();
 	
 private:
+	Partie();
+
 	void afficher();
 	void animer();
-	void gestionEvenements();
 	TiXmlElement *mortJoueur(bool &continuer);
-	
-	Partie();
-	Partie(TiXmlElement *sauve);
-	
+		
 	void sauvegarder(Image *fond);
 	TiXmlElement *sauvegarde();
 
@@ -63,6 +59,8 @@ private:
 	Marchand *_marchand;
 	
 	int _numeroNiveau;
+	bool _niveauTermine;
+	TiXmlElement *_derniereSauvegarde;
 	
 	Partie(Partie const &);
 	Partie &operator=(Partie const &);

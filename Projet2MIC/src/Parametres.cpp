@@ -2,8 +2,8 @@
 //  Parametres.cpp
 //  Projet2MIC
 //
-//  Created by Rémi Saurel on 13/04/12.
-//  Copyright (c) 2012 Rémi Saurel. All rights reserved.
+//  Créé par Marc Promé et Rémi Saurel.
+//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
 //
 
 #include "Parametres.h"
@@ -123,15 +123,9 @@ void Parametres::charger() {
 	
 	_evenementsAction[afficherInventaire] = Session::T_i;
 	_evenementsAction[afficherJournal] = Session::T_TAB;
-	_evenementsAction[ramasserObjet] = Session::T_ENTREE;
 	_evenementsAction[interagir] = Session::T_ESPACE;
 
 	_evenementsAction[remplirVie] = Session::T_h;
-
-	_evenementsAction[sort1] = Session::T_a;
-	_evenementsAction[sort2] = Session::T_z;
-	_evenementsAction[sort3] = Session::T_e;
-	_evenementsAction[sort4] = Session::T_r;
 	
 	for(action_t a = premiereAction; a != nbActions; ++a) {
 		if(_evenementsAction[a] == Session::aucunEvenement)
@@ -353,6 +347,7 @@ void Parametres::video(Image const &fond, Shader const &s) {
 		
 		s.activer();
 		s.definirParametre(Shader::temps, horloge());
+		s.definirParametre(Shader::tempsAbsolu, horloge());
 		fond.afficher(Coordonnees());
 		Shader::desactiver();
 		
@@ -373,9 +368,8 @@ void Parametres::video(Image const &fond, Shader const &s) {
 
 		Ecran::finaliser();
 		
-		bool c;
 		if(!modification) {
-			Parametres::gestionEvenementsAfficheur(ancienDefilement, c, premier, nbAffiches, selection, modification, enTetes, champs);
+			Parametres::gestionEvenementsAfficheur(ancienDefilement, continuer, premier, nbAffiches, selection, modification, enTetes, champs);
 			if(Session::evenement(Session::B_GAUCHE)) {
 				if(Session::souris() < cadreValider) {
 					_largeurEcran = resolutions[pleinEcran][resolutionActuelle].x;
@@ -458,6 +452,7 @@ void Parametres::audio(Image const &fond, Shader const &s) {
 		
 		s.activer();
 		s.definirParametre(Shader::temps, horloge());
+		s.definirParametre(Shader::tempsAbsolu, horloge());
 		fond.afficher(Coordonnees());
 		Shader::desactiver();
 		
@@ -528,6 +523,7 @@ void Parametres::controles(Image const &fond, Shader const &s) {
 		
 		s.activer();
 		s.definirParametre(Shader::temps, horloge());
+		s.definirParametre(Shader::tempsAbsolu, horloge());
 		fond.afficher(Coordonnees());
 		Shader::desactiver();
 		
@@ -757,20 +753,10 @@ char const *Parametres::transcriptionAction(action_t a) {
 			return "Gauche";
 		case afficherInventaire:
 			return "Afficher/masquer l'inventaire";
-		case ramasserObjet:
-			return "Ramasser l'objet";
 		case interagir:
-			return "Interagir";
+			return "Interagir/Ramasser";
 		case remplirVie:
 			return "Potion de vie";
-		case sort1:
-			return "Sort 1";
-		case sort2:
-			return "Sort 2";
-		case sort3:
-			return "Sort 3";
-		case sort4:
-			return "Sort 4";
 		case afficherJournal:
 			return "Afficher/masquer le journal";
 		case nbActions:
@@ -790,20 +776,10 @@ char const *Parametres::nomBalise(action_t a) {
 			return "Gauche";
 		case afficherInventaire:
 			return "AfficherMasquerInventaire";
-		case ramasserObjet:
-			return "RamasserObjet";
 		case interagir:
 			return "Interagir";
 		case remplirVie:
 			return "PotionVie";
-		case sort1:
-			return "Sort1";
-		case sort2:
-			return "Sort2";
-		case sort3:
-			return "Sort3";
-		case sort4:
-			return "Sort4";
 		case afficherJournal:
 			return "AfficherMasquerJournal";
 		case nbActions:
