@@ -39,19 +39,19 @@ class Niveau {
 	friend class Editeur;
 public:
 	struct Entite {
-		Entite(ElementNiveau *e, bool entiteExterieure) : entite(e), exterieure(entiteExterieure) {
+		Entite(ElementNiveau *e, bool entiteExterieure) : _entite(e), _exterieure(entiteExterieure) {
 			
 		}
 		
 		bool operator==(Entite const &e) const {
-			return entite == e.entite;
+			return _entite == e._entite;
 		}
 		bool operator==(ElementNiveau const *e) const {
-			return entite == e;
+			return _entite == e;
 		}
 		
-		ElementNiveau *entite;
-		bool exterieure;
+		ElementNiveau *_entite;
+		bool _exterieure;
 	};
 	
 	enum couche_t {premiereCouche, cn_sol = premiereCouche, cn_sol2, cn_objetsInventaire, cn_objet, nbCouches};

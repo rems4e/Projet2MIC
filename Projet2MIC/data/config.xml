@@ -5,11 +5,10 @@
         <Droite valeur="droite" />
         <Haut valeur="haut" />
         <Bas valeur="bas" />
-        <AfficherMasquerJournal valeur="tab" />
         <AfficherMasquerInventaire valeur="i" />
         <Interagir valeur="espace" />
         <PotionVie valeur="h" />
     </Clavier>
-    <Audio volumeEffets="0.803263" volumeMusique="0.949464" />
-    <Video largeurEcran="1024" hauteurEcran="768" pleinEcran="0" />
+    <Audio volumeEffets="0.000000" volumeMusique="0.000000" />
+    <Video largeurEcran="1280" hauteurEcran="720" pleinEcran="0" />
 </Config>

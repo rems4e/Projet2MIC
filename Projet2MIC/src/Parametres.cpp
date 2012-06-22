@@ -43,8 +43,8 @@ namespace Parametres {
 		Rectangle _cadre;
 	};
 	
-	std::string transcriptionResolution(Coordonnees const &r);
-	Rectangle afficherColonnes(Unichar const &titre, index_t premier, size_t nb, bool modif, std::vector<etiquetteTexte_t> &colonne1, index_t sel1, std::vector<etiquetteTexte_t> &colonne2, index_t sel2);
+	std::string transcriptionResolution(std::pair<int, int> const &r);
+	Rectangle afficherColonnes(Unichar const &titre, index_t premier, size_t nb, bool modif, std::vector<etiquetteTexte_t> &colonne1, index_t sel1, std::vector<etiquetteTexte_t> &colonne2, index_t sel2, coordonnee_t abscisse = 80);
 	void gestionEvenementsAfficheur(horloge_t &ancienDefilement, bool &continuer, index_t &premier, index_t nbAffiches, index_t &selection, bool &enSelection, std::vector<etiquetteTexte_t> const &colonne1, std::vector<etiquetteTexte_t> const &colonne2);
 	
 	Session::evenement_t _evenementsAction[nbActions];
@@ -122,7 +122,6 @@ void Parametres::charger() {
 	_evenementsAction[depHaut] = Session::T_HAUT;
 	
 	_evenementsAction[afficherInventaire] = Session::T_i;
-	_evenementsAction[afficherJournal] = Session::T_TAB;
 	_evenementsAction[interagir] = Session::T_ESPACE;
 
 	_evenementsAction[remplirVie] = Session::T_h;
@@ -297,14 +296,14 @@ void Parametres::editerParametres(Image const &fond, Shader const &s) {
 	} while(selection != elements.size());
 }
 
-std::string Parametres::transcriptionResolution(Coordonnees const &r) {
-	return nombreVersTexte(r.x, 0) + "*" + nombreVersTexte(r.y, 0);
+std::string Parametres::transcriptionResolution(std::pair<int, int> const &r) {
+	return nombreVersTexte(r.first) + "*" + nombreVersTexte(r.second);
 }
 
 void Parametres::video(Image const &fond, Shader const &s) {		
-	std::vector<Coordonnees> resolutions[2];
+	std::vector<std::pair<int, int> > resolutions[2];
 	{
-		std::list<Coordonnees> r = Ecran::resolutionsDisponibles(false);
+		std::list<std::pair<int, int> > r = Ecran::resolutionsDisponibles(false);
 		resolutions[0].assign(r.begin(), r.end());
 		
 		r = Ecran::resolutionsDisponibles(true);
@@ -312,7 +311,7 @@ void Parametres::video(Image const &fond, Shader const &s) {
 	}
 	
 	bool pleinEcran = Ecran::pleinEcran();
-	int resolutionActuelle = std::find(resolutions[pleinEcran].begin(), resolutions[pleinEcran].end(), Ecran::dimensions()) - resolutions[pleinEcran].begin();
+	int resolutionActuelle = std::find(resolutions[pleinEcran].begin(), resolutions[pleinEcran].end(), std::make_pair(Ecran::largeur(), Ecran::hauteur())) - resolutions[pleinEcran].begin();
 	
 	char const *txt[2] = {"Désactivé", "Activé"};
 	
@@ -372,8 +371,8 @@ void Parametres::video(Image const &fond, Shader const &s) {
 			Parametres::gestionEvenementsAfficheur(ancienDefilement, continuer, premier, nbAffiches, selection, modification, enTetes, champs);
 			if(Session::evenement(Session::B_GAUCHE)) {
 				if(Session::souris() < cadreValider) {
-					_largeurEcran = resolutions[pleinEcran][resolutionActuelle].x;
-					_hauteurEcran = resolutions[pleinEcran][resolutionActuelle].y;
+					_largeurEcran = resolutions[pleinEcran][resolutionActuelle].first;
+					_hauteurEcran = resolutions[pleinEcran][resolutionActuelle].second;
 					_pleinEcran = pleinEcran;
 					
 					Ecran::modifierResolution(_largeurEcran, _hauteurEcran, _pleinEcran);
@@ -564,7 +563,7 @@ Parametres::etiquetteTexte_t::etiquetteTexte_t(Unichar const &t) : _texte(t, POL
 
 }
 
-Rectangle Parametres::afficherColonnes(Unichar const &titre, index_t premier, size_t nb, bool modif, std::vector<Parametres::etiquetteTexte_t> &colonne1, index_t sel1, std::vector<Parametres::etiquetteTexte_t> &colonne2, index_t sel2) {
+Rectangle Parametres::afficherColonnes(Unichar const &titre, index_t premier, size_t nb, bool modif, std::vector<Parametres::etiquetteTexte_t> &colonne1, index_t sel1, std::vector<Parametres::etiquetteTexte_t> &colonne2, index_t sel2, coordonnee_t abscisse) {
 	static float teinteSelection = 0.0f;
 	static int sensTeinte = 1;
 	if(!modif) {
@@ -606,7 +605,7 @@ Rectangle Parametres::afficherColonnes(Unichar const &titre, index_t premier, si
 	Texte tt(titre, POLICE_DECO, 40 * Ecran::echelleMin(), Couleur::blanc);
 	Texte points("...", POLICE_DECO, 20 * Ecran::echelleMin(), Couleur::blanc);
 	
-	Rectangle cadre(Coordonnees(80, 80) * Ecran::echelleMin(), tt.dimensions());
+	Rectangle cadre(Coordonnees(abscisse, 80) * Ecran::echelleMin(), tt.dimensions());
 	tt.afficher(cadre.origine());
 	
 	cadre.haut += cadre.hauteur + 20 * Ecran::echelleMin();
@@ -757,8 +756,6 @@ char const *Parametres::transcriptionAction(action_t a) {
 			return "Interagir/Ramasser";
 		case remplirVie:
 			return "Potion de vie";
-		case afficherJournal:
-			return "Afficher/masquer le journal";
 		case nbActions:
 			return 0;
 	}
@@ -780,9 +777,72 @@ char const *Parametres::nomBalise(action_t a) {
 			return "Interagir";
 		case remplirVie:
 			return "PotionVie";
-		case afficherJournal:
-			return "AfficherMasquerJournal";
 		case nbActions:
 			return 0;
 	}
 }
+
+void Parametres::afficherCredits(Image const &fond, Shader const &s) {
+	std::vector<etiquetteTexte_t> noms, roles;
+	
+	noms.push_back(Unichar("Marc Promé"));
+	roles.push_back(Unichar("Level design, graphismes, programmation"));
+
+	noms.push_back(Unichar("Rémi Saurel"));
+	roles.push_back(Unichar("Level design, graphismes, programmation"));
+	
+	noms.push_back(Unichar("OpenGameArt.org"));
+	roles.push_back(Unichar("Graphismes"));
+	
+	noms.push_back(Unichar("Semaphore (Newgrounds)"));
+	roles.push_back(Unichar("Musique \"Dream of Water and Land\""));
+	
+	noms.push_back(Unichar("Sexual-Lobster (Newgrounds)"));
+	roles.push_back(Unichar("Musique \"Man vs. Walrus-Man\""));
+
+	noms.push_back(Unichar("Xerferic (Newgrounds)"));
+	roles.push_back(Unichar("Musique \"Laid-Back\""));
+	
+	for(int i = 0; i < noms.size(); ++i) {
+		noms[i]._texte.definir(POLICE_DECO, 16 * Ecran::echelleMin());
+		roles[i]._texte.definir(POLICE_DECO, 16 * Ecran::echelleMin());
+	}
+	
+	bool continuer = true;
+	Texte ok("Retour",  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
+	Rectangle cadreOk;
+	
+	Session::reinitialiserEvenements();
+	while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, continuer)) {
+		fond.redimensionner(Coordonnees(Ecran::largeur() / fond.dimensionsReelles().x, Ecran::hauteur() / fond.dimensionsReelles().y));
+		
+		Ecran::definirPointeurAffiche(true);
+		Ecran::effacer();
+		
+		s.activer();
+		s.definirParametre(Shader::temps, horloge());
+		s.definirParametre(Shader::tempsAbsolu, horloge());
+		fond.afficher(Coordonnees());
+		Shader::desactiver();
+		
+		Ecran::afficherRectangle(Ecran::ecran(), Couleur(0, 0, 0, 128));
+		
+		Rectangle cadre = Parametres::afficherColonnes("Crédits", 0, noms.size(), false, noms, -1, roles, -1, 40);
+		
+		cadreOk.definirDimensions(ok.dimensions()); 
+		cadreOk.definirOrigine(cadre.origine() + Coordonnees(20 * Ecran::echelleMin(), 20 * Ecran::echelleMin() + cadre.hauteur)); 
+		
+		ok.afficher(cadreOk.origine());
+
+		Ecran::finaliser();
+		
+		if(Session::evenement(Session::T_ESC) || (Session::evenement(Session::B_GAUCHE) && Session::souris() < cadreOk)) {
+			continuer = false;
+			Session::reinitialiser(Session::T_ESC);
+			Session::reinitialiser(Session::B_GAUCHE);
+		}
+		
+		Ecran::maj();
+	}
+}
+

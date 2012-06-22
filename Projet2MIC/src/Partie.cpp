@@ -37,12 +37,9 @@ void Partie::restaurer(TiXmlElement *sauve) {
 	if(sauve != _derniereSauvegarde)
 		delete _derniereSauvegarde;
 	
+	_joueur->renaitre();
 	if(sauve) {
 		sauve->FirstChildElement("Niveau")->Attribute("numero", &_numeroNiveau);
-	}
-	else {
-		_joueur->modifierVieActuelle(-_joueur->vieActuelle() + _joueur->vieTotale());
-		_joueur->renaitre();
 	}
 	
 	delete _niveau;
@@ -139,7 +136,7 @@ TiXmlElement *Partie::sauvegarde() {
 	return sauve;
 }
 
-TiXmlElement *Partie::charger(Image *fond, Shader const &s) {
+TiXmlElement *Partie::charger(Image &fond, Shader const &s) {
 	TiXmlDocument sauves(Session::cheminRessources() + "parties.xml");
 	std::vector<Unichar> elements;
 	
@@ -166,7 +163,7 @@ TiXmlElement *Partie::charger(Image *fond, Shader const &s) {
 	index_t slot = 0;
 	Menu m("Choisissez une sauvegarde :", elements);
 	
-	slot = m.afficher(0, *fond, s);
+	slot = m.afficher(0, fond, s);
 	
 	if(slot == elements.size())
 		return 0;
@@ -219,7 +216,7 @@ TiXmlElement *Partie::commencer() {
 		this->afficher();
 		Ecran::finaliser();
 		
-		if(_joueur->mort()) {
+		if(_joueur->mortTerminee()) {
 			charge = this->mortJoueur(continuer);
 			if(!continuer) {
 				break;
@@ -237,7 +234,6 @@ TiXmlElement *Partie::commencer() {
 					break;
 				}
 			}
-
 			this->restaurer(this->sauvegarde());
 		}
 		
@@ -268,7 +264,7 @@ TiXmlElement *Partie::commencer() {
 					this->sauvegarder(apercu);
 				}
 				else if(selection == CHARG) {
-					charge = this->charger(apercu);
+					charge = this->charger(*apercu);
 					if(charge) {
 						continuer = false;
 					}
@@ -280,13 +276,6 @@ TiXmlElement *Partie::commencer() {
 					continuer = false;
 				}
 			} while(selection == 0);
-		}
-		else if(Session::evenement(Session::T_e)) {
-			Editeur *e = Editeur::editeur();
-			e->editerNiveau("niveau" + nombreVersTexte(_numeroNiveau) + ".xml");
-			delete Editeur::editeur();
-			
-			this->reinitialiser();
 		}
 		else if(Session::evenement(Parametres::evenementAction(Parametres::remplirVie))) {
 			InventaireJoueur *j = static_cast<InventaireJoueur *>(_joueur->inventaire());
@@ -343,7 +332,7 @@ TiXmlElement *Partie::commencer() {
 
 	delete apercu;
 	delete menu;
-	
+
 	return charge;
 }
 
@@ -362,7 +351,7 @@ void Partie::afficher() {
 		_joueur->inventaire()->afficher();
 	}
 	
-	if(!_joueur->mort())
+	if(!_joueur->mortTerminee())
 		_tableauDeBord->afficher();
 }
 
@@ -450,7 +439,7 @@ TiXmlElement *Partie::mortJoueur(bool &continuer) {
 			break;
 		}
 		else if(selection == 1) {
-			retour = this->charger(ap);
+			retour = this->charger(*ap);
 			continuer = !retour;
 		}
 		else if(selection == 2) {

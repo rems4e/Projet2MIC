@@ -18,6 +18,7 @@
 #include "Geometrie.h"
 #include <list>
 #include <set>
+#include <stack>
 
 class Editeur {
 public:
@@ -33,10 +34,13 @@ public:
 	};
 
 	static Editeur *editeur();
-	void editerNiveau(std::string const &fichier);
+	void ouvrirEditeur(Image &fond, Shader &);
+	
 	virtual ~Editeur();
 
 private:
+	enum Outil {o_selection, o_coller};
+	
 	struct ElementEditeur {
 		ElementEditeur(ElementNiveau::elementNiveau_t cat, index_t index);
 		ElementEditeur(index_t loiProba);
@@ -110,11 +114,224 @@ private:
 
 	typedef std::list<ElementSelection> selection_t;
 	
+	class ActionEditeur {
+	public:
+		ActionEditeur() {
+			
+		}
+		virtual ~ActionEditeur() {
+			
+		}
+		
+		virtual void operator()() = 0;
+		virtual ActionEditeur *oppose() const = 0;
+		
+		index_t pX() {
+			return _x;
+		}
+		index_t pY() {
+			return _y;
+		}
+		
+	protected:
+		void definirPosition(index_t x, index_t y) {
+			_x = x, _y = y;
+		}
+	private:
+		index_t _x, _y;
+	};
+			
+	class ActionsEditeur : public ActionEditeur {
+	public:
+		ActionsEditeur(std::list<ActionEditeur *> a) : _a(a) {
+			index_t mX = std::numeric_limits<index_t>::max(), mY = std::numeric_limits<index_t>::max();
+			for(std::list<ActionEditeur *>::const_iterator i =_a.begin(); i != _a.end(); ++i) {
+				mX = std::min(mX, (*i)->pX());
+				mY = std::min(mY, (*i)->pY());
+			}
+			
+			this->definirPosition(mX, mY);
+		}
+		
+		~ActionsEditeur() {
+			for(std::list<ActionEditeur *>::iterator i = _a.begin(); i != _a.end(); ++i) {
+				delete *i;
+			}
+		}
+		
+		void operator()() {
+			for(std::list<ActionEditeur *>::const_iterator i =_a.begin(); i != _a.end(); ++i) {
+				(*i)->operator()();
+			}
+		}
+		
+		ActionEditeur *oppose() const {
+			std::list<ActionEditeur *> l;
+			for(std::list<ActionEditeur *>::const_iterator i =_a.begin(); i != _a.end(); ++i) {
+				l.push_back((*i)->oppose());
+			}
+			
+			return new ActionsEditeur(l);
+		}
+		
+		size_t taille() const {
+			return _a.size();
+		}
+	private:
+		std::list<ActionEditeur *> _a;
+	};
+
+	class RemplacerEntite : public ActionEditeur {
+	public:
+		RemplacerEntite(ElementEditeur const *remplacant, ElementEditeur const *remplace, index_t x, index_t y, Niveau::couche_t c) : _remplacant(0), _remplace(0), _x(x), _y(y), _c(c) {
+			if(remplacant)
+				_remplacant = new ElementEditeur(*remplacant);
+			if(remplace)
+				_remplace = new ElementEditeur(*remplace);
+			
+			this->definirPosition(x, y);
+		}
+		
+		~RemplacerEntite() {
+			delete _remplacant;
+			delete _remplace;
+		}
+		
+		void operator()();
+		ActionEditeur *oppose() const {
+			return new RemplacerEntite(_remplace, _remplacant, _x, _y, _c);
+		}
+		
+		ElementEditeur *remplacant() {
+			return _remplacant;
+		}
+		
+		ElementEditeur *remplace() {
+			return _remplace;
+		}
+		
+	private:
+		ElementEditeur *_remplacant;
+		ElementEditeur *_remplace;
+		index_t _x, _y;
+		Niveau::couche_t _c;
+	};
+
+	class RedimensionnerNiveau : public ActionEditeur {
+	public:
+		RedimensionnerNiveau(size_t dimX, size_t dimY);
+		
+		~RedimensionnerNiveau() {
+			for(std::list<ActionEditeur *>::const_iterator i = _cases.begin(); i != _cases.end(); ++i) {
+				delete *i;
+			}
+		}
+		
+		void operator()();
+		ActionEditeur *oppose() const {
+			std::list<ActionEditeur *> l;
+			for(std::list<ActionEditeur *>::const_iterator i = _cases.begin(); i != _cases.end(); ++i) {
+				l.push_back((*i)->oppose());
+			}
+			return new RedimensionnerNiveau(_aDX, _aDY, l);
+		}
+	private:		
+		RedimensionnerNiveau(size_t dimX, size_t dimY, std::list<ActionEditeur *> remplacements);
+		std::list<ActionEditeur *> _cases;
+		index_t _dX, _dY;
+		index_t _aDX, _aDY;
+	};
+	
+	class AjouterLoiProba : public ActionEditeur {
+	public:
+		AjouterLoiProba(index_t pos, LoiProba const &loi) : _pos(pos), _loi(loi) {
+			
+		}
+		
+		~AjouterLoiProba() {
+			
+		}
+		
+		void operator()() {
+			Editeur::editeur()->_niveau->_probas.insert(Editeur::editeur()->_niveau->_probas.begin() + _pos, _loi);
+		}
+		
+		ActionEditeur *oppose() const {
+			return new SupprimerLoiProba(_pos, _loi);
+		}
+	private:
+		LoiProba _loi;
+		index_t _pos;
+	};
+
+	class SupprimerLoiProba : public ActionEditeur {
+	public:
+		SupprimerLoiProba(index_t pos, LoiProba const &loi) : _pos(pos), _loi(loi) {
+			
+		}
+		
+		~SupprimerLoiProba() {
+			
+		}
+		
+		void operator()() {
+			Editeur::editeur()->_niveau->_probas.erase(Editeur::editeur()->_niveau->_probas.begin() + _pos);
+		}
+		
+		ActionEditeur *oppose() const {
+			return new AjouterLoiProba(_pos, _loi);
+		}
+	private:
+		LoiProba _loi;
+		index_t _pos;
+	};
+
+	class ModifierLoiProba : public ActionEditeur {
+	public:
+		ModifierLoiProba(index_t pos, LoiProba const &originale, LoiProba const &nouvelle) : _pos(pos), _originale(originale), _nouvelle(nouvelle) {
+			
+		}
+		
+		~ModifierLoiProba() {
+			
+		}
+		
+		void operator()() {
+			Editeur::editeur()->_niveau->_probas[_pos] = _nouvelle;
+		}
+		
+		ActionEditeur *oppose() const {
+			return new ModifierLoiProba(_pos, _originale, _nouvelle);
+		}
+	private:
+		index_t _pos;
+		LoiProba _originale, _nouvelle;
+	};
+
+	//friend class Editeur::RedimensionnerNiveau;
+
 protected:
 	Editeur();
+	void editerNiveau(std::string const &fichier);
 	
-	void modification();
 	void enregistrer();
+	void recharger();
+	
+	void outilAnnuler();
+	void outilRetablir();
+	void annuler();
+	void retablir();
+	void posterAction(ActionEditeur *a);
+	void reinitialiserActions();
+	
+	void outilCopier();
+	void outilColler();
+	void outilSelection();
+	void outilRecharger();
+	void copier();
+	void coller(index_t pX, index_t pY);
+
+	void presenter(index_t x, index_t y);
 	void afficher();
 	void afficherCouche(Niveau::couche_t couche);
 	void afficherGrille(unsigned char opacite);
@@ -151,6 +368,12 @@ private:
 	bool _continuer;
 	bool _modifie;
 	Image _sauve;
+	Image _select;
+	Image _copier;
+	Image _coller;
+	Image _recharger;
+	Image _annuler;
+	Image _retablir;
 	
 	NiveauEditeur *_niveau;
 	Coordonnees _origine;
@@ -162,12 +385,22 @@ private:
 	listeFonctions_t _fonctionsControles;
 	listeFonctions_t _fonctionsInventaire;
 	selection_t _selection;
+	
+	bool _aProba;
+	index_t _aIndexProba;
+	ElementNiveau::elementNiveau_t _aCat;
+	index_t _aIndex;
+	
+	Outil _outil;
+	std::vector<std::vector<ElementEditeur *> > _pressePapier;
+	std::stack<ActionEditeur *> _pileAnnulations;
+	std::stack<ActionEditeur *> _pileRetablissements;
 
 	static Rectangle _cadreEditeur;
 	static Rectangle _cadreControles;
 	static Rectangle _cadreInventaire;
 	static Rectangle _cadreCarte;
-
+	
 	static void initCadres();
 	
 	static Editeur *_editeur;

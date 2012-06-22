@@ -16,8 +16,6 @@
 #define NDEBUG
 #endif
 
-//#define MULTITHREAD 0
-
 #include <string>
 #include <cassert>
 #include <SDL/SDL.h>

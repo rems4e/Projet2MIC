@@ -24,6 +24,7 @@
 #include "Geometrie.h"
 
 #include <algorithm>
+#include <sstream>
 
 int nombreAleatoire(int nombreMax) {
 	if(nombreMax == 0)
@@ -33,14 +34,6 @@ int nombreAleatoire(int nombreMax) {
 	nb %= nombreMax;
 	
 	return nb;
-}
-
-double arrondi(double n) {
-	return n < 0.0 ? std::ceil(n - 0.5) : std::floor(n + 0.5);
-}
-
-float arrondi(float n) {
-	return n < 0.0f ? std::ceil(n - 0.5f) : std::floor(n + 0.5f);
 }
 
 int caractereVersHexa(char c) {
@@ -114,10 +107,10 @@ char base64VersCaractere(int c) {
 	return 0;
 }
 
-double texteVersNombre(char const *texte) {
-	long l = std::strlen(texte);
+double texteVersNombre(std::string const &s) {
+	long l = s.size();
 	char *txt = (char *)std::malloc(l + 1);
-	std::strcpy(txt, texte);
+	std::strcpy(txt, s.c_str());
 	
 	for(int i = 0; i < l; ++i) {
 		if(txt[i] == ',')
@@ -130,19 +123,23 @@ double texteVersNombre(char const *texte) {
 	return d;
 }
 
-double texteVersNombre(std::string const &texte) { return texteVersNombre(texte.c_str()); }
 
 std::string nombreVersTexte(double nombre, int decimales) {
 	if(decimales == -1)
 		decimales = nombreDecimales(nombre);
 	
-	char *texte;
-	asprintf(&texte, "%.*lf", decimales, nombre);
+	std::stringstream s;
+	s.precision(decimales);
+	s << nombre;
 	
-	std::string retour(texte);
-	std::free(texte);
+	return s.str();
+}
 
-	return retour;
+std::string nombreVersTexte(long nombre) {
+	std::stringstream s;
+	s << nombre;
+	
+	return s.str();
 }
 
 int nombreDecimales(double nombre) {

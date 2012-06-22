@@ -168,7 +168,9 @@ void ObjetInventaire::equilibrerAvecJoueur() {
 			_vie = this->niveau()->joueur()->vieTotale() / 2;
 			_vie = std::max(1, _vie);
 			_attaque = _defense = 0;
-		case cle:
+			break;
+		}
+		case cle: {
 			_attaque = _defense = _vie = 0;
 		}
 	}

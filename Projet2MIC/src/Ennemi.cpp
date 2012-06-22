@@ -53,8 +53,8 @@ void Ennemi::animer() {
 			suivre = j->pX() != pX || j->pY() != pY;
 			Niveau::const_listeElements_t liste = this->niveau()->elements(pX, pY, this->couche());
 			for(Niveau::elements_t::const_iterator el = liste.first; el != liste.second; ++el) {
-				if(el->entite != this && el->entite->mobile() && static_cast<EntiteMobile *>(el->entite)->categorieMobile() == EntiteMobile::em_ennemi) {
-					Ennemi *e = static_cast<Ennemi *>(el->entite);
+				if(el->_entite != this && el->_entite->mobile() && static_cast<EntiteMobile *>(el->_entite)->categorieMobile() == EntiteMobile::em_ennemi) {
+					Ennemi *e = static_cast<Ennemi *>(el->_entite);
 					
 					if(e->_recherche) {
 						suivre = false;

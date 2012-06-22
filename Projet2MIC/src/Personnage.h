@@ -53,10 +53,10 @@ public:
 	// Le coefficient multiplicateur de la vitesse de déplacement de l'entité
 	virtual double vitesse() const;
 	
-	size_t vieActuelle() const;
+	ssize_t vieActuelle() const;
 	virtual void modifierVieActuelle(int delta);
 	
-	virtual size_t vieTotale() const;
+	virtual ssize_t vieTotale() const;
 	
 	virtual bool definirAction(action_t a);
 	virtual Niveau::couche_t couche() const;

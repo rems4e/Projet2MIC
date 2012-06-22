@@ -14,12 +14,13 @@
 #include "Audio.h"
 #include "Image.h"
 #include "tinyxml.h"
+#include "Editeur.h"
+
+static void jeu();
 
 #ifdef __cplusplus
 extern "C"
 #endif
-
-void jeu();
 
 int main(int, char **) {	
 	// Initialise tous les sous-programmes requis pour le jeu : affichage (images, textes, écran…), audio, événements, paramètres utilisateur…
@@ -33,7 +34,7 @@ int main(int, char **) {
 	return 0;
 }
 
-void jeu() {
+static void jeu() {
 	Audio::audio_t musique = Audio::chargerMusique(Session::cheminRessources() + "menu.mp3");
 	
 	Shader sFond(Session::cheminRessources() + "aucun.vert", Session::cheminRessources() + "menuPrincipal.frag");
@@ -41,6 +42,8 @@ void jeu() {
 	elements.push_back("Nouvelle partie");
 	elements.push_back("Charger une partie");
 	elements.push_back("Réglages");
+	elements.push_back("Crédits");
+	elements.push_back("Éditeur de niveaux");
 	elements.push_back("Quitter");
 	Menu menu("Menu principal", elements, "");
 	
@@ -67,13 +70,21 @@ void jeu() {
 				delete nouvellePartie;
 			}
 			else if(selection == 1) {
-				charge = Partie::charger(&fond, sFond);
+				charge = Partie::charger(fond, sFond);
 			}
 			else if(selection == 2) {
 				Parametres::editerParametres(fond, sFond);
 			}
+			else if(selection == 3) {
+				Parametres::afficherCredits(fond, sFond);
+			}
+			else if(selection == 4) {
+				Editeur *e = Editeur::editeur();
+				e->ouvrirEditeur(fond, sFond);
+				delete Editeur::editeur();
+			}
 		}
-	} while(selection != 3);
+	} while(selection != elements.size() - 1);
 	
 	delete charge;
 	Audio::libererSon(musique);

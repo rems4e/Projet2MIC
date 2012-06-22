@@ -16,7 +16,7 @@
 
 EntiteMobile::action_t &operator++(EntiteMobile::action_t &c) { return c = static_cast<EntiteMobile::action_t>(static_cast<int>(c + 1)); }
 
-EntiteMobile::EntiteMobile(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : ElementNiveau(decoupagePerspective, n, index, cat), _tempsPrecedent(0), _image(), _cadres(), _tempsAffichage(), _nbImages(), _imageActuelle(0), _action(a_immobile), _direction(gauche), _mort(false) {
+EntiteMobile::EntiteMobile(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : ElementNiveau(decoupagePerspective, n, index, cat), _tempsPrecedent(0), _image(), _cadres(), _tempsAffichage(), _nbImages(), _imageActuelle(0), _action(a_immobile), _direction(gauche), _mort(false), _mortTerminee(false) {
 	std::memset(_nbImages, 0, nbActions * sizeof(size_t));
 	for(action_t a = premiereAction; a != nbActions; ++a) {
 		std::memset(_cadres[a], 0, 8 * sizeof(Rectangle *));
@@ -35,7 +35,7 @@ EntiteMobile::EntiteMobile(bool decoupagePerspective, Niveau *n, uindex_t index,
 	if(e->Attribute("blocY"))
 		e->Attribute("blocY", &dimY);
 	
-	int premiereImage[nbActions] = {0};
+	size_t premiereImage[nbActions] = {0};
 	
 	for(action_t a = premiereAction; a != nbActions; ++a) {
 		TiXmlElement *action = e->FirstChildElement(EntiteMobile::transcriptionAction(a));
@@ -106,15 +106,20 @@ bool EntiteMobile::mort() const {
 	return _mort;
 }
 
+void EntiteMobile::preparerMort() {
+	_action = nbActions;
+	this->definirAction(a_mourir);
+	this->mourir();
+}
+
 void EntiteMobile::animer() {
 	if(horloge() - _tempsPrecedent >= _tempsAffichage[_action]) {
 		_tempsPrecedent = horloge();
 		_imageActuelle = (_imageActuelle + 1) % _nbImages[_action];
 		
 		if(_action == a_mourir && _imageActuelle == _nbImages[a_mourir] - 1) {
-			_mort = true;
+			_mortTerminee = true;
 		}
-
 		if(_imageActuelle == 0) {
 			_action = nbActions;
 			this->definirAction(a_immobile);
@@ -123,14 +128,16 @@ void EntiteMobile::animer() {
 }
 
 void EntiteMobile::mourir() {
-	if(_action != a_mourir && !_mort) {
-		_action = nbActions;
-		this->definirAction(a_mourir);
-	}
+	_mort = true;
 }
 
 void EntiteMobile::renaitre() {
 	_mort = false;
+	_mortTerminee = false;
+}
+
+bool EntiteMobile::mortTerminee() const {
+	return _mortTerminee;
 }
 
 Coordonnees EntiteMobile::dimensions() const {

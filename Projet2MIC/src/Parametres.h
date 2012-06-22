@@ -15,7 +15,7 @@
 class Image;
 
 namespace Parametres {
-	enum action_t {premiereAction, depGauche = premiereAction, depDroite, depHaut, depBas, afficherJournal, afficherInventaire, interagir, remplirVie, nbActions};
+	enum action_t {premiereAction, depGauche = premiereAction, depDroite, depHaut, depBas, afficherInventaire, interagir, remplirVie, nbActions};
 	Session::evenement_t evenementAction(action_t action);
 	float volumeMusique();
 	float volumeEffets();
@@ -24,7 +24,9 @@ namespace Parametres {
 	int hauteurEcran();
 	bool pleinEcran();
 	
-	void editerParametres(Image const &fond, Shader const &s = Shader::flou(1.0));
+	void editerParametres(Image const &fond, Shader const &s = Shader::flou(1.0f));
+	
+	void afficherCredits(Image const &fond, Shader const &s);
 }
 
 inline Parametres::action_t &operator++(Parametres::action_t &e) { return e = static_cast<Parametres::action_t>(static_cast<int>(e) + 1); }

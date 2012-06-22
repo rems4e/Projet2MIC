@@ -7,7 +7,7 @@
 //
 
 #include "Audio.h"
-#include "fmod/fmod.hpp"
+#include "fmod/fmod.h"
 #include "Parametres.h"
 #include <iostream>
 #include "fmod/fmod_errors.h"
@@ -25,22 +25,22 @@ namespace Audio {
 	// Affiche l'erreur rencontrée par l'API. La variable nb est là pour voir de quelle fonction provient l'erreur... Pas très joli, mais efficace :p
 	bool erreur(FMOD_RESULT code, int nb) throw(Exc_Son);
 	
-	FMOD::System *_systeme = 0;
-	FMOD::Channel *_canaux[NB_CANAUX];
-	FMOD::Channel *_canalMusique = 0;
+	FMOD_SYSTEM *_systeme = 0;
+	FMOD_CHANNEL *_canaux[NB_CANAUX];
+	FMOD_CHANNEL *_canalMusique = 0;
 	
 	audio_t _musique = 0;
 
-	FMOD_RESULT sonStoppe(FMOD_CHANNEL *channel, FMOD_CHANNEL_CALLBACKTYPE type, void *commanddata1, void *commanddata2);
+	F_CALLBACK FMOD_RESULT sonStoppe(FMOD_CHANNEL *channel, FMOD_CHANNEL_CALLBACKTYPE type, void *commanddata1, void *commanddata2);
 
 }
 
-FMOD_RESULT Audio::sonStoppe(FMOD_CHANNEL *channel, FMOD_CHANNEL_CALLBACKTYPE type, void *commanddata1, void *commanddata2) {
+F_CALLBACK FMOD_RESULT Audio::sonStoppe(FMOD_CHANNEL *channel, FMOD_CHANNEL_CALLBACKTYPE type, void *commanddata1, void *commanddata2) {
 	int nb;
 	FMOD_Channel_GetIndex(channel, &nb);
 	
-	FMOD::Channel *c;
-	_systeme->getChannel(nb, &c);
+	FMOD_CHANNEL *c;
+	FMOD_System_GetChannel(_systeme, nb, &c);
 	
 	if(c != _canalMusique) {
 		Audio::_canaux[nb] = 0;
@@ -59,8 +59,8 @@ bool Audio::erreur(FMOD_RESULT code, int nb) throw(Exc_Son) {
 }
 
 void Audio::initialiser() {
-	FMOD::System_Create(&_systeme);
-	resultat = _systeme->init(NB_CANAUX, FMOD_INIT_NORMAL, 0);
+	FMOD_System_Create(&_systeme);
+	resultat = FMOD_System_Init(_systeme, NB_CANAUX, FMOD_INIT_NORMAL, 0);
 	erreur(resultat, 1);
 
 	for(int i = 0; i < NB_CANAUX; ++i) {
@@ -69,16 +69,16 @@ void Audio::initialiser() {
 }
 
 void Audio::nettoyer() {
-	resultat = _systeme->close();
+	resultat = FMOD_System_Close(_systeme);
 	erreur(resultat, 2);
 
-	resultat = _systeme->release();
+	resultat = FMOD_System_Release(_systeme);
 	erreur(resultat, 3);
 }
 
 Audio::audio_t Audio::chargerSon(std::string const &chemin) throw(Audio::Exc_Son) {
 	audio_t son = 0;
-	resultat = _systeme->createSound(chemin.c_str(), FMOD_CREATESAMPLE | FMOD_2D | FMOD_LOOP_NORMAL, 0, &son);
+	resultat = FMOD_System_CreateSound(_systeme, chemin.c_str(), FMOD_CREATESAMPLE | FMOD_2D | FMOD_LOOP_NORMAL, 0, &son);
 	erreur(resultat, 4);
 	
 
@@ -87,35 +87,35 @@ Audio::audio_t Audio::chargerSon(std::string const &chemin) throw(Audio::Exc_Son
 
 Audio::audio_t Audio::chargerMusique(std::string const &chemin) throw(Audio::Exc_Son) {
 	audio_t son = 0;
-	resultat = _systeme->createSound(chemin.c_str(), FMOD_SOFTWARE | FMOD_2D | FMOD_CREATESTREAM | FMOD_LOOP_NORMAL, 0, &son);
+	resultat = FMOD_System_CreateSound(_systeme, chemin.c_str(), FMOD_SOFTWARE | FMOD_2D | FMOD_CREATESTREAM | FMOD_LOOP_NORMAL, 0, &son);
 	erreur(resultat, 5);
 	
-	son->setLoopCount(-1);
+	FMOD_Sound_SetLoopCount(son, -1);
 	
 	return son;
 }
 
 void Audio::libererSon(audio_t son) {
-	resultat = son->release();
+	resultat = FMOD_Sound_Release(son);
 	erreur(resultat, 6);
 }
 
 void Audio::jouerSon(audio_t son, bool boucle) throw(Audio::Exc_Son) {
 	if(boucle)
-		son->setLoopCount(-1);
+		FMOD_Sound_SetLoopCount(son, -1);
 	else
-		son->setLoopCount(0);
+		FMOD_Sound_SetLoopCount(son, 0);
 
-	FMOD::Channel *c = 0;
-	resultat = _systeme->playSound(FMOD_CHANNEL_FREE, son, false, &c);
+	FMOD_CHANNEL *c = 0;
+	resultat = FMOD_System_PlaySound(_systeme, FMOD_CHANNEL_FREE, son, false, &c);
 	erreur(resultat, 7);
 	
 	int nb;
-	c->getIndex(&nb);
+	FMOD_Channel_GetIndex(c, &nb);
 	_canaux[nb] = c;
 	
-	c->setCallback(&sonStoppe);
-	c->setVolume(Parametres::volumeEffets());
+	FMOD_Channel_SetCallback(c, &sonStoppe);
+	FMOD_Channel_SetVolume(c, Parametres::volumeEffets());
 }
 
 void Audio::definirMusique(audio_t m) {
@@ -123,7 +123,7 @@ void Audio::definirMusique(audio_t m) {
 		return;
 	
 	if(_canalMusique) {
-		_canalMusique->stop();
+		FMOD_Channel_Stop(_canalMusique);
 		_canalMusique = 0;
 	}
 	
@@ -132,50 +132,50 @@ void Audio::definirMusique(audio_t m) {
 
 void Audio::jouerMusique() throw(Audio::Exc_Son) {
 	if(_canalMusique) {
-		bool pause;
-		_canalMusique->getPaused(&pause);
+		FMOD_BOOL pause;
+		FMOD_Channel_GetPaused(_canalMusique, &pause);
 		if(!pause)
 			return;
 	}
 	
-	resultat = _systeme->playSound(FMOD_CHANNEL_FREE, _musique, false, &_canalMusique);
+	resultat = FMOD_System_PlaySound(_systeme, FMOD_CHANNEL_FREE, _musique, false, &_canalMusique);
 	erreur(resultat, 8);
 	
 	int nb;
-	_canalMusique->getIndex(&nb);
+	FMOD_Channel_GetIndex(_canalMusique, &nb);
 	_canaux[nb] = _canalMusique;
 		
-	_canalMusique->setVolume(Parametres::volumeMusique());
+	FMOD_Channel_SetVolume(_canalMusique, Parametres::volumeMusique());
 }
 
 void Audio::pauseMusique() {
 	if(!_canalMusique)
 		return;
 	
-	bool pause;
-	_canalMusique->getPaused(&pause);
+	FMOD_BOOL pause;
+	FMOD_Channel_GetPaused(_canalMusique, &pause);
 	
-	_canalMusique->setPaused(!pause);
+	FMOD_Channel_SetPaused(_canalMusique, !pause);
 }
 
 void Audio::definirVolumeMusique(float v) {
 	if(!_canalMusique)
 		return;
 		
-	_canalMusique->setVolume(v);
+	FMOD_Channel_SetVolume(_canalMusique, v);
 }
 
 void Audio::definirVolumeEffets(float v) {
 	for(int i = 0; i < NB_CANAUX; ++i) {
 		if(_canaux[i] && _canaux[i] != _canalMusique) {
 				
-			_canaux[i]->setVolume(v);
+			FMOD_Channel_SetVolume(_canaux[i], v);
 		}
 	}
 }
 
 void Audio::maj() throw(Exc_Son) {
-	resultat = _systeme->update();
+	resultat = FMOD_System_Update(_systeme);
 	erreur(resultat, 9);
 }
 

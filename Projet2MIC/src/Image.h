@@ -15,6 +15,8 @@
 
 #ifdef __MACOSX__
 #include <OpenGL/gl.h>
+#elif defined(__WIN32__)
+#include <GL/glew.h>
 #else
 #define GL_GLEXT_LEGACY
 #include <GL/gl.h>

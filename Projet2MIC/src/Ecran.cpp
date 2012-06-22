@@ -21,6 +21,8 @@
 
 #ifdef __MACOSX__
 #include <OpenGL/gl.h>
+#elif defined(__WIN32__)
+#include <GL/glew.h>
 #else
 #define GL_GLEXT_LEGACY
 #include <GL/gl.h>
@@ -143,6 +145,13 @@ void Ecran::modifierResolution(unsigned int largeur, unsigned int hauteur, bool 
 	else
 		resultat = SDL_SetVideoMode(largeur, hauteur, 32, SDL_OPENGL);
 	
+#ifdef __WIN32__
+	GLenum err = glewInit();
+	if(err != GLEW_OK) {
+		std::cerr << "GlewInit : " << glewGetErrorString(err) << std::endl;
+	}
+#endif
+	
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 	SDL_GL_SwapBuffers();
@@ -166,14 +175,8 @@ void Ecran::modifierResolution(unsigned int largeur, unsigned int hauteur, bool 
 	}
 }
 
-struct cmpCoord_t {
-	inline bool operator()(Coordonnees const &c1, Coordonnees const &c2) {
-		return c1.x < c2.x || (c1.x == c2.x && c1.y < c2.y);
-	}
-};
-
-std::list<Coordonnees> Ecran::resolutionsDisponibles(bool pleinEcran) {
-	std::list<Coordonnees> retour;
+std::list<std::pair<int, int> > Ecran::resolutionsDisponibles(bool pleinEcran) {
+	std::list<std::pair<int, int> > retour;
 
 	Uint32 flags = SDL_OPENGL;
 	if(pleinEcran)
@@ -182,38 +185,39 @@ std::list<Coordonnees> Ecran::resolutionsDisponibles(bool pleinEcran) {
 	SDL_Rect **liste = SDL_ListModes(0, flags);
 	if(liste == 0) {
 		std::cerr << "Aucune résolution d'écran disponible (plein écran : " << pleinEcran << "). Plantage attendu…" << std::endl;
-		retour.push_back(Coordonnees(640, 480));
+		retour.push_back(std::make_pair(640, 480));
 	}
 	else if(liste == reinterpret_cast<SDL_Rect **>(-1)) {
-		retour.push_back(Coordonnees(640, 400));
-		retour.push_back(Coordonnees(640, 480));
-		retour.push_back(Coordonnees(720, 480));
-		retour.push_back(Coordonnees(800, 500));
-		retour.push_back(Coordonnees(800, 600));
-		retour.push_back(Coordonnees(1024, 640));
-		retour.push_back(Coordonnees(1024, 768));
-		retour.push_back(Coordonnees(1152, 720));
-		retour.push_back(Coordonnees(1280, 800));
-		retour.push_back(Coordonnees(1280, 960));
-		retour.push_back(Coordonnees(1280, 1024));
-		retour.push_back(Coordonnees(1344, 840));
-		retour.push_back(Coordonnees(1360, 850));
-		retour.push_back(Coordonnees(1440, 900));
-		retour.push_back(Coordonnees(1600, 1200));
-		retour.push_back(Coordonnees(1680, 1050));
-		retour.push_back(Coordonnees(1920, 1080));
-		retour.push_back(Coordonnees(1920, 1200));
-		retour.push_back(Coordonnees(2048, 1280));
-		retour.push_back(Coordonnees(2048, 1536));
-		retour.push_back(Coordonnees(2560, 1440));
-		retour.push_back(Coordonnees(2560, 1600));
+		retour.push_back(std::make_pair(640, 400));
+		retour.push_back(std::make_pair(640, 480));
+		retour.push_back(std::make_pair(720, 480));
+		retour.push_back(std::make_pair(800, 500));
+		retour.push_back(std::make_pair(800, 600));
+		retour.push_back(std::make_pair(1024, 640));
+		retour.push_back(std::make_pair(1024, 768));
+		retour.push_back(std::make_pair(1152, 720));
+		retour.push_back(std::make_pair(1280, 720));
+		retour.push_back(std::make_pair(1280, 800));
+		retour.push_back(std::make_pair(1280, 960));
+		retour.push_back(std::make_pair(1280, 1024));
+		retour.push_back(std::make_pair(1344, 840));
+		retour.push_back(std::make_pair(1360, 850));
+		retour.push_back(std::make_pair(1440, 900));
+		retour.push_back(std::make_pair(1600, 1200));
+		retour.push_back(std::make_pair(1680, 1050));
+		retour.push_back(std::make_pair(1920, 1080));
+		retour.push_back(std::make_pair(1920, 1200));
+		retour.push_back(std::make_pair(2048, 1280));
+		retour.push_back(std::make_pair(2048, 1536));
+		retour.push_back(std::make_pair(2560, 1440));
+		retour.push_back(std::make_pair(2560, 1600));
 	}
 	else {
 		for(int i = 0; liste[i]; ++i) {
-			retour.push_back(Coordonnees(liste[i]->w, liste[i]->h));
+			retour.push_back(std::make_pair(liste[i]->w, liste[i]->h));
 		}
 		
-		retour.sort(cmpCoord_t());
+		retour.sort();
 	}
 	
 	return retour;

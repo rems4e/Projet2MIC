@@ -13,11 +13,13 @@
 #include "tinyxml.h"
 #include "UtilitaireNiveau.h"
 #include <cstring>
+#include <cmath>
 #include "Texte.h"
 #include "Menu.h"
-#include <tr1/functional>
+#include <functional>
 #include <algorithm>
 #include <numeric>
+#include "NavigateurFichiers.h"
 
 #define TAILLE_MAX_NIVEAU 1000
 
@@ -37,12 +39,67 @@ Editeur *Editeur::editeur() {
 	return _editeur;
 }
 
-Editeur::Editeur() : _sauve(Session::cheminRessources() + "save.png") {
+Editeur::Editeur() : _sauve(Session::cheminRessources() + "save.png"), _select(Session::cheminRessources() + "select.png"), _coller(Session::cheminRessources() + "coller.png"), _copier(Session::cheminRessources() + "copier.png"), _recharger(Session::cheminRessources() + "recharger.png"), _annuler(Session::cheminRessources() + "annuler.png"), _retablir(Session::cheminRessources() + "retablir.png") {
 	
 }
 
 Editeur::~Editeur() {
 	Editeur::_editeur = 0;
+}
+
+void Editeur::ouvrirEditeur(Image &fond, Shader &s) {
+	std::vector<Unichar> el;
+	el.push_back("Ouvrir un niveau");
+	el.push_back("Créer un niveau");
+	el.push_back("Quitter");
+	Menu m("Éditeur de niveaux", el, "");
+	
+	index_t selection;
+	
+	do {
+		selection = m.afficher(0, fond, s);
+		if(selection == 0) {
+			std::vector<Unichar> el;
+			std::vector<std::string> f = NavigateurFichiers::listeFichiers(Session::cheminRessources(), std::vector<std::string>(1, "xml"));
+			
+			for(int i = 1; ; ++i) {
+				std::vector<std::string>::iterator pos = std::find(f.begin(), f.end(), "niveau" + nombreVersTexte(i) + ".xml");
+				if(pos == f.end())
+					break;
+				else
+					el.push_back("Niveau " + nombreVersTexte(i));
+			}
+			
+			if(el.size()) {
+				Menu choix("Ouvrir un niveau :", el);
+				index_t selection = choix.afficher(0, fond, s);
+				if(selection != el.size()) {
+					this->editerNiveau("niveau" + nombreVersTexte(selection + 1) + ".xml");
+				}
+			}
+		}
+		else if(selection == 1) {
+			std::vector<std::string> f = NavigateurFichiers::listeFichiers(Session::cheminRessources(), std::vector<std::string>(1, "xml"));
+			
+			int nb = 1;
+			for(; ; ++nb) {
+				std::vector<std::string>::iterator pos = std::find(f.begin(), f.end(), "niveau" + nombreVersTexte(nb) + ".xml");
+				if(pos == f.end())
+					break;
+			}
+			
+			char const *documentBase = 
+			"<?xml version=\"1.0\" standalone=\"no\" ?>"
+			"<Niveau dimX=\"16\" dimY=\"16\" musique=\"musique1.mp3\">"
+			"</Niveau>";
+			TiXmlDocument *document = new TiXmlDocument(Session::cheminRessources() + "niveau" + nombreVersTexte(nb) + ".xml");
+			document->Parse(documentBase);
+			document->SaveFile();
+			delete document;
+			
+			this->editerNiveau("niveau" + nombreVersTexte(nb) + ".xml");
+		}
+	} while(selection != 2);
 }
 
 void Editeur::editerNiveau(std::string const &fichier) {
@@ -54,15 +111,21 @@ void Editeur::editerNiveau(std::string const &fichier) {
 	_affichageSelection = Rectangle::aucun;
 	_selection.clear();
 	_modifie = false;
+	_outil = o_selection;
+	
+	_aIndex = -1;
 	
 	std::vector<Unichar> elemMenus;
 	elemMenus.push_back("Enregistrer le niveau");
 	elemMenus.push_back("Revenir à la version enregistrée");
+	elemMenus.push_back("Réglages");
 	elemMenus.push_back("Quitter l'éditeur");
-	
+		
 	Menu menuEditeur("Menu éditeur", elemMenus);
 	
 	while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, _continuer)) {
+		Editeur::initCadres();
+
 		Ecran::definirPointeurAffiche(true);
 		Ecran::effacer();
 		this->afficher();
@@ -72,7 +135,7 @@ void Editeur::editerNiveau(std::string const &fichier) {
 			Image *fond = Ecran::apercu();
 			index_t retour = menuEditeur.afficher(0, *fond);
 			if(retour < elemMenus.size()) {
-				if(retour == 2) {
+				if(retour == 3) {
 					if(_modifie)
 						this->demandeEnregistrement(*fond);
 					_continuer = false;
@@ -81,11 +144,10 @@ void Editeur::editerNiveau(std::string const &fichier) {
 					this->enregistrer();
 				}
 				else if(retour == 1) {
-					std::string f = _niveau->_fichier;
-					delete _niveau;
-					_niveau = new NiveauEditeur(f);
-					_selection.clear();
-					_modifie = false;
+					this->recharger();
+				}
+				else if(retour == 2) {
+					Parametres::editerParametres(*fond);
 				}
 			}
 		}
@@ -142,13 +204,13 @@ void Editeur::editerNiveau(std::string const &fichier) {
 				_origine.y += 10;
 			
 			if(Session::evenement(Session::T_EFFACER)) {
+				std::list<ActionEditeur *> l;
 				for(selection_t::iterator i = _selection.begin(); i != _selection.end(); ++i) {
-					delete i->_e;
-					_niveau->_elements[i->_posY][i->_posX][_coucheEdition] = 0;
+					ActionEditeur *a = new RemplacerEntite(0, i->_e, i->_posX, i->_posY, _coucheEdition);
+					l.push_back(a);
 				}
-				
-				if(!_selection.empty())
-					this->modification();
+				ActionEditeur *a = new ActionsEditeur(l);
+				this->posterAction(a);
 				
 				_selection.clear();
 				_cadreSelection = Rectangle::aucun;
@@ -157,7 +219,17 @@ void Editeur::editerNiveau(std::string const &fichier) {
 				
 		Ecran::maj();
 	}
-		
+	
+	for(std::vector<std::vector<ElementEditeur *> >::iterator i = _pressePapier.begin(); i != _pressePapier.end(); ++i) {
+		for(std::vector<ElementEditeur *>::iterator j = i->begin(); j != i->end(); ++j) {
+			delete *j;
+		}
+		i->clear();
+	}
+	_pressePapier.clear();
+	
+	this->reinitialiserActions();
+	
 	delete _niveau;
 }
 
@@ -242,6 +314,25 @@ void Editeur::afficherCouche(Niveau::couche_t couche) {
 			Coordonnees p3 = referentielNiveauVersEcran(pos + Coordonnees(dimX, dimY)) - _origine + Editeur::cadreEditeur().origine();
 			Coordonnees p4 = referentielNiveauVersEcran(pos + Coordonnees(0, dimY)) - _origine + Editeur::cadreEditeur().origine();
 			Ecran::afficherQuadrilatere(p1, p2, p3, p4, Couleur(teinteSelection * 255, teinteSelection * 255, teinteSelection * 255, 128));
+		}
+		
+		if(_outil == o_coller) {
+			Coordonnees point(Session::souris() - Editeur::cadreEditeur().origine() + _origine);
+			Coordonnees pointNiveau(referentielEcranVersNiveau(point));
+			index_t pX = std::floor(pointNiveau.x / LARGEUR_CASE), pY = std::floor(pointNiveau.y / LARGEUR_CASE);
+			
+			Image::definirOpacite(128);
+			for(std::vector<std::vector<ElementEditeur *> >::iterator i = _pressePapier.begin(); i != _pressePapier.end(); ++i) {
+				for(std::vector<ElementEditeur *>::iterator j = i->begin(); j != i->end(); ++j) {
+					if(*j) {
+						Coordonnees p = referentielNiveauVersEcran(Coordonnees(pX + std::distance(i->begin(), j), pY + std::distance(_pressePapier.begin(), i)) * LARGEUR_CASE) - (*j)->origine() - _origine + Editeur::cadreEditeur().origine();
+						Image::definirTeinte((*j)->teinte());
+						(*j)->image().afficher(p);
+					}
+				}
+			}
+			Image::definirOpacite(255);
+			Image::definirTeinte(Couleur::blanc);
 		}
 	}
 }
@@ -424,7 +515,7 @@ void Editeur::afficherInventaire() {
 				}
 				else {
 					rectCat.haut += rectCat.dimensions().y + 10;
-					cc.definir("Loi n°" + nombreVersTexte(indexProba) + " (" + _niveau->_probas[indexProba]._nom + ")");
+					cc.definir("Loi n°" + nombreVersTexte(indexProba + 1) + " (" + _niveau->_probas[indexProba]._nom + ")");
 					rectCat.definirDimensions(cc.dimensions());
 					cc.afficher(rectCat.origine());
 				}
@@ -481,6 +572,39 @@ void Editeur::afficherControles() {
 	rect.definirDimensions(_sauve.dimensions());
 	_fonctionsControles.push_back(std::make_pair(rect, &Editeur::enregistrer));
 	
+	rect.gauche += _sauve.dimensions().x;
+	_recharger.afficher(rect.origine());
+	rect.definirDimensions(_recharger.dimensions());
+	_fonctionsControles.push_back(std::make_pair(rect, &Editeur::outilRecharger));
+
+	rect.gauche += _recharger.dimensions().x;
+	_select.afficher(rect.origine());
+	rect.definirDimensions(_select.dimensions());
+	_fonctionsControles.push_back(std::make_pair(rect, &Editeur::outilSelection));
+
+	rect.gauche += _select.dimensions().x;
+	_annuler.afficher(rect.origine());
+	rect.definirDimensions(_annuler.dimensions());
+	_fonctionsControles.push_back(std::make_pair(rect, &Editeur::outilAnnuler));
+
+	rect.gauche += _annuler.dimensions().x;
+	_retablir.afficher(rect.origine());
+	rect.definirDimensions(_retablir.dimensions());
+	_fonctionsControles.push_back(std::make_pair(rect, &Editeur::outilRetablir));
+
+	rect.gauche = Editeur::cadreControles().origine().x + 10;
+	rect.haut += rect.hauteur + 10;
+
+	_copier.afficher(rect.origine());
+	rect.definirDimensions(_copier.dimensions());
+	_fonctionsControles.push_back(std::make_pair(rect, &Editeur::outilCopier));
+
+	rect.gauche += _copier.dimensions().x;
+	_coller.afficher(rect.origine());
+	rect.definirDimensions(_coller.dimensions());
+	_fonctionsControles.push_back(std::make_pair(rect, &Editeur::outilColler));
+
+	rect.gauche = Editeur::cadreControles().origine().x + 10;
 	rect.haut += rect.hauteur + 10;
 	
 	Texte cc(std::string("Afficher la couche : \n") + Niveau::nomCouche(_coucheEdition));
@@ -540,55 +664,62 @@ void Editeur::afficherCarte() {
 void Editeur::sourisEditeur() {
 	Coordonnees point(Session::souris() - Editeur::cadreEditeur().origine() + _origine);
 	Coordonnees pointNiveau(referentielEcranVersNiveau(point));
-
-	if(_affichageSelection == Rectangle::aucun) {
-		_affichageSelection = Rectangle(pointNiveau, Coordonnees());
-	}
-	else {
-		_affichageSelection.largeur = pointNiveau.x - _affichageSelection.gauche;
-		_affichageSelection.hauteur = pointNiveau.y - _affichageSelection.haut;
-	}
-	_cadreSelection = _affichageSelection;
-	if(_cadreSelection.largeur < 0) {
-		_cadreSelection.gauche += _cadreSelection.largeur;
-		_cadreSelection.largeur *= -1;
-	}
-	if(_cadreSelection.hauteur < 0) {
-		_cadreSelection.haut += _cadreSelection.hauteur;
-		_cadreSelection.hauteur *= -1;
-	}
 	
-	if(!Session::modificateurTouches(Session::M_MAJ) && !Session::modificateurTouches(Session::M_COMMANDE) && !Session::modificateurTouches(Session::M_CONTROLE)) {
-		_selection.clear();
-	}
-	for(selection_t::iterator i = _selection.begin(); i != _selection.end();) {
-		if(i->_etat == es_aj)
-			i = _selection.erase(i);
+	if(_outil == o_selection) {
+		if(_affichageSelection == Rectangle::aucun) {
+			_affichageSelection = Rectangle(pointNiveau, Coordonnees());
+		}
 		else {
-			if(i->_etat == es_sup)
-				i->_etat = es_ok;
-			++i;
+			_affichageSelection.largeur = pointNiveau.x - _affichageSelection.gauche;
+			_affichageSelection.hauteur = pointNiveau.y - _affichageSelection.haut;
+		}
+		_cadreSelection = _affichageSelection;
+		if(_cadreSelection.largeur < 0) {
+			_cadreSelection.gauche += _cadreSelection.largeur;
+			_cadreSelection.largeur *= -1;
+		}
+		if(_cadreSelection.hauteur < 0) {
+			_cadreSelection.haut += _cadreSelection.hauteur;
+			_cadreSelection.hauteur *= -1;
+		}
+		
+		if(!Session::modificateurTouches(Session::M_MAJ) && !Session::modificateurTouches(Session::M_COMMANDE) && !Session::modificateurTouches(Session::M_CONTROLE)) {
+			_selection.clear();
+		}
+		for(selection_t::iterator i = _selection.begin(); i != _selection.end();) {
+			if(i->_etat == es_aj)
+				i = _selection.erase(i);
+			else {
+				if(i->_etat == es_sup)
+					i->_etat = es_ok;
+				++i;
+			}
+		}
+
+		Coordonnees pos;
+		for(Ligne::iterator i = _niveau->_elements.begin(); i != _niveau->_elements.end(); ++i) {
+			pos.x = 0;
+			for(Colonne::iterator j = i->begin(); j != i->end(); ++j) {
+				ElementEditeur const *elem = (*j)[_coucheEdition];
+				Coordonnees dim(elem ? elem->dimensions().x : LARGEUR_CASE, elem ? elem->dimensions().y : LARGEUR_CASE);
+				if(Rectangle(pos, (Coordonnees(dim.x, dim.y))).superposition(_cadreSelection)) {
+					ElementSelection elemS(elem, std::distance(i->begin(), j), std::distance(_niveau->_elements.begin(), i), es_aj);
+					selection_t::iterator fnd = std::find(_selection.begin(), _selection.end(), elemS);
+					if(fnd == _selection.end()) {
+						_selection.push_back(elemS);
+					}
+					else
+						fnd->_etat = es_sup;
+				}
+				pos.x += LARGEUR_CASE;
+			}
+			pos.y += LARGEUR_CASE;
 		}
 	}
-	
-	Coordonnees pos;
-	for(Ligne::iterator i = _niveau->_elements.begin(); i != _niveau->_elements.end(); ++i) {
-		pos.x = 0;
-		for(Colonne::iterator j = i->begin(); j != i->end(); ++j) {
-			ElementEditeur const *elem = (*j)[_coucheEdition];
-			Coordonnees dim(elem ? elem->dimensions().x : LARGEUR_CASE, elem ? elem->dimensions().y : LARGEUR_CASE);
-			if(Rectangle(pos, (Coordonnees(dim.x, dim.y))).superposition(_cadreSelection)) {
-				ElementSelection elemS(elem, std::distance(i->begin(), j), std::distance(_niveau->_elements.begin(), i), es_aj);
-				selection_t::iterator fnd = std::find(_selection.begin(), _selection.end(), elemS);
-				if(fnd == _selection.end()) {
-					_selection.push_back(elemS);
-				}
-				else
-					fnd->_etat = es_sup;
-			}
-			pos.x += LARGEUR_CASE;
-		}
-		pos.y += LARGEUR_CASE;
+	else if(_outil == o_coller && _pressePapier.size()) {
+		index_t pX = std::floor(pointNiveau.x / LARGEUR_CASE), pY = std::floor(pointNiveau.y / LARGEUR_CASE);
+		this->coller(pX, pY);
+		Session::reinitialiser(Session::B_GAUCHE);
 	}
 }
 
@@ -632,6 +763,161 @@ void Editeur::sourisCarte() {
 
 	Coordonnees pos = Session::souris() - cadre.origine() - decalage - Coordonnees(0, (p1.y - p2.y));
 	_origine = pos / cadre.largeur * max * LARGEUR_CASE;
+}
+
+void Editeur::outilAnnuler() {
+	this->annuler();
+}
+
+void Editeur::outilRetablir() {
+	this->retablir();
+}
+
+void Editeur::outilCopier() {
+	this->copier();
+}
+
+void Editeur::outilColler() {
+	_outil = o_coller;
+}
+
+void Editeur::outilSelection() {
+	_outil = o_selection;
+}
+
+void Editeur::outilRecharger() {
+	this->recharger();
+}
+
+void Editeur::presenter(index_t x, index_t y) {
+	if(x != -1 && y != -1) {
+		//_origine = -Coordonnees(0, Ecran::hauteur() / 2) + referentielNiveauVersEcran(Coordonnees(x, y) * LARGEUR_CASE);
+	}
+}
+
+void Editeur::posterAction(ActionEditeur *action) {
+	if(!action)
+		return;
+	
+	ActionsEditeur *a = dynamic_cast<ActionsEditeur *>(action);
+	if(a && !a->taille()) {
+		return;
+	}
+	
+	while(_pileRetablissements.size()) {
+		delete _pileRetablissements.top();
+		_pileRetablissements.pop();
+	}
+	_pileAnnulations.push(action);
+	(*action)();
+	
+	_modifie = true;
+}
+
+void Editeur::reinitialiserActions() {
+	while(_pileRetablissements.size()) {
+		delete _pileRetablissements.top();
+		_pileRetablissements.pop();
+	}
+	while(_pileAnnulations.size()) {
+		delete _pileAnnulations.top();
+		_pileAnnulations.pop();
+	}
+}
+
+void Editeur::annuler() {
+	if(_pileAnnulations.empty())
+		return;
+	
+	ActionEditeur *action = _pileAnnulations.top()->oppose();
+	delete _pileAnnulations.top();
+	_pileAnnulations.pop();
+	_pileRetablissements.push(action);
+	(*action)();
+	this->presenter(action->pX(), action->pY());
+		
+	if(!_pileAnnulations.size()) {
+		_modifie = false;
+	}
+	
+	_selection.clear();
+}
+
+void Editeur::retablir() {
+	if(!_pileRetablissements.size())
+		return;
+	
+	ActionEditeur *action = _pileRetablissements.top()->oppose();
+	delete _pileRetablissements.top();
+	_pileRetablissements.pop();
+	_pileAnnulations.push(action);
+	(*action)();
+	this->presenter(action->pX(), action->pY());
+		
+	_modifie = true;
+
+	_selection.clear();
+}
+
+void Editeur::copier() {
+	for(std::vector<std::vector<ElementEditeur *> >::iterator i = _pressePapier.begin(); i != _pressePapier.end(); ++i) {
+		for(std::vector<ElementEditeur *>::iterator j = i->begin(); j != i->end(); ++j) {
+			delete *j;
+		}
+		i->clear();
+	}
+	_pressePapier.clear();
+	
+	ssize_t dimX = 0, dimY = 0;
+	index_t pX = std::numeric_limits<index_t>::max(), pY = std::numeric_limits<index_t>::max();
+	
+	for(selection_t::iterator i = _selection.begin(); i != _selection.end(); ++i) {
+		if(i->_e) {
+			dimX = std::max<ssize_t>(dimX, i->_posX);
+			dimY = std::max<ssize_t>(dimY, i->_posY);
+			
+			pX = std::min<ssize_t>(pX, i->_posX);
+			pY = std::min<ssize_t>(pY, i->_posY);
+		}
+	}
+	
+	_pressePapier.resize(dimY - pY + 1);
+	for(std::vector<std::vector<ElementEditeur *> >::iterator i = _pressePapier.begin(); i != _pressePapier.end(); ++i) {
+		i->resize(dimX - pX + 1);
+	}
+	
+	for(selection_t::iterator i = _selection.begin(); i != _selection.end(); ++i) {
+		if(i->_e) {
+			_pressePapier[i->_posY - pY][i->_posX - pX] = new ElementEditeur(*(i->_e));
+		}
+	}
+}
+
+void Editeur::coller(index_t pX, index_t pY) {
+	if(_pressePapier.empty() || pX < 0 || pY < 0)
+		return;
+	
+	_selection.clear();
+	ssize_t dimX = _pressePapier[0].size(), dimY = _pressePapier.size();
+	std::list<ActionEditeur *> l;
+	for(index_t y = pY; y != std::min<ssize_t>(pY + dimY, _niveau->_dimY); ++y) {
+		for(index_t x = pX; x != std::min<ssize_t>(pX + dimX, _niveau->_dimX); ++x) {			
+			ActionEditeur *a = new RemplacerEntite(_pressePapier[y - pY][x - pX], _niveau->_elements[y][x]._contenu[_coucheEdition], x, y, _coucheEdition);
+			l.push_back(a);
+		}
+	}
+	
+	ActionEditeur *a = new ActionsEditeur(l);
+	this->posterAction(a);
+}
+
+void Editeur::recharger() {
+	std::string f = _niveau->_fichier;
+	delete _niveau;
+	_niveau = new NiveauEditeur(f);
+	_selection.clear();
+	_modifie = false;
+	this->reinitialiserActions();
 }
 
 void Editeur::enregistrer() {
@@ -715,14 +1001,22 @@ void Editeur::modifIndexProba() {
 		cat.push_back(i->_nom);
 	}
 	
-	index_t elem = choisirElement(cat, 0, "Choisissez une loi de probabilité :");
+	index_t sel = 0;
+	{
+		bool proba;
+		index_t index;
+		ElementNiveau::elementNiveau_t cat;
+		obtenirInfosEntites(_selection.front()._e->operator()(), proba, sel, cat, index);
+	}
+	index_t elem = choisirElement(cat, sel, "Choisissez une loi de probabilité :");
 	
-	if(elem != cat.size()) {
-		bool modif = false;
-		
+	_aIndexProba = elem;
+	
+	if(elem != cat.size()) {		
 		bool proba;
 		index_t indexProba, index;
 		ElementNiveau::elementNiveau_t cat;
+		std::list<ActionEditeur *> l;
 		for(selection_t::iterator i = _selection.begin(); i != _selection.end(); ++i) {
 			if(!i->_e)
 				indexProba = elem + 1;
@@ -730,21 +1024,21 @@ void Editeur::modifIndexProba() {
 				obtenirInfosEntites(i->_e->operator()(), proba, indexProba, cat, index);
 			if(indexProba != elem) {
 				ElementEditeur *nouveau = new ElementEditeur(elem);
-				_niveau->_elements[i->_posY][i->_posX][_coucheEdition] = nouveau;
-				delete i->_e;
+				ActionEditeur *a = new RemplacerEntite(nouveau, i->_e, i->_posX, i->_posY, _coucheEdition);
+				l.push_back(a);
+				
 				i->_e = nouveau;
-				modif = true;
 			}
 		}
 		
-		if(modif)
-			this->modification();
+		ActionEditeur *a = new ActionsEditeur(l);
+		this->posterAction(a);
 	}
 }
 void Editeur::modifLoisProbas() {
 	std::vector<Unichar> lois;
 	for(std::vector<LoiProba>::iterator i = _niveau->_probas.begin(); i != _niveau->_probas.end(); ++i) {
-		lois.push_back("Loi " + nombreVersTexte(std::distance(_niveau->_probas.begin(), i)) + " (" + i->_nom + ")");
+		lois.push_back("Loi " + nombreVersTexte(std::distance(_niveau->_probas.begin(), i) + 1) + " (" + i->_nom + ")");
 	}
 	lois.push_back("Ajouter une loi");
 	
@@ -752,8 +1046,9 @@ void Editeur::modifLoisProbas() {
 	index_t elem = choisirElement(lois, 0, "Choisissez une loi à modifier :", fond);
 	
 	if(elem == lois.size() - 1) {
-		_niveau->_probas.push_back(LoiProba("proba" + nombreVersTexte(lois.size())));
-		this->modification();
+		LoiProba l("proba" + nombreVersTexte(Editeur::editeur()->_niveau->_probas.size()));
+		ActionEditeur *a = new AjouterLoiProba(Editeur::editeur()->_niveau->_probas.size(), l);
+		this->posterAction(a);
 		this->editerLoiProba(_niveau->_probas.size() - 1, *fond);
 	}
 	else if(elem != lois.size()) {
@@ -823,7 +1118,7 @@ void Editeur::editerLoiProba(index_t loi, Image &fond) {
 	
 	horloge_t ancienDefilement = 0;
 	
-	Texte titre("Édition de la loi " + nombreVersTexte(loi) + " (" + _niveau->_probas[loi]._nom + ")", POLICE_NORMALE, 20);
+	Texte titre("Édition de la loi " + nombreVersTexte(loi + 1) + " (" + _niveau->_probas[loi]._nom + ")", POLICE_NORMALE, 20);
 	Texte sup("Supprimer la loi", POLICE_NORMALE, 16);
 	std::vector<Texte> categories;
 	categories.reserve(ElementNiveau::nbTypesElement);
@@ -850,6 +1145,9 @@ void Editeur::editerLoiProba(index_t loi, Image &fond) {
 	
 	float teinteSelection = 0;
 	int sensTeinte = 1;
+	
+	LoiProba nouvelleLoi(_niveau->_probas[loi]);
+	bool modif = false;
 
 	while(Session::boucle(100.0f, continuer)) {
 		teinteSelection += 1.0f / 50.0f * (60.0f / Ecran::frequenceInstantanee()) * sensTeinte;
@@ -952,10 +1250,10 @@ void Editeur::editerLoiProba(index_t loi, Image &fond) {
 				}
 			}
 			if(Session::evenement(Session::T_EFFACER)) {
-				_niveau->_probas[loi][selection] /= 10;
+				nouvelleLoi[selection] /= 10;
 				probas[selection].definir(nombreVersTexte(_niveau->_probas[loi][selection]));
 				Session::reinitialiser(Session::T_EFFACER);
-				this->modification();
+				modif = true;
 			}
 			else {
 				int nb = -1;
@@ -967,13 +1265,13 @@ void Editeur::editerLoiProba(index_t loi, Image &fond) {
 					}
 				}
 				if(nb != -1) {
-					int &p = _niveau->_probas[loi][selection];
+					int &p = nouvelleLoi[selection];
 					int p1 = p;
 					p1 = p1 * 10 + nb;
 					if(p1 < NB_VALEURS_PROBA_ENTITES) {
 						p = p1;
 						probas[selection].definir(nombreVersTexte(p));
-						this->modification();
+						modif = true;
 					}
 				}
 			}
@@ -996,7 +1294,8 @@ void Editeur::editerLoiProba(index_t loi, Image &fond) {
 	finRecherche:
 		if(supprimer) {
 			_niveau->_probas.erase(_niveau->_probas.begin() + loi);
-			this->modification();
+			ActionEditeur *a = new SupprimerLoiProba(loi, _niveau->_probas[loi]);
+			this->posterAction(a);
 		}
 		else {
 			std::vector<Unichar> elem;
@@ -1004,6 +1303,10 @@ void Editeur::editerLoiProba(index_t loi, Image &fond) {
 			Menu m("La loi de probabilité est utilisée !", elem);
 			m.afficher(0, fond);
 		}
+	}
+	else if(modif) {
+		ActionEditeur *a = new ModifierLoiProba(loi, _niveau->_probas[loi], nouvelleLoi);
+		this->posterAction(a);
 	}
 }
 
@@ -1143,35 +1446,8 @@ void Editeur::modifDimensions() {
 	}
 	
 	if(dimX != _niveau->_dimX || dimY != _niveau->_dimY) {
-		bool redim = true;
-		if(dimX < _niveau->_dimX || dimY < _niveau->_dimY) {
-			std::vector<Unichar> elem;
-			elem.push_back("Continuer");
-			Menu m("Des éléments seront supprimés", elem);
-			index_t reponse = m.afficher(0, *ap);
-			if(reponse != 0)
-				redim = false;
-		}
-		
-		if(redim) {
-			for(Ligne::iterator i = _niveau->_elements.begin(); i != _niveau->_elements.end(); ++i) {
-				for(Colonne::iterator j = i->begin(); j != i->end(); ++j) {
-					for(Niveau::couche_t c = Niveau::premiereCouche; c != Niveau::nbCouches; ++c) {
-						if(std::distance(_niveau->_elements.begin(), i) >= dimY || std::distance(i->begin(), j) >= dimX) {
-							delete j->operator[](c);
-						}
-					}
-				}
-			}
-			_niveau->_elements.resize(dimY);
-			for(Ligne::iterator i = _niveau->_elements.begin(); i != _niveau->_elements.end(); ++i) {
-				i->resize(dimX);
-			}
-			_niveau->_dimX = dimX;
-			_niveau->_dimY = dimY;
-			
-			this->modification();
-		}
+		ActionEditeur *a = new RedimensionnerNiveau(dimX, dimY);
+		this->posterAction(a);
 	}
 	
 	delete ap;
@@ -1321,12 +1597,13 @@ void Editeur::modifIndex() {
 	
 		Ecran::maj();
 	}
-		
-	bool modif = false;
 	
+	_aIndex = selection;
+		
 	bool proba;
 	index_t indexProba, idx;
 	ElementNiveau::elementNiveau_t cat;
+	std::list<ActionEditeur *> l;
 	for(selection_t::iterator i = _selection.begin(); i != _selection.end(); ++i) {
 		if(!i->_e)
 			idx = selection + 1;
@@ -1334,17 +1611,14 @@ void Editeur::modifIndex() {
 			obtenirInfosEntites(i->_e->operator()(), proba, indexProba, cat, idx);
 		if(idx != selection) {
 			ElementEditeur *nouveau = new ElementEditeur(catSel, selection);
-			_niveau->_elements[i->_posY][i->_posX][_coucheEdition] = nouveau;
-			delete i->_e;
+			ActionEditeur *a = new RemplacerEntite(nouveau, i->_e, i->_posX, i->_posY, _coucheEdition);
+			l.push_back(a);
 			i->_e = nouveau;
-			modif = true;
 		}
 	}
-		
-	if(modif)
-		this->modification();
+	ActionEditeur *a = new ActionsEditeur(l);
+	this->posterAction(a);
 
-		
 	delete ap;
 }
 
@@ -1499,6 +1773,8 @@ void Editeur::modifProba() {
 	std::vector<Unichar> txt;
 	txt.push_back("Loi de probabilité");
 	txt.push_back("Catégorie + index");
+	if(_aIndex != -1)
+		txt.push_back("Dernière entité utilisée");
 		
 	char const *titre = 0;
 	if(_selection.size() == 1)
@@ -1509,8 +1785,7 @@ void Editeur::modifProba() {
 	index_t selection = choisirElement(txt, 0, titre);
 
 	if(selection != txt.size()) {
-		bool modif = false;
-		
+		std::list<ActionEditeur *> l;
 		if(selection == 0) { // Proba
 			bool proba;
 			index_t indexProba, index;
@@ -1522,10 +1797,14 @@ void Editeur::modifProba() {
 					obtenirInfosEntites(i->_e->operator()(), proba, indexProba, cat, index);
 				if(!proba) {
 					ElementEditeur *nouveau = new ElementEditeur(0); // loi de proba 0
-					_niveau->_elements[i->_posY][i->_posX][_coucheEdition] = nouveau;
-					delete i->_e;
+					_aProba = true;
+					_aIndexProba = 0;
+					_aIndex = 0;
+
+					ActionEditeur *a = new RemplacerEntite(nouveau, i->_e, i->_posX, i->_posY, _coucheEdition);
+					l.push_back(a);
+
 					i->_e = nouveau;
-					modif = true;
 				}
 			}
 		}
@@ -1540,16 +1819,31 @@ void Editeur::modifProba() {
 					obtenirInfosEntites(i->_e->operator()(), proba, indexProba, cat, index);
 				if(proba) {
 					ElementEditeur *nouveau = new ElementEditeur(ElementNiveau::premierTypeElement, 0); // catégorie 1, index 1
-					_niveau->_elements[i->_posY][i->_posX][_coucheEdition] = nouveau;
-					delete i->_e;
+					_aProba = false;
+					_aIndex = 0;
+					_aCat = ElementNiveau::premierTypeElement;
+					
+					ActionEditeur *a = new RemplacerEntite(nouveau, i->_e, i->_posX, i->_posY, _coucheEdition);
+					l.push_back(a);
 					i->_e = nouveau;
-					modif = true;
 				}
 			}
 		}
-		if(modif)
-			this->modification();
-		
+		else if(selection == 2) {
+			for(selection_t::iterator i = _selection.begin(); i != _selection.end(); ++i) {
+				ElementEditeur *nouveau = 0;
+				if(_aProba)
+					nouveau = new ElementEditeur(_aIndexProba);
+				else
+					nouveau = new ElementEditeur(_aCat, _aIndex);
+
+				ActionEditeur *a = new RemplacerEntite(nouveau, i->_e, i->_posX, i->_posY, _coucheEdition);
+				l.push_back(a);
+				i->_e = nouveau;
+			}
+		}		
+		ActionEditeur *a = new ActionsEditeur(l);
+		this->posterAction(a);
 	}
 }
 
@@ -1579,13 +1873,13 @@ void Editeur::modifCategorie() {
 	
 	index_t selection = choisirElement(cat, catSel, "Choisissez une catégorie :");
 		
-	if(selection != cat.size()) {
-		bool modif = false;
-		
+	if(selection != cat.size()) {		
 		ElementNiveau::elementNiveau_t nCat = static_cast<ElementNiveau::elementNiveau_t>(selection);
+		_aCat = nCat;
 		bool proba;
 		index_t indexProba, index;
 		ElementNiveau::elementNiveau_t cat;
+		std::list<ActionEditeur *> l;
 		for(selection_t::iterator i = _selection.begin(); i != _selection.end(); ++i) {
 			if(!i->_e)
 				cat = nCat + 1;
@@ -1593,15 +1887,13 @@ void Editeur::modifCategorie() {
 				obtenirInfosEntites(i->_e->operator()(), proba, indexProba, cat, index);
 			if(cat != nCat) {
 				ElementEditeur *nouveau = new ElementEditeur(nCat, 0); // index 1
-				_niveau->_elements[i->_posY][i->_posX][_coucheEdition] = nouveau;
-				delete i->_e;
+				ActionEditeur *a = new RemplacerEntite(nouveau, i->_e, i->_posX, i->_posY, _coucheEdition);
+				l.push_back(a);
 				i->_e = nouveau;
-				modif = true;
 			}
 		}
-		
-		if(modif)
-			this->modification();
+		ActionEditeur *a = new ActionsEditeur(l);
+		this->posterAction(a);
 	}
 }
 
@@ -1622,40 +1914,24 @@ void Editeur::selectionnerSemblables() {
 	}
 }
 
-void Editeur::modification() {
-	_modifie = true;
-}
-
-Rectangle const &Editeur::cadreEditeur() const {
-	if(_cadreEditeur.estVide())
-		Editeur::initCadres();
-	
+Rectangle const &Editeur::cadreEditeur() const {	
 	return _cadreEditeur;
 }
 
 Rectangle const &Editeur::cadreControles() const {
-	if(_cadreControles.estVide())
-		Editeur::initCadres();
-	
 	return _cadreControles;
 }
 
 Rectangle const &Editeur::cadreInventaire() const {
-	if(_cadreInventaire.estVide())
-		Editeur::initCadres();
-	
 	return _cadreInventaire;
 }
 
 Rectangle const &Editeur::cadreCarte() const {
-	if(_cadreCarte.estVide())
-		Editeur::initCadres();
-	
 	return _cadreCarte;
 }
 
 void Editeur::initCadres() {
-	_cadreControles = Rectangle(0, 0, 200, 160);
+	_cadreControles = Rectangle(0, 0, 200, 200);
 	_cadreCarte = Rectangle(0, 0, _cadreControles.largeur * 3 / 2, _cadreControles.largeur * 3 / 4);
 	_cadreInventaire = Rectangle(0, _cadreControles.haut + _cadreControles.hauteur - 1, _cadreControles.largeur, Ecran::hauteur() - _cadreControles.hauteur - _cadreCarte.hauteur + 2);
 	_cadreEditeur = Rectangle(_cadreControles.gauche + _cadreControles.largeur, 0, Ecran::largeur() - _cadreControles.largeur, Ecran::hauteur());
@@ -1684,16 +1960,17 @@ Editeur::NiveauEditeur::NiveauEditeur(std::string const &fichier) : _fichier(fic
 		throw Exc_ChargementEditeur("Dimensions du niveau invalides !");
 	}
 
-
 	{
 		TiXmlElement *probas = n->FirstChildElement("proba");
-
-		for(TiXmlElement *proba = probas->FirstChildElement(); proba; proba = proba->NextSiblingElement()) {
-			std::string valeur = proba->Attribute("valeur");
-			std::string nom;
-			if(proba->Attribute("nom"))
-				nom = proba->Attribute("nom");
-			_probas.push_back(LoiProba(nom, valeur));
+		
+		if(probas) {
+			for(TiXmlElement *proba = probas->FirstChildElement(); proba; proba = proba->NextSiblingElement()) {
+				std::string valeur = proba->Attribute("valeur");
+				std::string nom;
+				if(proba->Attribute("nom"))
+					nom = proba->Attribute("nom");
+				_probas.push_back(LoiProba(nom, valeur));
+			}
 		}
 	}
 
@@ -1831,7 +2108,7 @@ Editeur::ElementEditeur::ElementEditeur(index_t loiProba) : _proba(true), _index
 	_origine.x = 0;
 	_origine.y = _image.dimensions().y / 2;
 
-	std::tr1::hash<double> h;
+	std::hash<double> h;
 	_teinte = Couleur(h(_indexProba + 20) % 255, h(_indexProba * 100 + 20) % 255, h(_indexProba * 100000 + 20) % 255, 160);
 }
 
@@ -1873,5 +2150,57 @@ Editeur::LoiProba::LoiProba(std::string const &nom, std::string const &proba) : 
 			int val = caractereVersBase64(proba[e * CHIFFRES_VALEURS_PROBA_ENTITES]) * BASE_VALEURS_PROBA_ENTITES + caractereVersBase64(proba[e * CHIFFRES_VALEURS_PROBA_ENTITES + 1]);
 			_proba[e] = val;
 		}
+	}
+}
+
+void Editeur::RemplacerEntite::operator()() {
+	Editeur *ed = Editeur::editeur();
+	ElementEditeur *&e = ed->_niveau->_elements[_y][_x]._contenu[_c];
+	delete e;
+	if(_remplacant) {
+		e = new ElementEditeur(*_remplacant);
+	}
+	else {
+		e = 0;
+	}
+}
+
+Editeur::RedimensionnerNiveau::RedimensionnerNiveau(size_t dimX, size_t dimY) : _dX(dimX), _dY(dimY), _aDX(Editeur::editeur()->_niveau->_dimX), _aDY(Editeur::editeur()->_niveau->_dimY) {					
+	NiveauEditeur *n = Editeur::editeur()->_niveau;
+	for(Ligne::iterator i = n->_elements.begin(); i != n->_elements.end(); ++i) {
+		for(Colonne::iterator j = i->begin(); j != i->end(); ++j) {
+			for(Niveau::couche_t c = Niveau::premiereCouche; c != Niveau::nbCouches; ++c) {
+				index_t x = std::distance(i->begin(), j), y = std::distance(n->_elements.begin(), i);
+				if(y >= dimY || x >= dimX) {
+					_cases.push_back(new RemplacerEntite(0, j->operator[](c), x, y, c));
+				}
+			}
+		}
+	}
+}
+
+Editeur::RedimensionnerNiveau::RedimensionnerNiveau(size_t dimX, size_t dimY, std::list<ActionEditeur *> remplacements) : _dX(dimX), _dY(dimY), _aDX(Editeur::editeur()->_niveau->_dimX), _aDY(Editeur::editeur()->_niveau->_dimY), _cases(remplacements) {
+	
+}
+
+void Editeur::RedimensionnerNiveau::operator()() {
+	NiveauEditeur *n = Editeur::editeur()->_niveau;
+
+	for(std::list<ActionEditeur *>::iterator i = _cases.begin(); i != _cases.end(); ++i) {
+		RemplacerEntite *r = static_cast<RemplacerEntite *>(*i);
+		if(r->remplace())
+			r->operator()();
+	}
+	n->_elements.resize(_dY);
+	for(Ligne::iterator i = n->_elements.begin(); i != n->_elements.end(); ++i) {
+		i->resize(_dX);
+	}
+	n->_dimX = _dX;
+	n->_dimY = _dY;
+	
+	for(std::list<ActionEditeur *>::iterator i = _cases.begin(); i != _cases.end(); ++i) {
+		RemplacerEntite *r = static_cast<RemplacerEntite *>(*i);
+		if(r->remplacant())
+			r->operator()();
 	}
 }

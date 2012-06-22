@@ -588,6 +588,21 @@ const char* TiXmlElement::Attribute( const char* name, int* i ) const
 }
 
 
+const char* TiXmlElement::Attribute( const char* name, unsigned int* i ) const
+{
+	const char* s = Attribute( name );
+	if ( i )
+	{
+		if ( s ) {
+			*i = atoi( s );
+		}
+		else {
+			*i = 0;
+		}
+	}
+	return s;
+}
+
 #ifdef TIXML_USE_STL
 const std::string* TiXmlElement::Attribute( const std::string& name, int* i ) const
 {
@@ -759,6 +774,17 @@ void TiXmlElement::SetAttribute( const char *name, long val )
 	TIXML_SNPRINTF( buf, sizeof(buf), "%ld", val );
 #else
 	sprintf( buf, "%ld", val );
+#endif
+	SetAttribute( name, buf );
+}
+
+void TiXmlElement::SetAttribute( const char *name, unsigned int val )
+{	
+	char buf[64];
+#if defined(TIXML_SNPRINTF)		
+	TIXML_SNPRINTF( buf, sizeof(buf), "%u", val );
+#else
+	sprintf( buf, "%lu", val );
 #endif
 	SetAttribute( name, buf );
 }

@@ -50,6 +50,8 @@ public:
 	index_t nPY(coordonnee_t pY) const;
 
 	bool mort() const;
+	bool mortTerminee() const;
+
 	virtual void renaitre();
 
 protected:
@@ -66,7 +68,8 @@ protected:
 	index_t imageAttaque() const { return _imageAttaque; }
 	action_t actionActuelle() const { return _action; }
 			
-	void mourir();
+	virtual void mourir();
+	void preparerMort();
 	
 private:
 	size_t _nbImages[nbActions];
@@ -82,6 +85,7 @@ private:
 	horloge_t _tempsPrecedent;
 	
 	bool _mort;
+	bool _mortTerminee;
 	uindex_t _imageAttaque;
 	
 	EntiteMobile(EntiteMobile const &);

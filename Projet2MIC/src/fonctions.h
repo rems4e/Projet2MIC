@@ -25,23 +25,14 @@ bool comprisEntre(T valeur, T borneInf, T borneSup) {
 	return valeur >= borneInf && valeur <= borneSup;
 }
 
-double arrondi(double n);
-float arrondi(float n);
-
 int caractereVersHexa(char c);
 char hexaVersCaractere(int c);
 int caractereVersBase64(char c);
 char base64VersCaractere(int c);
 
-double texteVersNombre(char const *texte);
 double texteVersNombre(std::string const &texte);
 std::string nombreVersTexte(double nombre, int decimales);
-
-inline std::string nombreVersTexte(float nombre, int decimales) { return nombreVersTexte(static_cast<double>(nombre), decimales); }
-inline std::string nombreVersTexte(int nombre) { return nombreVersTexte(static_cast<double>(nombre), 0); }
-inline std::string nombreVersTexte(unsigned int nombre) { return nombreVersTexte(static_cast<double>(nombre), 0); }
-inline std::string nombreVersTexte(long nombre) { return nombreVersTexte(static_cast<double>(nombre), 0); }
-inline std::string nombreVersTexte(unsigned long nombre) { return nombreVersTexte(static_cast<double>(nombre), 0); }
+std::string nombreVersTexte(long nombre);
 
 int nombreDecimales(double nombre);
 

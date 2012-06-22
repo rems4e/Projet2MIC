@@ -967,6 +967,7 @@ public:
 		is non-null.
 	*/
 	const char* Attribute( const char* name, int* i ) const;
+	const char* Attribute( const char* name, unsigned int* i ) const;
 
 	const char* Attribute( const char* name, long* i ) const;
 	const char* Attribute( const char* name, unsigned long* i ) const;
@@ -1042,6 +1043,7 @@ public:
 	*/
 	void SetAttribute( const char* name, const char * _value );
 	void SetAttribute( const char *name, long val );
+	void SetAttribute( const char *name, unsigned int val );
 	void SetAttribute( const char *name, unsigned long val );
 	void SetAttribute( const char *name, double val );
 

@@ -53,7 +53,7 @@ public:
 	void definirInvicible(bool i);
 
 	void modifierVieActuelle(int delta);
-			
+	
 protected:
 	static ElementNiveau::elementNiveau_t cat() { return ElementNiveau::ennemi; }
 

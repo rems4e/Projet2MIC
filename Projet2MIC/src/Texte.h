@@ -15,7 +15,7 @@
 #include "Unichar.h"
 #include "Session.h"
 
-typedef unsigned int taillePolice_t;
+typedef float taillePolice_t;
 enum police_t {premierePolice, POLICE_NORMALE = premierePolice, POLICE_DECO, POLICE_GRANDE, nbPolices};
 police_t &operator++(police_t &);
 

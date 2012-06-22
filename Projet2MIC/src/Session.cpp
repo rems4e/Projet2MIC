@@ -102,8 +102,11 @@ void Session::initialiser() {
 	CFURLRef res = CFURLCopyAbsoluteURL(r);
 	CFStringRef str = CFURLCopyFileSystemPath(res, 0);
 	CFIndex taille = CFStringGetLength(str);
-	char * cStr = new char[taille + 1];
-	CFStringGetCString(str, cStr, taille + 1, kCFStringEncodingUTF8);
+	
+	// La longueur retournée est le nombre de caractères UTF-16, ne connaissant pas assez bien la norme, je fais le supposition suivante :
+	// On considère le pire des cas ou le caractere UTF-16 est codé sur 2 octet et celui en UTF-8 sur 4 octets. D'où le taille * 2.
+	char * cStr = new char[2 * taille + 1];
+	CFStringGetCString(str, cStr, 2 * taille + 1, kCFStringEncodingUTF8);
 	_chemin += cStr;
 	_chemin += "/";
 	delete[] cStr;
@@ -360,11 +363,11 @@ bool Session::boucle(float freq, bool continuer) {
 
 Unichar Session::transcriptionEvenement(Session::evenement_t const &e) {
 	if(e >= T_a && e <= T_z) {
-		char t[2] = {'a' + (e - T_a)};
+		char t[2] = {static_cast<char>('a' + (e - T_a))};
 		return Unichar(t);
 	}
 	else if(e >= T_0 && e <= T_9) {
-		char t[2] = {'0' + e - T_0};
+		char t[2] = {static_cast<char>('0' + e - T_0)};
 		return Unichar(t);
 	}
 	
@@ -470,4 +473,3 @@ void Session::reinitialiserEvenements() {
 		_evenements[i] = false;
 	}
 }
-

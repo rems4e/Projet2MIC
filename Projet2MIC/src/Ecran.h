@@ -94,7 +94,7 @@ namespace Ecran {
 	coordonnee_t echelleMin();
 	
 	// Les résolutions disponibles pour la fenêtre/le plein écran.
-	std::list<Coordonnees> resolutionsDisponibles(bool pleinEcran);
+	std::list<std::pair<int, int> > resolutionsDisponibles(bool pleinEcran);
 }
 
 #endif

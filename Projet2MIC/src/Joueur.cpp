@@ -16,7 +16,7 @@
 #include <cmath>
 
 Joueur::Joueur(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : Personnage(decoupagePerspective, n, index, cat, new InventaireJoueur(*this)), _inventaireAffiche(false), _xp(0), _niveauXp(1) {
-	this->renaitre();
+
 }
 
 Joueur::~Joueur() {
@@ -78,7 +78,7 @@ void Joueur::animer() {
 			else {
 				Niveau::listeElements_t liste = this->niveau()->elements(this->pX(), this->pY(), Niveau::cn_sol);
 				if(liste.first != liste.second) {
-					ElementNiveau *e = liste.first->entite;
+					ElementNiveau *e = liste.first->_entite;
 					if(e->categorie() == ElementNiveau::teleporteur && e->index() == 1 && this->peutTerminerNiveau()) {
 						_interaction = ij_finirNiveau;
 					}
@@ -93,7 +93,7 @@ void Joueur::animer() {
 				Niveau::listeElements_t liste = this->niveau()->elements(this->pX(), this->pY(), Niveau::cn_sol);
 				bool ok = false;
 				if(liste.first != liste.second) {
-					ElementNiveau *e = liste.first->entite;
+					ElementNiveau *e = liste.first->_entite;
 					if(e->categorie() == ElementNiveau::teleporteur && e->index() == 1 && this->peutTerminerNiveau()) {
 						Partie::partie()->terminerNiveau();
 						ok = true;
@@ -107,7 +107,7 @@ void Joueur::animer() {
 					this->niveau()->modifierMonnaie(x, y, -this->niveau()->monnaie(x, y));
 					
 					for(Niveau::elements_t::iterator el = listeObjets.first; el != listeObjets.second;) {
-						if(this->inventaire()->ajouterObjet(static_cast<ObjetInventaire *>(el->entite))) {
+						if(this->inventaire()->ajouterObjet(static_cast<ObjetInventaire *>(el->_entite))) {
 							el = this->niveau()->supprimerElement(el, Niveau::cn_objetsInventaire, false);
 						}
 						else {
@@ -164,11 +164,14 @@ Personnage *Joueur::attaque() const {
 }
 
 void Joueur::renaitre() {
-	this->Personnage::renaitre();
-	this->inventaire()->modifierMonnaie(50);
 	this->competences()[force] = 10;
 	this->competences()[agilite] = 5;
 	this->competences()[endurance] = 5;
+
+	this->Personnage::modifierVieActuelle(-this->vieActuelle() + this->vieTotale());
+	this->Personnage::renaitre();
+	this->inventaire()->modifierMonnaie(50);
+
 	_niveauXp = 1;
 	_xp = 0;
 	_invincible = false;

@@ -49,25 +49,25 @@ index_t Menu::afficher(index_t selection, Image const &fond, Shader const &s, bo
 	horloge_t ancienDefilement = 0;
 	
 	horloge_t const tempsInitial = horloge();
-	
-	_nbElementsAffiches = 0;
-	size_t dim = 0;
-	for(std::vector<element_t>::iterator i = _elements.begin(); i != _elements.end(); ++i) {
-		dim += i->_texte.dimensions().y;
-		if(dim > Menu::tailleMax())
-			break;
 		
-		dim += ECART_ELEM * Ecran::echelleMin();
-		++ _nbElementsAffiches;
-		
-		i->_texte.definir(POLICE_DECO, TAILLE_ELEMENTS_MENU * Ecran::echelleMin());
-		i->_cadre.definirDimensions(i->_texte.dimensions());
-	}
-
 	Session::reinitialiserEvenements();
 		
 	while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, continuer)) {
 		fond.redimensionner(Coordonnees(Ecran::largeur() / fond.dimensionsReelles().x, Ecran::hauteur() / fond.dimensionsReelles().y));
+
+		_nbElementsAffiches = 0;
+		size_t dim = 0;
+		for(std::vector<element_t>::iterator i = _elements.begin(); i != _elements.end(); ++i) {
+			dim += i->_texte.dimensions().y;
+			if(dim > Menu::tailleMax())
+				break;
+			
+			dim += ECART_ELEM * Ecran::echelleMin();
+			++ _nbElementsAffiches;
+			
+			i->_texte.definir(POLICE_DECO, TAILLE_ELEMENTS_MENU * Ecran::echelleMin());
+			i->_cadre.definirDimensions(i->_texte.dimensions());
+		}
 
 		Ecran::definirPointeurAffiche(true);
 		Ecran::effacer();

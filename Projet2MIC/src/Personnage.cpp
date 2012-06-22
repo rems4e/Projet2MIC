@@ -144,18 +144,18 @@ double Personnage::vitesse() const {
 	return _vitesse;
 }
 
-size_t Personnage::vieActuelle() const {
+ssize_t Personnage::vieActuelle() const {
 	return _vieActuelle;
 }
 
 void Personnage::modifierVieActuelle(int delta) {
 	_vieActuelle = std::min<ssize_t>(this->vieTotale(), std::max<ssize_t>(0, _vieActuelle + delta));
 	if(_vieActuelle == 0) {
-		this->mourir();
+		this->EntiteMobile::preparerMort();
 	}
 }
 
-size_t Personnage::vieTotale() const {
+ssize_t Personnage::vieTotale() const {
 	return this->competences()[endurance] * 10;
 }
 
@@ -239,10 +239,10 @@ Personnage *Personnage::interagir(bool test) {
 		for(int yy = -1; yy <= 1; ++yy) {
 			Niveau::listeElements_t elements = this->niveau()->elements(x + xx, y + yy, this->couche());
 			for(Niveau::elements_t::iterator i = elements.first; i != elements.second; ++i) {
-				if(i->entite->mobile()) {
-					if(static_cast<EntiteMobile *>(i->entite)->personnage() && !static_cast<EntiteMobile *>(i->entite)->mort()) {
-						if(this->interagir(static_cast<Personnage *>(i->entite), test)) {
-							return static_cast<Personnage *>(i->entite);
+				if(i->_entite->mobile()) {
+					if(static_cast<EntiteMobile *>(i->_entite)->personnage() && !static_cast<EntiteMobile *>(i->_entite)->mort()) {
+						if(this->interagir(static_cast<Personnage *>(i->_entite), test)) {
+							return static_cast<Personnage *>(i->_entite);
 						}
 					}
 				}

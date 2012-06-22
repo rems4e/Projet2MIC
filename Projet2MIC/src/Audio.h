@@ -13,13 +13,12 @@
 #include <exception>
 #include <iostream>
 
-namespace FMOD {
-	class Sound;
-}
+
+struct FMOD_SOUND;
 
 namespace Audio {
-	typedef FMOD::Sound * audio_t;
-		
+	typedef FMOD_SOUND *audio_t;
+	
 	class Exc_Son : public std::exception {
 	public:
 		Exc_Son(std::string const &v) throw() : std::exception(), _valeur(v) {

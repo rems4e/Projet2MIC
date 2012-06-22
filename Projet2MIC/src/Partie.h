@@ -23,7 +23,7 @@ class Image;
 
 class Partie {
 public:
-	static TiXmlElement *charger(Image *fond, Shader const &s = Shader::aucun());
+	static TiXmlElement *charger(Image &fond, Shader const &s = Shader::aucun());
 	
 	void restaurer(TiXmlElement *sauve);
 	
