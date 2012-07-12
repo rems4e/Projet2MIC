@@ -30,6 +30,8 @@
 #include <GL/glext.h>
 #endif
 
+#define TAILLE_IPS 255
+
 namespace ImagesBase {
 	void changerTexture(GLint tex);
 	void ajouterSommet(Coordonnees const &pos, Coordonnees const &posTex, Couleur const &couleur);
@@ -53,7 +55,7 @@ Couleur const Couleur::transparent(0, 0);
 namespace Ecran {
 	struct AttributsEcran {
 		Texte *_texte;
-		Image _vide;
+		Image *_vide;
 		Image const *_pointeur;
 		Image const *_pointeurDefaut;
 		Coordonnees _decalagePointeur;
@@ -87,9 +89,8 @@ namespace Ecran {
 void Ecran::init(unsigned int largeur, unsigned int hauteur, bool pleinEcran) {
 	_attributs = new AttributsEcran;
 	Ecran::modifierResolution(largeur, hauteur, pleinEcran);
-	unsigned char imageVide[4] = {255, 255, 255, 255};
 
-	Ecran::_attributs->_vide = Image(imageVide, 1, 1, 4);
+	Ecran::_attributs->_vide = new Image(Session::cheminRessources() + "vide.png");
 	Ecran::_attributs->_pointeurDefaut = new Image(Session::cheminRessources() + "souris.png");
 	Ecran::_attributs->_texte = new Texte("", POLICE_NORMALE, 12, Couleur::blanc);
 
@@ -104,6 +105,7 @@ Ecran::AttributsEcran::AttributsEcran() : _largeur(0L), _hauteur(0L), _pleinEcra
 void Ecran::nettoyagePreliminaire() {
 	delete _attributs->_pointeurDefaut;
 	delete _attributs->_texte;
+	delete _attributs->_vide;
 }
 
 void Ecran::nettoyageFinal() {
@@ -137,13 +139,14 @@ void Ecran::modifierResolution(unsigned int largeur, unsigned int hauteur, bool 
 	Ecran::_attributs->_echelleMin = std::min(Ecran::_attributs->_echelle.x, Ecran::_attributs->_echelle.y);
 
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-	SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL, SYNCHRO_VERTICALE);
+	SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL, Parametres::synchroVerticale());
 	
 	SDL_Surface *resultat = 0;
 	if(pleinEcran)
 		resultat = SDL_SetVideoMode(largeur, hauteur, 32, SDL_OPENGL | SDL_FULLSCREEN);
 	else
 		resultat = SDL_SetVideoMode(largeur, hauteur, 32, SDL_OPENGL);
+	SDL_WM_SetCaption("", NULL);
 	
 #ifdef __WIN32__
 	GLenum err = glewInit();
@@ -254,16 +257,17 @@ void Ecran::maj() {
 		h = f;
 	}
 
-#ifdef IPS
-	static char ips[255];
-
-	snprintf(ips, 255, "%.2f s - %.1f ips", horloge(), Ecran::_attributs->_frequence);
-	Ecran::_attributs->_texte->definir(ips);
-	Coordonnees posIps(Ecran::_attributs->_largeur - Ecran::_attributs->_texte->dimensions().x - 2, Ecran::_attributs->_hauteur - Ecran::_attributs->_texte->dimensions().y - 2);
-	Ecran::afficherRectangle(Rectangle(posIps - Coordonnees(2, 2), Ecran::_attributs->_texte->dimensions() + Coordonnees(4, 4)), Couleur::noir);
-	Ecran::_attributs->_texte->definir(Couleur::blanc);
-	Ecran::_attributs->_texte->afficher(posIps);
-#endif
+	if(Parametres::ips()) {
+		static char ips[TAILLE_IPS];
+		
+		snprintf(ips, TAILLE_IPS, "%.2f s - %.1f ips", horloge(), Ecran::_attributs->_frequence);
+		ips[TAILLE_IPS - 1] = 0;
+		Ecran::_attributs->_texte->definir(ips);
+		Coordonnees posIps(Ecran::_attributs->_largeur - Ecran::_attributs->_texte->dimensions().x - 2, Ecran::_attributs->_hauteur - Ecran::_attributs->_texte->dimensions().y - 2);
+		Ecran::afficherRectangle(Rectangle(posIps - Coordonnees(2, 2), Ecran::_attributs->_texte->dimensions() + Coordonnees(4, 4)), Couleur::noir);
+		Ecran::_attributs->_texte->definir(Couleur::blanc);
+		Ecran::_attributs->_texte->afficher(posIps);
+	}
 	
 	if(Ecran::_attributs->_pointeurAffiche && Ecran::_attributs->_pointeur) {
 		Ecran::_attributs->_pointeur->afficher(Session::souris() - Ecran::_attributs->_decalagePointeur);
@@ -306,7 +310,7 @@ void Ecran::afficherQuadrilatere(Coordonnees const &p1, Coordonnees const &p2, C
 	pos.y = std::min(p4.y, pos.y);
 	Shader::shaderActuel().definirParametre(Shader::pos, pos.x, pos.y);
 	
-	ImagesBase::changerTexture(Ecran::_attributs->_vide.tex());
+	ImagesBase::changerTexture(Ecran::_attributs->_vide->tex());
 	
 	ImagesBase::ajouterSommet(p1, Coordonnees::zero, c);
 	ImagesBase::ajouterSommet(p2, Coordonnees::eX, c);
@@ -325,7 +329,7 @@ void Ecran::afficherTriangle(Coordonnees const &p1, Coordonnees const &p2, Coord
 	pos.y = std::min(p3.y, pos.y);
 	Shader::shaderActuel().definirParametre(Shader::pos, pos.x, pos.y);
 	
-	ImagesBase::changerTexture(Ecran::_attributs->_vide.tex());
+	ImagesBase::changerTexture(Ecran::_attributs->_vide->tex());
 	
 	ImagesBase::ajouterSommet(p1, Coordonnees::zero, c);
 	ImagesBase::ajouterSommet(p2, Coordonnees::eX, c);

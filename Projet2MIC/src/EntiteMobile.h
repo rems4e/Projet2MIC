@@ -53,13 +53,13 @@ public:
 	bool mortTerminee() const;
 
 	virtual void renaitre();
+	static char const *transcriptionAction(action_t a);
 
 protected:
 	Rectangle const &cadre() const;
 	bool actionDisponible(action_t a) const;
 
 	EntiteMobile(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
-	static char const *transcriptionAction(action_t a);
 	static bool actionInterruptible(action_t a);
 	bool actionInterruptible() const;
 	bool testerDeplacement(Coordonnees const &dep);
@@ -73,7 +73,7 @@ protected:
 	
 private:
 	size_t _nbImages[nbActions];
-	Image _image;
+	Image _images[nbActions];
 	Rectangle *_cadres[nbActions][8];
 	horloge_t _tempsAffichage[nbActions];
 	

@@ -151,3 +151,18 @@ int nombreDecimales(double nombre) {
 	
 	return nb;
 }
+
+void decouperChaine(std::string c, std::string const &separateur, std::vector<std::string> &sousChaines) {
+	size_t pos = c.find_first_of(separateur);
+	while(pos != std::string::npos) {
+		if(pos > 0) {
+			sousChaines.push_back(c.substr(0, pos));
+		}
+		c = c.substr(pos + 1);
+		pos = c.find_first_of(separateur);
+	}
+	if(c.length() > 0) {
+		sousChaines.push_back(c);
+	}
+}
+

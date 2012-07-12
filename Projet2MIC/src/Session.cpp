@@ -129,11 +129,11 @@ void Session::initialiser() {
 	Parametres::charger();
 	Ecran::init(Parametres::largeurEcran(), Parametres::hauteurEcran(), Parametres::pleinEcran());
 	
-	Texte txt("Chargement programme", POLICE_DECO, TAILLE_TEXTE_CHARGEMENT, Couleur::blanc);
+	Texte txt("Chargement…", POLICE_DECO, TAILLE_TEXTE_CHARGEMENT, Couleur::blanc);
 	Ecran::afficherRectangle(Ecran::ecran(), Couleur::noir);
 	txt.afficher(Coordonnees((Ecran::dimensions().x - txt.dimensions().x) / 2, (Ecran::dimensions().y - txt.dimensions().y) / 2 - 50));
 	Ecran::maj();
-	
+		
 	Session::reinitialiserEvenements();
 }
 

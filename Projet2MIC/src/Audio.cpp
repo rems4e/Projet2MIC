@@ -6,6 +6,15 @@
 //  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
 //
 
+#include "Constantes.h"
+#ifdef __WIN32__
+
+// Pour éviter la pollution des symboles (notamment Rectangle)
+namespace WinWin {
+#include <windows.h>
+}
+#endif
+
 #include "Audio.h"
 #include "fmod/fmod.h"
 #include "Parametres.h"

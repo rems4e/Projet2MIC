@@ -6,7 +6,7 @@
 		</Element0>
 	</Marchand>
 	<Maison>
-		<Element0 image="maison1.png" x=-20 y=120 dimX=3 dimY=6>
+		<Element0 image="maison1.png" oX=-20 oY=120 dimX=3 dimY=6>
 			111
 			111
 			111
@@ -14,7 +14,7 @@
 			000
 			000
 		</Element0>
-		<Element1 image="maison2.png" x=0 y=200 dimX=4 dimY=7>
+		<Element1 image="maison2.png" oX=0 oY=200 dimX=4 dimY=7>
 			1111
 			1111
 			1111
@@ -23,11 +23,11 @@
 			1111
 			1111
 		</Element1>
-		<Element2 image="maison3.png" x=17 y=220 dimX=4 dimY=4 />
+		<Element2 image="maison3.png" oX=17 oY=220 dimX=4 dimY=4 />
 	</Maison>
 	<Teleporteur>
-		<Element0 image="spawn.png" x=0 y=64 dimX=4 dimY=4 relief=0/>
-		<Element1 image="arrivee.png" x=0 y=64 dimX=4 dimY=4 relief=0/>
+		<Element0 image="spawn.png" oX=0 oY=64 dimX=4 dimY=4 relief=0/>
+		<Element1 image="arrivee.png" oX=0 oY=64 dimX=4 dimY=4 relief=0/>
 	</Teleporteur>
 	<ObjetInventaire>
 		<Element0 image="epee1.png" iX=2 iY=3 type="arme" centrage=1/>
@@ -40,51 +40,51 @@
 		<Element666 image="cle.png" iX=2 iY=1 type="cle" centrage=1/>
 	</ObjetInventaire>
 	<Sol>
-		<Element0 image="dirt2.png" x=0 y=16 dimX=1 dimY=1 relief=0/>
-		<Element1 image="dirt.png" x=0 y=64 dimX=4 dimY=4 relief=0/>
-		<Element2 image="herbe.png" x=0 y=128 dimX=8 dimY=8 relief=/>
-		<Element3 image="dirtsand2.png" x=0 y=128 dimX=8 dimY=8 relief=0/>
-		<Element4 image="herbe2.png" x=0 y=64 dimX=4 dimY=4 relief=0/>
-		<Element5 image="bleu.png" x=0 y=16 dimX=1 dimY=1 relief=0 />
-		<Element6 image="lac.png" x=0 y=128 dimX=8 dimY=8 relief=0/>
-		<Element7 image="dirtsand.png" x=0 y=64 dimX=4 dimY=4 relief=0/>
+		<Element0 image="dirt2.png" oX=0 oY=16 dimX=1 dimY=1 relief=0/>
+		<Element1 image="dirt.png" oX=0 oY=64 dimX=4 dimY=4 relief=0/>
+		<Element2 image="herbe.png" oX=0 oY=128 dimX=8 dimY=8 relief=/>
+		<Element3 image="dirtsand2.png" oX=0 oY=128 dimX=8 dimY=8 relief=0/>
+		<Element4 image="herbe2.png" oX=0 oY=64 dimX=4 dimY=4 relief=0/>
+		<Element5 image="bleu.png" oX=0 oY=16 dimX=1 dimY=1 relief=0 />
+		<Element6 image="lac.png" oX=0 oY=128 dimX=8 dimY=8 relief=0/>
+		<Element7 image="dirtsand.png" oX=0 oY=64 dimX=4 dimY=4 relief=0/>
 	</Sol>
 	<EntiteStatique>
-		<Element0 image="bleu.png" x=0 y=16 dimX=1 dimY=1 relief=0 />
+		<Element0 image="bleu.png" oX=0 oY=16 dimX=1 dimY=1 relief=0 />
 	</EntiteStatique>
 	<EntiteStatiqueAnimee>
-		<Element0 image="torche.png" nbPoses=20 tempsAttente=60 x=16 y=100 centrage=1 dimX=1 dimY=1 />
+		<Element0 image="torche.png" nbPoses=20 tempsAttente=60 oX=16 oY=100 centrage=1 dimX=1 dimY=1 />
 	</EntiteStatiqueAnimee>
 	<Arbre>
-		<Element0 image="a1.png" x=57 y=96 centrage=1 dimX=1 dimY=1 />
-		<Element1 image="a2.png" x=49 y=95 centrage=1 dimX=1 dimY=1 />
-		<Element2 image="a3.png" x=51 y=95 centrage=1 dimX=1 dimY=1 />
-		<Element3 image="a4.png" x=42 y=114 centrage=1 dimX=1 dimY=1 />
-		<Element4 image="a5.png" x=41 y=107 centrage=1 dimX=1 dimY=1 />
-		<Element5 image="a6.png" x=37 y=110 centrage=1 dimX=1 dimY=1 />
-		<Element6 image="a7.png" x=42 y=109 centrage=1 dimX=1 dimY=1 />
-		<Element7 image="a8.png" x=38 y=111 centrage=1 dimX=1 dimY=1 />
-		<Element8 image="a9.png" x=38 y=115 centrage=1 dimX=1 dimY=1 />
-		<Element9 image="a10.png" x=41 y=107 centrage=1 dimX=1 dimY=1 />
-		<Element10 image="a11.png" x=55 y=111 centrage=1 dimX=1 dimY=1 />
-		<Element11 image="a12.png" x=51 y=109 centrage=1 dimX=1 dimY=1 />
-		<Element12 image="a13.png" x=57 y=114 centrage=1 dimX=1 dimY=1 />
+		<Element0 image="arbres.png" x=0 y=0 l=114 h=111 oX=57 oY=96 centrage=1 dimX=1 dimY=1 />
+		<Element1 image="arbres.png" x=114 y=0 l=102 h=111 oX=49 oY=95 centrage=1 dimX=1 dimY=1 />
+		<Element2 image="arbres.png" x=216 y=0 l=108 h=115 oX=51 oY=95 centrage=1 dimX=1 dimY=1 />
+		<Element3 image="arbres.png" x=324 y=0 l=84 h=114 oX=42 oY=114 centrage=1 dimX=1 dimY=1 />
+		<Element4 image="arbres.png" x=408 y=0 l=80 h=108 oX=41 oY=107 centrage=1 dimX=1 dimY=1 />
+		<Element5 image="arbres.png" x=488 y=0 l=85 h=113 oX=37 oY=110 centrage=1 dimX=1 dimY=1 />
+		<Element6 image="arbres.png" x=573 y=0 l=83 h=114 oX=42 oY=109 centrage=1 dimX=1 dimY=1 />
+		<Element7 image="arbres.png" x=656 y=0 l=83 h=114 oX=38 oY=111 centrage=1 dimX=1 dimY=1 />
+		<Element8 image="arbres.png" x=739 y=0 l=85 h=115 oX=38 oY=115 centrage=1 dimX=1 dimY=1 />
+		<Element9 image="arbres.png" x=824 y=0 l=80 h=108 oX=41 oY=107 centrage=1 dimX=1 dimY=1 />
+		<Element10 image="arbres.png" x=904 y=0 l=115 h=114 oX=55 oY=111 centrage=1 dimX=1 dimY=1 />
+		<Element11 image="arbres.png" x=1019 y=0 l=115 h=115 oX=51 oY=109 centrage=1 dimX=1 dimY=1 />
+		<Element12 image="arbres.png" x=1134 y=0 l=116 h=117 oX=57 oY=114 centrage=1 dimX=1 dimY=1 />
 	</Arbre>
 	<ArbreMort>
-		<Element0 image="a14.png" x=31 y=103 centrage=1 dimX=1 dimY=1 />
-		<Element1 image="a15.png" x=32 y=108 centrage=1 dimX=1 dimY=1 />
-		<Element2 image="a16.png" x=36 y=102 centrage=1 dimX=1 dimY=1 />
-		<Element3 image="a17.png" x=50 y=90 centrage=1 dimX=1 dimY=1 />
-		<Element4 image="a18.png" x=41 y=90 centrage=1 dimX=1 dimY=1 />
-		<Element5 image="a19.png" x=42 y=92 centrage=1 dimX=1 dimY=1 />
-		<Element6 image="a20.png" x=50 y=100 centrage=1 dimX=1 dimY=1 />
+		<Element0 image="a14.png" x=0 y=0 l=72 h=104 oX=31 oY=103 centrage=1 dimX=1 dimY=1 />
+		<Element1 image="a15.png" x=0 y=0 l=77 h=108 oX=32 oY=108 centrage=1 dimX=1 dimY=1 />
+		<Element2 image="a16.png" x=0 y=0 l=66 h=104 oX=36 oY=102 centrage=1 dimX=1 dimY=1 />
+		<Element3 image="a17.png" x=0 y=0 l=102 h=104 oX=50 oY=90 centrage=1 dimX=1 dimY=1 />
+		<Element4 image="a18.png" x=0 y=0 l=89 h=105 oX=41 oY=90 centrage=1 dimX=1 dimY=1 />
+		<Element5 image="a19.png" x=0 y=0 l=97 h=109 oX=42 oY=92 centrage=1 dimX=1 dimY=1 />
+		<Element6 image="a20.png" x=0 y=0 l=103 h=108 oX=50 oY=100 centrage=1 dimX=1 dimY=1 />
 	</ArbreMort>
 	<Boss>
-		<Element0 image="wyvern_noshadow.png" blocX=256 blocY=256 c0=2.0 c1=2.0 c2=4.0 >
-			<Immobile nbPoses=8 tempsAttente=100 />
-			<Deplacer nbPoses=8 tempsAttente=100 />
-			<Attaque nbPoses=8 tempsAttente=50 />
-			<Mourir nbPoses=8 tempsAttente=100 />
+		<Element0 blocX=256 blocY=256 c0=2.0 c1=2.0 c2=4.0 >
+			<Immobile image="wyvern_noshadow1.png" nbPoses=8 tempsAttente=100 />
+			<Deplacer image="wyvern_noshadow1.png" nbPoses=8 tempsAttente=100 />
+			<Attaque image="wyvern_noshadow2.png" nbPoses=8 tempsAttente=50 />
+			<Mourir image="wyvern_noshadow2.png" nbPoses=8 tempsAttente=100 />
 		</Element0>
 	</Boss>
 	<Personnage>
@@ -92,7 +92,7 @@
 			<Immobile nbPoses=6 tempsAttente=100 />
 			<Deplacer nbPoses=8 tempsAttente=100 />
 			<Attaque nbPoses=5 tempsAttente=50 />
-			<Mourir nbPoses=6 premiere=24 tempsAttente=100 />
+			<Mourir nbPoses=6 tempsAttente=100 />
 		</Element0>
 		<Element1 image="perso1.png" vitesse=7 blocX=128 blocY=128 c0=1.5 c1=1.2 c2=1.2 >
 			<Immobile nbPoses=4 tempsAttente=100 />

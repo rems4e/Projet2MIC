@@ -18,9 +18,7 @@
 #define LARGEUR_ECRAN 800
 #define HAUTEUR_ECRAN 600
 #define PLEIN_ECRAN false
-#define SYNCHRO_VERTICALE true
-#define FREQUENCE_RAFRAICHISSEMENT 100
-#define IPS
+#define FREQUENCE_RAFRAICHISSEMENT (Parametres::limiteIPS() ? 100 : 10000)
 
 class Texte;
 class Image;

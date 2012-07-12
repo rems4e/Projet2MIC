@@ -95,7 +95,7 @@ public:
 	
 	// Origine de l'image en pixels dans le repère du niveau depuis le coin supérieur gauche de l'image.
 	virtual Coordonnees origine() const;
-	// L'image est-elle centrée sur la cae où elle se trouve ?
+	// L'image est-elle centrée sur la case où elle se trouve ?
 	virtual bool centrage() const;
 	bool decoupagePerspective() const;
 	

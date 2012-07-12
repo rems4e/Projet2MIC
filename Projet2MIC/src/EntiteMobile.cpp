@@ -16,7 +16,7 @@
 
 EntiteMobile::action_t &operator++(EntiteMobile::action_t &c) { return c = static_cast<EntiteMobile::action_t>(static_cast<int>(c + 1)); }
 
-EntiteMobile::EntiteMobile(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : ElementNiveau(decoupagePerspective, n, index, cat), _tempsPrecedent(0), _image(), _cadres(), _tempsAffichage(), _nbImages(), _imageActuelle(0), _action(a_immobile), _direction(gauche), _mort(false), _mortTerminee(false) {
+EntiteMobile::EntiteMobile(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : ElementNiveau(decoupagePerspective, n, index, cat), _tempsPrecedent(0), _images(), _cadres(), _tempsAffichage(), _nbImages(), _imageActuelle(0), _action(a_immobile), _direction(gauche), _mort(false), _mortTerminee(false) {
 	std::memset(_nbImages, 0, nbActions * sizeof(size_t));
 	for(action_t a = premiereAction; a != nbActions; ++a) {
 		std::memset(_cadres[a], 0, 8 * sizeof(Rectangle *));
@@ -24,10 +24,11 @@ EntiteMobile::EntiteMobile(bool decoupagePerspective, Niveau *n, uindex_t index,
 	
 	TiXmlElement *e = ElementNiveau::description(index, cat);
 	char const *img = e->Attribute("image");
-	if(!img)
-		throw ElementNiveau::Exc_DefinitionEntiteIncomplete();
-	
-	_image = Image(Session::cheminRessources() + img);
+	if(img) {
+		for(action_t a = premiereAction; a != nbActions; ++a) {
+			_images[a] = Image(Session::cheminRessources() + img);
+		}
+	}
 	
 	size_t dimX = 128, dimY = 128;
 	if(e->Attribute("blocX"))
@@ -41,6 +42,10 @@ EntiteMobile::EntiteMobile(bool decoupagePerspective, Niveau *n, uindex_t index,
 		TiXmlElement *action = e->FirstChildElement(EntiteMobile::transcriptionAction(a));
 		if(action) {
 			action->Attribute("nbPoses", &_nbImages[a]);
+			if(action->Attribute("image")) {
+				_images[a] = Image(Session::cheminRessources() + action->Attribute("image"));
+			}
+			
 			if(action->Attribute("premiere"))
 				action->Attribute("premiere", &premiereImage[a]);
 			else if(a != premiereAction) {
@@ -57,6 +62,10 @@ EntiteMobile::EntiteMobile(bool decoupagePerspective, Niveau *n, uindex_t index,
 				else {
 					_imageAttaque = _nbImages[a_attaquer] - 1;
 				}
+			}
+			
+			if(!_images[a].valide()) {
+				throw ElementNiveau::Exc_DefinitionEntiteIncomplete();
 			}
 		}
 	}
@@ -86,7 +95,7 @@ EntiteMobile::~EntiteMobile() {
 
 void EntiteMobile::afficher(index_t deltaY, Coordonnees const &decalage) const {
 	Rectangle const &cadre = this->cadre();
-	_image.afficher(this->positionAffichage() - decalage, cadre);
+	_images[_action].afficher(this->positionAffichage() - decalage, cadre);
 }
 
 bool EntiteMobile::collision(index_t x, index_t y) const {

@@ -17,20 +17,36 @@ EntiteStatique::EntiteStatique(bool decoupagePerspective, Niveau *n, uindex_t in
 	char const *img = e->Attribute("image");
 	if(!img)
 		throw ElementNiveau::Exc_DefinitionEntiteIncomplete();
-	
+
 	_image = Image(Session::cheminRessources() + img);
 	
+	Coordonnees origine;
+	if(e->Attribute("x"))
+		e->Attribute("x", &origine.x);
+	if(e->Attribute("y"))
+		e->Attribute("y", &origine.y);
+	Coordonnees dimensions(_image.dimensions());
+	if(e->Attribute("l"))
+		e->Attribute("l", &dimensions.x);
+	if(e->Attribute("h"))
+		e->Attribute("h", &dimensions.y);
+
 	if(this->decoupagePerspective()) {
-		_nb = this->dimY();std::ceil((_image.dimensions().x - this->origine().x) / LARGEUR_CASE);
+		_nb = this->dimY();
 		_cadres = new Rectangle[_nb];
-		_cadres[0] = Rectangle(0*Coordonnees(-this->origine().x, 0), Coordonnees(LARGEUR_CASE, _image.dimensions().y));
+		_cadres[0] = Rectangle(origine, Coordonnees(LARGEUR_CASE, dimensions.y));
 		for(index_t i = 1; i < _nb; ++i) {
 			_cadres[i].definirDimensions(_cadres[0].dimensions());
 			_cadres[i].definirOrigine(Coordonnees((_cadres[i - 1].origine() + _cadres[i - 1].dimensions()).x, 0));
-			if(_cadres[i].origine().x + _cadres[i].largeur > _image.dimensions().x)
+			if(_cadres[i].origine().x + _cadres[i].largeur > dimensions.x)
 				_nb = i + 1;
 		}
-		_cadres[_nb - 1].largeur = _image.dimensions().x - _cadres[_nb - 1].gauche;
+		_cadres[_nb - 1].largeur = dimensions.x - (_cadres[_nb - 1].gauche - origine.x);
+	}
+	else {
+		_cadres = new Rectangle[1];
+		_cadres[0].definirOrigine(origine);
+		_cadres[0].definirDimensions(dimensions);
 	}
 }
 
@@ -41,7 +57,7 @@ EntiteStatique::~EntiteStatique() {
 void EntiteStatique::afficher(index_t deltaY, Coordonnees const &decalage) const {
 	if(deltaY >= _nb)
 		return;
-	_image.afficher(this->positionAffichage() - decalage + Coordonnees(deltaY * 64, 0), this->decoupagePerspective() ? _cadres[deltaY] : Rectangle(Coordonnees::zero, _image.dimensionsReelles()));
+	_image.afficher(this->positionAffichage() - decalage + Coordonnees(deltaY * 64, 0), this->decoupagePerspective() ? _cadres[deltaY] : _cadres[0]);
 }
 
 void EntiteStatique::animer() {

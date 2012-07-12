@@ -16,6 +16,75 @@
 #include "tinyxml.h"
 #include "Editeur.h"
 
+#if defined(__WIN32__)
+namespace WinWin {
+#include <windows.h>
+}
+#elif defined(__LINUX__)
+#include <cstdlib>
+#elif defined(__MACOSX__)
+#include <cstdlib>
+#endif
+
+struct AfficheurMaj {
+	AfficheurMaj(bool maj) : _maj(maj), _txt() {
+		
+	}
+	
+	Rectangle afficher() const {
+		if(_maj)
+			_txt.definir("v. " + std::string(Parametres::versionTexte()) + "\nMise à jour disponible !\nCliquez pour l'afficher.");
+		else
+			_txt.definir(std::string("v. ") + Parametres::versionTexte());
+			
+		_txt.definir(POLICE_NORMALE, 16 * Ecran::echelleMin());
+		_txt.definir(Couleur::blanc);
+		_cadre.definirDimensions(_txt.dimensions() + Coordonnees(10, 10));
+		_cadre.definirOrigine(Coordonnees(0, Ecran::hauteur() - _cadre.hauteur));
+		
+		Ecran::afficherRectangle(_cadre, Couleur(0, 0, 0, 128));
+		_txt.afficher(_cadre.origine() + Coordonnees(5, 5));
+		
+		return _cadre;
+	}
+	
+	bool gestionEvenements() const {
+		if(!_maj)
+			return true;
+		
+		if(Session::souris() < _cadre && Session::evenement(Session::B_GAUCHE)) {
+			Session::reinitialiser(Session::B_GAUCHE);
+
+			std::string destination = Parametres::URLMaj();
+#if defined(__WIN32__)
+			
+			WinWin::ShellExecute(NULL, "open", destination.c_str(), NULL, NULL, SW_SHOWNORMAL);
+			
+#elif defined(__LINUX__)
+			
+			system(("xdg-open " + destination).c_str());
+			
+#elif defined(__MACOSX__)
+			
+			system(("/usr/bin/open " + destination).c_str());
+			
+#endif
+			return false;
+		}
+		
+		return true;
+	}
+	
+	void definirMaj(bool m) {
+		_maj = m;
+	}
+	
+private:
+	bool _maj;
+	mutable Rectangle _cadre;
+	mutable Texte _txt;
+};
+
 static void jeu();
 
 #ifdef __cplusplus
@@ -50,6 +119,7 @@ static void jeu() {
 	Image fond(Session::cheminRessources() + "tex0.jpg");
 	index_t selection = 0;
 	
+	AfficheurMaj afficheurMaj(false);
 	TiXmlElement *charge = 0;
 	do {		
 		if(charge) {
@@ -62,7 +132,8 @@ static void jeu() {
 			Audio::definirMusique(musique);
 			Audio::jouerMusique();
 			
-			selection = menu.afficher(0, fond, sFond);
+			afficheurMaj.definirMaj(Parametres::rechercherMaj() && Parametres::majDisponible());
+			selection = menu.afficher(0, fond, sFond, true, afficheurMaj);
 			if(selection == 0) {
 				Partie *nouvellePartie = Partie::partie();
 				nouvellePartie->restaurer(0);
@@ -87,5 +158,6 @@ static void jeu() {
 	} while(selection != elements.size() - 1);
 	
 	delete charge;
+	
 	Audio::libererSon(musique);
 }

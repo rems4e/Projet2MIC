@@ -93,8 +93,8 @@ public:
 	void modifierMonnaie(index_t x, index_t y, ssize_t delta);
 
 	void ajouterElement(index_t x, index_t y, couche_t couche, ElementNiveau *elem);
-	void supprimerElement(ElementNiveau *e, couche_t couche, bool deleteElement);
-	elements_t::iterator supprimerElement(elements_t::iterator i, couche_t couche, bool deleteElement);
+	void supprimerElement(ElementNiveau *e, index_t x, index_t y, couche_t couche, bool deleteElement);
+	elements_t::iterator supprimerElement(elements_t::iterator i, index_t x, index_t y, couche_t couche, bool deleteElement);
 	
 	void notifierDeplacement(EntiteMobile *e, index_t ancienX, index_t ancienY, couche_t ancienneCouche);
 	

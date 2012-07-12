@@ -108,7 +108,7 @@ void Joueur::animer() {
 					
 					for(Niveau::elements_t::iterator el = listeObjets.first; el != listeObjets.second;) {
 						if(this->inventaire()->ajouterObjet(static_cast<ObjetInventaire *>(el->_entite))) {
-							el = this->niveau()->supprimerElement(el, Niveau::cn_objetsInventaire, false);
+							el = this->niveau()->supprimerElement(el, x, y, Niveau::cn_objetsInventaire, false);
 						}
 						else {
 							++el;

@@ -10,6 +10,9 @@
 #ifndef CONSTANTES_H
 #define CONSTANTES_H
 
+#define VERSION_MAJ 0
+#define VERSION_MIN 9
+
 #define DEVELOPPEMENT
 
 #ifndef DEVELOPPEMENT
@@ -18,6 +21,8 @@
 
 #include <string>
 #include <cassert>
+
+// Pour avoir les macros qui déterminent la plate-forme de compilation
 #include <SDL/SDL.h>
 
 #define GAUCHE 0
@@ -27,6 +32,8 @@
 
 #define TAILLE_TEXTE_CHARGEMENT (42 * Ecran::echelleMin())
 #define INTERVALLE_DEFILEMENT 0.150f
+
+#include <sys/types.h>
 
 typedef size_t uindex_t;
 typedef ssize_t index_t;

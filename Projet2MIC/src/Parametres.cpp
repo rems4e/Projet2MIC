@@ -17,12 +17,18 @@
 #include "Shader.h"
 #include "tinyxml.h"
 #include "Audio.h"
+namespace cURL {
+#include <curl/curl.h>
+}
+#include "fonctions.h"
+#include <sstream>
 
 namespace Parametres {
 	void charger();
 	void enregistrer();
 	void nettoyer();
 	
+	void general(Image const &fond, Shader const &s);
 	void video(Image const &fond, Shader const &s);
 	void audio(Image const &fond, Shader const &s);
 	void controles(Image const &fond, Shader const &s);
@@ -37,15 +43,20 @@ namespace Parametres {
 	char const *_shadCadre = "_cadre";
 	
 	struct etiquetteTexte_t {
-		etiquetteTexte_t(Unichar const &t);
+		etiquetteTexte_t(Unichar const &t) : _texte(t, POLICE_DECO, 20 * Ecran::echelleMin(), Couleur::blanc), _flecheG(Rectangle::aucun), _flecheD(Rectangle::aucun) {
+			
+		}
 		
 		Texte _texte;
 		Rectangle _cadre;
+		
+		Rectangle _flecheG;
+		Rectangle _flecheD;
 	};
 	
 	std::string transcriptionResolution(std::pair<int, int> const &r);
-	Rectangle afficherColonnes(Unichar const &titre, index_t premier, size_t nb, bool modif, std::vector<etiquetteTexte_t> &colonne1, index_t sel1, std::vector<etiquetteTexte_t> &colonne2, index_t sel2, coordonnee_t abscisse = 80);
-	void gestionEvenementsAfficheur(horloge_t &ancienDefilement, bool &continuer, index_t &premier, index_t nbAffiches, index_t &selection, bool &enSelection, std::vector<etiquetteTexte_t> const &colonne1, std::vector<etiquetteTexte_t> const &colonne2);
+	Rectangle afficherColonnes(Unichar const &titre, index_t premier, size_t nb, bool modif, std::vector<etiquetteTexte_t> &colonne1, index_t sel1, std::vector<etiquetteTexte_t> &colonne2, index_t sel2, bool fleches, coordonnee_t abscisse = 80);
+	void gestionEvenementsAfficheur(horloge_t &ancienDefilement, bool &continuer, int &dep, index_t &premier, index_t nbAffiches, index_t &selection, std::vector<etiquetteTexte_t> const &colonne1, std::vector<etiquetteTexte_t> const &colonne2);
 	
 	Session::evenement_t _evenementsAction[nbActions];
 	float _volumeMusique;
@@ -56,6 +67,12 @@ namespace Parametres {
 	int _largeurEcran;
 	int _hauteurEcran;
 	bool _pleinEcran;
+	bool _ips;
+	bool _limiteIPS;
+	bool _synchroVerticale;
+	bool _rechercherMaj;
+	Image *_flecheG = 0;
+	Image *_flecheD = 0;
 
 	struct hauteurTexte_t {
 		hauteurTexte_t(dimension_t ecart) : _ecart(ecart) {
@@ -76,31 +93,55 @@ namespace Parametres {
 	};
 	
 	struct afficheurTexte_t {
-		afficheurTexte_t(Rectangle &cadre, dimension_t ecart) : _cadre(cadre), _ecart(ecart) {
+		afficheurTexte_t(Rectangle &cadre, dimension_t ecart) : _cadre(cadre), _ecart(ecart), _fleches(false) {
 			
 		}
 		
 		void operator()(Parametres::etiquetteTexte_t const &t) {
-			t._texte.afficher(_cadre.origine());
+			if(_fleches) {
+				Parametres::_flecheG->afficher(_cadre.origine() + Coordonnees(0, (_cadre.dimensions().y - Parametres::_flecheG->dimensions().y) / 2));
+				t._texte.afficher(_cadre.origine() + Coordonnees(Parametres::_flecheG->dimensions().x + 10 * Ecran::echelleMin(), 0));
+				Parametres::_flecheD->afficher(_cadre.origine() + Coordonnees(_cadre.dimensions().x - _flecheD->dimensions().x, (_cadre.dimensions().y - Parametres::_flecheD->dimensions().y) / 2));
+			}
+			else {
+				t._texte.afficher(_cadre.origine());
+			}
 			_cadre.hauteur = t._texte.dimensions().y;
 			_cadre.haut += _cadre.hauteur + _ecart;
 		}
 		
+		void definirFleches(bool f) {
+			_fleches = f;
+		}
+		
 		Rectangle &_cadre;
 		dimension_t _ecart;
+		bool _fleches;
 	};
 	
 	struct initCadres_t {
-		initCadres_t(Rectangle &cadre, dimension_t ecart) : _cadre(cadre), _ecart(ecart) {
+		initCadres_t(Rectangle &cadre, dimension_t ecart) : _cadre(cadre), _ecart(ecart), _fleches(false) {
 			
 		}
 		
 		void operator()(Parametres::etiquetteTexte_t &t) {
 			_cadre.hauteur = t._texte.dimensions().y;
 			t._cadre = _cadre;
+			if(_fleches) {
+				t._flecheG.definirOrigine(_cadre.origine());
+				t._flecheG.definirDimensions(Coordonnees(Parametres::_flecheG->dimensions().x, std::max(Parametres::_flecheG->dimensions().y, _cadre.hauteur)));
+
+				t._flecheD.definirOrigine(_cadre.origine() + _cadre.dimensions() - Parametres::_flecheD->dimensions());
+				t._flecheD.definirDimensions(Coordonnees(Parametres::_flecheD->dimensions().x, std::max(Parametres::_flecheD->dimensions().y, _cadre.hauteur)));
+}
 			_cadre.haut += _cadre.hauteur + _ecart;
 		}
 		
+		void definirFleches(bool f) {
+			_fleches = f;
+		}
+		
+		bool _fleches;
 		Rectangle &_cadre;
 		dimension_t _ecart;
 	};
@@ -110,6 +151,66 @@ namespace Parametres {
 			return Session::souris() < e._cadre;
 		}
 	};
+}
+
+static size_t ecrireDonnees(char *ptr, size_t size, size_t nmemb, void *userdata) {
+	std::ostringstream *stream = (std::ostringstream *)userdata;
+	size_t count = size * nmemb;
+	stream->write(ptr, count);
+	
+	return count;
+}
+
+bool Parametres::majDisponible() {
+	char const *fichierMaj = "https://etud.insa-toulouse.fr/~saurel/projet2MIC-version.txt";
+	
+	std::ostringstream data;
+	cURL::CURL *session = cURL::curl_easy_init();
+	cURL::curl_easy_setopt(session, cURL::CURLOPT_URL, fichierMaj);
+	cURL::curl_easy_setopt(session,  cURL::CURLOPT_WRITEDATA, &data);
+	cURL::curl_easy_setopt(session, cURL::CURLOPT_SSL_VERIFYPEER, false);
+	cURL::curl_easy_setopt(session,  cURL::CURLOPT_WRITEFUNCTION, ecrireDonnees);
+	cURL::CURLcode res = cURL::curl_easy_perform(session);
+	std::string err = cURL::curl_easy_strerror(res);
+	cURL::curl_easy_cleanup(session);
+
+	if(res != cURL::CURLE_OK) {
+		std::cerr << "Impossible de contacter le serveur de mise à jour : " << err << "." << std::endl;
+		return false;
+	}
+	else {
+		std::string val = data.str();
+		std::vector<std::string> l;
+		decouperChaine(val, "\n", l);
+		
+		if(l.size() == 3 && l[0] == "majProjet2MIC") {
+			int maj = texteVersNombre(l[1]);
+			int min = texteVersNombre(l[2]);
+			if(maj > VERSION_MAJ || (maj == VERSION_MAJ && min > VERSION_MIN)) {
+				return true;
+			}
+			
+			return false;
+		}
+		else {
+			return false;
+		}
+	}
+}
+
+char const *Parametres::URLMaj() {
+	return "https://etud.insa-toulouse.fr/~saurel/projet2mic.html";
+}
+
+char const *Parametres::versionTexte() {
+	static char dim[nombreChiffres<VERSION_MAJ>::nb + 1 + nombreChiffres<VERSION_MIN>::nb + 1] = {0};
+	if(*dim == 0) {
+		std::string version = nombreVersTexte(VERSION_MAJ) + "." + nombreVersTexte(VERSION_MIN);
+
+		std::copy(version.begin(), version.end(), dim);
+	}
+	
+	return dim;
 }
 
 void Parametres::charger() {
@@ -136,7 +237,11 @@ void Parametres::charger() {
 	
 	_largeurEcran = 800;
 	_hauteurEcran = 600;
-	_pleinEcran = false;
+	_pleinEcran = true;
+	_ips = false;
+	_limiteIPS = true;
+	_synchroVerticale = true;
+	_rechercherMaj = true;
 
 	TiXmlDocument document(Session::cheminRessources() + "config.xml");
 	if(document.LoadFile()) {
@@ -181,6 +286,29 @@ void Parametres::charger() {
 					video->Attribute("pleinEcran", &val);
 					_pleinEcran = val;
 				}
+				if(video->Attribute("imagesParSeconde")) {
+					int val;
+					video->Attribute("imagesParSeconde", &val);
+					_ips = val;
+				}
+				if(video->Attribute("synchroVerticale")) {
+					int val;
+					video->Attribute("synchroVerticale", &val);
+					_synchroVerticale = val;
+				}
+				if(video->Attribute("limiteIPS")) {
+					int val;
+					video->Attribute("limiteIPS", &val);
+					_limiteIPS = val;
+				}
+			}
+			
+			if(TiXmlElement *general = config->FirstChildElement("General")) {
+				if(general->Attribute("rechercherMaj")) {
+					int val;
+					general->Attribute("rechercherMaj", &val);
+					_rechercherMaj = val;
+				}
 			}
 		}
 	}
@@ -193,6 +321,8 @@ void Parametres::enregistrer() {
 	char const *documentBase = 
 	"<?xml version=\"1.0\" standalone='no' >\n"
 	"<Config>\n"
+	"<General>\n"
+	"</General>\n"
 	"<Clavier>\n"
 	"</Clavier>\n"
 	"<Audio>\n"
@@ -219,7 +349,13 @@ void Parametres::enregistrer() {
 	video->SetAttribute("largeurEcran", Parametres::largeurEcran());
 	video->SetAttribute("hauteurEcran", Parametres::hauteurEcran());
 	video->SetAttribute("pleinEcran", Parametres::pleinEcran());
-
+	video->SetAttribute("imagesParSeconde", Parametres::ips());
+	video->SetAttribute("synchroVerticale", Parametres::synchroVerticale());
+	video->SetAttribute("limiteIPS", Parametres::limiteIPS());
+	
+	TiXmlElement *general = config->FirstChildElement("General");
+	general->SetAttribute("rechercherMaj", Parametres::rechercherMaj());
+	
 	if(!document->SaveFile())
 		std::cout << "L'enregistrement du fichier de paramètres " << document->Value() << " a échoué." << std::endl;
 }
@@ -227,6 +363,8 @@ void Parametres::enregistrer() {
 void Parametres::nettoyer() {
 	Parametres::enregistrer();
 	Audio::libererSon(_sonEffets);
+	delete _flecheG;
+	delete _flecheD;
 }
 
 Session::evenement_t Parametres::evenementAction(action_t action) {
@@ -264,6 +402,22 @@ bool Parametres::pleinEcran() {
 	return _pleinEcran;
 }
 
+bool Parametres::ips() {
+	return _ips;
+}
+
+bool Parametres::limiteIPS() {
+	return _limiteIPS;
+}
+
+bool Parametres::synchroVerticale() {
+	return _synchroVerticale;
+}
+
+bool Parametres::rechercherMaj() {
+	return _rechercherMaj;
+}
+
 void Parametres::definirVolumeMusique(float v) {
 	_volumeMusique = std::min(1.0f, std::max(0.0f, v));
 }
@@ -273,16 +427,25 @@ void Parametres::definirVolumeEffets(float v) {
 }
 
 void Parametres::editerParametres(Image const &fond, Shader const &s) {
+	if(_flecheG == 0) {
+		_flecheG = new Image(Session::cheminRessources() + "flecheG.png");
+		_flecheD = new Image(Session::cheminRessources() + "flecheD.png");
+	}
+	
 	std::vector<Unichar> elements;
 	elements.push_back("Réglages contrôles");
 	elements.push_back("Réglages audios");
 	elements.push_back("Réglages vidéos");
+	elements.push_back("Réglages généraux");
 	Menu menu("Réglages", elements);
 	
 	index_t selection = 0;
 	do {
 		selection = menu.afficher(selection, fond, s);
 		switch(selection) {
+			case 3:
+				Parametres::general(fond, s);
+				break;
 			case 2:
 				Parametres::video(fond, s);
 				break;
@@ -300,6 +463,84 @@ std::string Parametres::transcriptionResolution(std::pair<int, int> const &r) {
 	return nombreVersTexte(r.first) + "*" + nombreVersTexte(r.second);
 }
 
+void Parametres::general(Image const &fond, Shader const &s) {
+	bool maj = Parametres::rechercherMaj();
+	
+	char const *txt[2] = {"Désactivé", "Activé"};
+	
+	std::vector<etiquetteTexte_t> enTetes, champs;
+	
+	enTetes.push_back(Unichar("Recherche de mises à jour :"));
+	champs.push_back(Unichar());
+	
+	Texte valider("Valider",  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
+	Texte annuler("Annuler",  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
+	
+	Rectangle cadreAnnuler, cadreValider;
+	
+	bool continuer = true;
+	index_t selection = 0, premier = 0;
+	size_t nbAffiches = std::min<size_t>(enTetes.size(), 8);
+	horloge_t ancienDefilement = horloge();
+	
+	Session::reinitialiserEvenements();
+	while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, continuer)) {
+		champs[0]._texte.definir(Unichar(txt[maj]));
+		
+		fond.redimensionner(Coordonnees(Ecran::largeur() / fond.dimensionsReelles().x, Ecran::hauteur() / fond.dimensionsReelles().y));
+		
+		Ecran::definirPointeurAffiche(true);
+		Ecran::effacer();
+		
+		s.activer();
+		s.definirParametre(Shader::temps, horloge());
+		s.definirParametre(Shader::tempsAbsolu, horloge());
+		fond.afficher(Coordonnees());
+		Shader::desactiver();
+		
+		Ecran::afficherRectangle(Ecran::ecran(), Couleur(0, 0, 0, 128));
+		
+		Rectangle cadre = Parametres::afficherColonnes("Vidéo", premier, nbAffiches, false, enTetes, -1, champs, selection, true);
+		
+		valider.definir(POLICE_DECO, 26 * Ecran::echelleMin());
+		annuler.definir(POLICE_DECO, 26 * Ecran::echelleMin());
+		
+		cadreValider.definirDimensions(valider.dimensions()); 
+		cadreAnnuler.definirDimensions(annuler.dimensions()); 
+		cadreValider.definirOrigine(cadre.origine() + Coordonnees(20 * Ecran::echelleMin(), 20 * Ecran::echelleMin() + cadre.hauteur)); 
+		cadreAnnuler.definirOrigine(cadreValider.origine() + Coordonnees(80 * Ecran::echelleMin() + cadreValider.largeur, 0)); 
+		
+		valider.afficher(cadreValider.origine());
+		annuler.afficher(cadreAnnuler.origine());
+		
+		Ecran::finaliser();
+		
+		int dep;
+		Parametres::gestionEvenementsAfficheur(ancienDefilement, continuer, dep, premier, nbAffiches, selection, enTetes, champs);
+		if(Session::evenement(Session::B_GAUCHE)) {
+			if(Session::souris() < cadreValider) {
+				_rechercherMaj = maj;
+				
+				continuer = false;
+				break;
+			}
+			else if(Session::souris() < cadreAnnuler) {
+				continuer = false;
+				break;
+			}
+		}
+		if(dep) {
+			if(selection == 0) {
+				Session::reinitialiser(Session::T_GAUCHE);
+				Session::reinitialiser(Session::T_DROITE);
+				maj = !maj;
+			}
+		}
+		
+		Ecran::maj();
+	}
+}
+
 void Parametres::video(Image const &fond, Shader const &s) {		
 	std::vector<std::pair<int, int> > resolutions[2];
 	{
@@ -312,6 +553,9 @@ void Parametres::video(Image const &fond, Shader const &s) {
 	
 	bool pleinEcran = Ecran::pleinEcran();
 	int resolutionActuelle = std::find(resolutions[pleinEcran].begin(), resolutions[pleinEcran].end(), std::make_pair(Ecran::largeur(), Ecran::hauteur())) - resolutions[pleinEcran].begin();
+	bool ips = Parametres::ips();
+	bool limiteIPS = Parametres::limiteIPS();
+	bool synchroVerticale = Parametres::synchroVerticale();
 	
 	char const *txt[2] = {"Désactivé", "Activé"};
 	
@@ -322,13 +566,22 @@ void Parametres::video(Image const &fond, Shader const &s) {
 	
 	enTetes.push_back(Unichar("Résolution :"));
 	champs.push_back(Unichar());
+
+	enTetes.push_back(Unichar("Synchronisation verticale :"));
+	champs.push_back(Unichar());
+
+	enTetes.push_back(Unichar("Limiter la fréquence d'affichage :"));
+	champs.push_back(Unichar());
+
+	enTetes.push_back(Unichar("Afficher images par seconde :"));
+	champs.push_back(Unichar());
 	
 	Texte valider("Valider",  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
 	Texte annuler("Annuler",  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
 	
 	Rectangle cadreAnnuler, cadreValider;
 	
-	bool continuer = true, modification = false;
+	bool continuer = true;
 	index_t selection = 0, premier = 0;
 	size_t nbAffiches = std::min<size_t>(enTetes.size(), 8);
 	horloge_t ancienDefilement = horloge();
@@ -336,8 +589,10 @@ void Parametres::video(Image const &fond, Shader const &s) {
 	Session::reinitialiserEvenements();
 	while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, continuer)) {
 		champs[0]._texte.definir(Unichar(txt[pleinEcran]));
-		
 		champs[1]._texte.definir(Unichar(Parametres::transcriptionResolution(resolutions[pleinEcran][resolutionActuelle])));
+		champs[2]._texte.definir(Unichar(txt[synchroVerticale]));
+		champs[3]._texte.definir(Unichar(txt[limiteIPS]));
+		champs[4]._texte.definir(Unichar(txt[ips]));
 
 		fond.redimensionner(Coordonnees(Ecran::largeur() / fond.dimensionsReelles().x, Ecran::hauteur() / fond.dimensionsReelles().y));
 		
@@ -352,7 +607,7 @@ void Parametres::video(Image const &fond, Shader const &s) {
 		
 		Ecran::afficherRectangle(Ecran::ecran(), Couleur(0, 0, 0, 128));
 		
-		Rectangle cadre = Parametres::afficherColonnes("Vidéo", premier, nbAffiches, modification, enTetes, -1, champs, selection);
+		Rectangle cadre = Parametres::afficherColonnes("Vidéo", premier, nbAffiches, false, enTetes, -1, champs, selection, true);
 		
 		valider.definir(POLICE_DECO, 26 * Ecran::echelleMin());
 		annuler.definir(POLICE_DECO, 26 * Ecran::echelleMin());
@@ -367,56 +622,57 @@ void Parametres::video(Image const &fond, Shader const &s) {
 
 		Ecran::finaliser();
 		
-		if(!modification) {
-			Parametres::gestionEvenementsAfficheur(ancienDefilement, continuer, premier, nbAffiches, selection, modification, enTetes, champs);
-			if(Session::evenement(Session::B_GAUCHE)) {
-				if(Session::souris() < cadreValider) {
-					_largeurEcran = resolutions[pleinEcran][resolutionActuelle].first;
-					_hauteurEcran = resolutions[pleinEcran][resolutionActuelle].second;
-					_pleinEcran = pleinEcran;
-					
-					Ecran::modifierResolution(_largeurEcran, _hauteurEcran, _pleinEcran);
-					continuer = false;
-					break;
-				}
-				else if(Session::souris() < cadreAnnuler) {
-					continuer = false;
-					break;
-				}
+		int dep;
+		Parametres::gestionEvenementsAfficheur(ancienDefilement, continuer, dep, premier, nbAffiches, selection, enTetes, champs);
+		if(Session::evenement(Session::B_GAUCHE)) {
+			if(Session::souris() < cadreValider) {
+				_largeurEcran = resolutions[pleinEcran][resolutionActuelle].first;
+				_hauteurEcran = resolutions[pleinEcran][resolutionActuelle].second;
+				_pleinEcran = pleinEcran;
+				_ips = ips;
+				_limiteIPS = limiteIPS;
+				_synchroVerticale = synchroVerticale;
+				
+				Ecran::modifierResolution(_largeurEcran, _hauteurEcran, _pleinEcran);
+				continuer = false;
+				break;
+			}
+			else if(Session::souris() < cadreAnnuler) {
+				continuer = false;
+				break;
 			}
 		}
-		else {
-			if(Session::evenement(Session::T_ESC) || Session::evenement(Session::T_ENTREE)) {
-				Session::reinitialiser(Session::T_ESC);
-				Session::reinitialiser(Session::T_ENTREE);
-				modification = false;
+		if(dep) {
+			if(selection == 0) {
+				Session::reinitialiser(Session::T_GAUCHE);
+				Session::reinitialiser(Session::T_DROITE);
+				pleinEcran = !pleinEcran;
+				resolutionActuelle = 0;
 			}
-			else {
-				if(selection == 0) {
-					if(Session::evenement(Session::T_GAUCHE) || Session::evenement(Session::T_DROITE)) {
-						Session::reinitialiser(Session::T_GAUCHE);
-						Session::reinitialiser(Session::T_DROITE);
-						pleinEcran = !pleinEcran;
-						resolutionActuelle = 0;
-					}
-				}
-				else {
-					int dep = 0;
-					if(Session::evenement(Session::T_GAUCHE))
-						dep = -1;
-					else if(Session::evenement(Session::T_DROITE))
-						dep = 1;
-					if(dep) {
-						resolutionActuelle += dep;
-						if(resolutionActuelle < 0)
-							resolutionActuelle = resolutions[pleinEcran].size() - 1;
-						else if(resolutionActuelle >= resolutions[pleinEcran].size())
-							resolutionActuelle = 0;
-						
-						Session::reinitialiser(Session::T_GAUCHE);
-						Session::reinitialiser(Session::T_DROITE);
-					}
-				}
+			else if(selection == 1) {
+				resolutionActuelle += dep;
+				if(resolutionActuelle < 0)
+					resolutionActuelle = resolutions[pleinEcran].size() - 1;
+				else if(resolutionActuelle >= resolutions[pleinEcran].size())
+					resolutionActuelle = 0;
+				
+				Session::reinitialiser(Session::T_GAUCHE);
+				Session::reinitialiser(Session::T_DROITE);
+			}
+			else if(selection == 2) {
+				Session::reinitialiser(Session::T_GAUCHE);
+				Session::reinitialiser(Session::T_DROITE);
+				synchroVerticale = !synchroVerticale;
+			}
+			else if(selection == 3) {
+				Session::reinitialiser(Session::T_GAUCHE);
+				Session::reinitialiser(Session::T_DROITE);
+				limiteIPS = !limiteIPS;
+			}
+			else if(selection == 4) {
+				Session::reinitialiser(Session::T_GAUCHE);
+				Session::reinitialiser(Session::T_DROITE);
+				ips = !ips;
 			}
 		}
 		
@@ -432,6 +688,8 @@ void Parametres::audio(Image const &fond, Shader const &s) {
 	vide.push_back(blanc);
 	vide.push_back(blanc);
 	
+	float vMusique = Parametres::volumeMusique(), vEffets = Parametres::volumeEffets();
+	
 	Shader shader(Session::cheminRessources() + "aucun.vert", Session::cheminRessources() + "volume.frag");
 	
 	bool continuer = true;
@@ -442,6 +700,11 @@ void Parametres::audio(Image const &fond, Shader const &s) {
 	
 	horloge_t ancienSon = 0;
 	
+	Texte valider("Valider",  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
+	Texte annuler("Annuler",  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
+	
+	Rectangle cadreAnnuler, cadreValider;
+
 	Session::reinitialiserEvenements();
 	while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, continuer)) {
 		fond.redimensionner(Coordonnees(Ecran::largeur() / fond.dimensionsReelles().x, Ecran::hauteur() / fond.dimensionsReelles().y));
@@ -457,9 +720,9 @@ void Parametres::audio(Image const &fond, Shader const &s) {
 		
 		Ecran::afficherRectangle(Ecran::ecran(), Couleur(0, 0, 0, 128));
 		
-		Parametres::afficherColonnes("Audio", premier, nbAffiches, false, texte, -1, vide, -1);
+		Rectangle cadre = Parametres::afficherColonnes("Audio", premier, nbAffiches, false, texte, -1, vide, -1, false);
 		
-		float *valeur[2] = {&_volumeMusique, &_volumeEffets};
+		float *valeur[2] = {&vMusique, &vEffets};
 		shader.activer();
 		for(int i = 0; i < 2; ++i) {
 			Rectangle const &r = vide[i]._cadre;
@@ -471,6 +734,17 @@ void Parametres::audio(Image const &fond, Shader const &s) {
 		}
 		Shader::desactiver();
 		
+		valider.definir(POLICE_DECO, 26 * Ecran::echelleMin());
+		annuler.definir(POLICE_DECO, 26 * Ecran::echelleMin());
+		
+		cadreValider.definirDimensions(valider.dimensions()); 
+		cadreAnnuler.definirDimensions(annuler.dimensions()); 
+		cadreValider.definirOrigine(cadre.origine() + Coordonnees(20 * Ecran::echelleMin(), 20 * Ecran::echelleMin() + cadre.hauteur)); 
+		cadreAnnuler.definirOrigine(cadreValider.origine() + Coordonnees(80 * Ecran::echelleMin() + cadreValider.largeur, 0)); 
+		
+		valider.afficher(cadreValider.origine());
+		annuler.afficher(cadreAnnuler.origine());
+
 		Ecran::finaliser();
 		
 		if(!Session::evenement(Session::B_GAUCHE)) {
@@ -486,11 +760,22 @@ void Parametres::audio(Image const &fond, Shader const &s) {
 		}
 		else {
 			*(valeur[selection]) = std::min(1.0f, std::max<float>(0.0f, (Session::souris().x - vide[selection]._cadre.gauche) / vide[selection]._cadre.largeur));
-			Audio::definirVolumeMusique(_volumeMusique);
-			Audio::definirVolumeEffets(_volumeEffets);
+			Audio::definirVolumeMusique(vMusique);
+			Audio::definirVolumeEffets(vEffets);
 			if(selection == 1 && horloge() - ancienSon > 0.2) {
 				ancienSon = horloge();
 				Audio::jouerSon(_sonEffets);
+			}
+		}
+		if(Session::evenement(Session::B_GAUCHE)) {
+			if(Session::souris() < cadreValider) {
+				_volumeMusique = vMusique;
+				_volumeEffets = vEffets;
+				continuer = false;
+			}
+			else if(Session::souris() < cadreAnnuler) {
+				continuer = false;
+				break;
 			}
 		}
 		if(Session::evenement(Session::T_ESC))
@@ -498,14 +783,20 @@ void Parametres::audio(Image const &fond, Shader const &s) {
 		
 		Ecran::maj();
 	}
+	
+	Audio::definirVolumeMusique(_volumeMusique);
+	Audio::definirVolumeEffets(_volumeEffets);
 }
 
 void Parametres::controles(Image const &fond, Shader const &s) {
-	std::vector<etiquetteTexte_t> actions, evenements;
+	std::vector<etiquetteTexte_t> actions, etiquetteEvenements;
 
+	Session::evenement_t evenements[nbActions];
+	
 	for(action_t i = premiereAction; i != nbActions; ++i) {
 		actions.push_back(Unichar(Parametres::transcriptionAction(i)));
-		evenements.push_back(Session::transcriptionEvenement(Parametres::evenementAction(i)));
+		etiquetteEvenements.push_back(Session::transcriptionEvenement(Parametres::evenementAction(i)));
+		evenements[i] = _evenementsAction[i];
 	}
 	
 	bool continuer = true, modification = false;
@@ -513,6 +804,11 @@ void Parametres::controles(Image const &fond, Shader const &s) {
 	size_t nbAffiches = std::min<size_t>(actions.size(), 8);
 	horloge_t ancienDefilement = horloge();
 	
+	Texte valider("Valider",  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
+	Texte annuler("Annuler",  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
+	
+	Rectangle cadreAnnuler, cadreValider;
+
 	Session::reinitialiserEvenements();
 	while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, continuer)) {
 		fond.redimensionner(Coordonnees(Ecran::largeur() / fond.dimensionsReelles().x, Ecran::hauteur() / fond.dimensionsReelles().y));
@@ -528,15 +824,51 @@ void Parametres::controles(Image const &fond, Shader const &s) {
 		
 		Ecran::afficherRectangle(Ecran::ecran(), Couleur(0, 0, 0, 128));
 		
-		Parametres::afficherColonnes("Contrôles", premier, nbAffiches, modification, actions, -1, evenements, selection);
+		Rectangle cadre = Parametres::afficherColonnes("Contrôles", premier, nbAffiches, modification, actions, -1, etiquetteEvenements, selection, false);
+
+		valider.definir(POLICE_DECO, 26 * Ecran::echelleMin());
+		annuler.definir(POLICE_DECO, 26 * Ecran::echelleMin());
+		
+		cadreValider.definirDimensions(valider.dimensions()); 
+		cadreAnnuler.definirDimensions(annuler.dimensions()); 
+		cadreValider.definirOrigine(cadre.origine() + Coordonnees(20 * Ecran::echelleMin(), 20 * Ecran::echelleMin() + cadre.hauteur)); 
+		cadreAnnuler.definirOrigine(cadreValider.origine() + Coordonnees(80 * Ecran::echelleMin() + cadreValider.largeur, 0)); 
+		
+		valider.afficher(cadreValider.origine());
+		annuler.afficher(cadreAnnuler.origine());
+		
 		Ecran::finaliser();
 		
 		for(action_t i = premiereAction; i != nbActions; ++i) {
-			evenements[i]._texte.definir(Session::transcriptionEvenement(_evenementsAction[i]));
+			etiquetteEvenements[i]._texte.definir(Session::transcriptionEvenement(evenements[i]));
 		}
 
 		if(!modification) {
-			Parametres::gestionEvenementsAfficheur(ancienDefilement, continuer, premier, nbAffiches, selection, modification, actions, evenements);
+			int dep;
+			Parametres::gestionEvenementsAfficheur(ancienDefilement, continuer, dep, premier, nbAffiches, selection, actions, etiquetteEvenements);
+			if(Session::evenement(Session::T_ENTREE)) {
+				modification = true;
+				Session::reinitialiser(Session::T_ENTREE);
+			}
+			
+			if(Session::evenement(Session::B_GAUCHE)) {
+				if(Session::souris() < cadreValider) {
+					for(action_t i = premiereAction; i != nbActions; ++i) {
+						Parametres::definirEvenementAction(i, evenements[i]);
+					}
+					continuer = false;
+				}
+				else if(Session::souris() < cadreAnnuler) {
+					continuer = false;
+					break;
+				}
+				else {
+					std::vector<etiquetteTexte_t>::const_iterator souris = std::find_if(etiquetteEvenements.begin(), etiquetteEvenements.end(), trouveSouris_t());
+					if(souris != etiquetteEvenements.end()) {
+						modification = true;
+					}
+				}
+			}
 		}
 		else {
 			if(Session::evenement(Session::T_ESC) || Session::evenement(Session::T_ENTREE)) {
@@ -547,7 +879,7 @@ void Parametres::controles(Image const &fond, Shader const &s) {
 			else {
 				for(Session::evenement_t e = Session::PREMIER_EVENEMENT_CLAVIER; e <= Session::DERNIER_EVENEMENT_CLAVIER; ++e) {
 					if(Session::evenement(e)) {
-						Parametres::definirEvenementAction(static_cast<action_t>(selection), e);
+						evenements[static_cast<action_t>(selection)] = e;
 						modification = false;
 						break;
 					}
@@ -559,11 +891,7 @@ void Parametres::controles(Image const &fond, Shader const &s) {
 	}
 }
 
-Parametres::etiquetteTexte_t::etiquetteTexte_t(Unichar const &t) : _texte(t, POLICE_DECO, 20 * Ecran::echelleMin(), Couleur::blanc) {
-
-}
-
-Rectangle Parametres::afficherColonnes(Unichar const &titre, index_t premier, size_t nb, bool modif, std::vector<Parametres::etiquetteTexte_t> &colonne1, index_t sel1, std::vector<Parametres::etiquetteTexte_t> &colonne2, index_t sel2, coordonnee_t abscisse) {
+Rectangle Parametres::afficherColonnes(Unichar const &titre, index_t premier, size_t nb, bool modif, std::vector<Parametres::etiquetteTexte_t> &colonne1, index_t sel1, std::vector<Parametres::etiquetteTexte_t> &colonne2, index_t sel2, bool fleches, coordonnee_t abscisse) {
 	static float teinteSelection = 0.0f;
 	static int sensTeinte = 1;
 	if(!modif) {
@@ -605,6 +933,11 @@ Rectangle Parametres::afficherColonnes(Unichar const &titre, index_t premier, si
 	Texte tt(titre, POLICE_DECO, 40 * Ecran::echelleMin(), Couleur::blanc);
 	Texte points("...", POLICE_DECO, 20 * Ecran::echelleMin(), Couleur::blanc);
 	
+	if(fleches) {
+		_flecheG->redimensionner(0.5 * colonne1[0]._texte.dimensions().y / _flecheG->dimensionsReelles().y);
+		_flecheD->redimensionner(0.5 * colonne1[0]._texte.dimensions().y / _flecheD->dimensionsReelles().y);
+	}
+	
 	Rectangle cadre(Coordonnees(abscisse, 80) * Ecran::echelleMin(), tt.dimensions());
 	tt.afficher(cadre.origine());
 	
@@ -612,8 +945,11 @@ Rectangle Parametres::afficherColonnes(Unichar const &titre, index_t premier, si
 	cadre.gauche += 20 * Ecran::echelleMin();
 	
 	dimension_t largeur1 = std::max_element(colonne1.begin(), colonne1.end(), largeurTexte_t())->_texte.dimensions().x, largeur2 = -40 * Ecran::echelleMin();
-	if(colonne2.size())
+	if(colonne2.size()) {
 		largeur2 = std::max_element(colonne2.begin(), colonne2.end(), largeurTexte_t())->_texte.dimensions().x;
+		if(fleches)
+			largeur2 += 2 * 10 * Ecran::echelleMin() + _flecheG->dimensions().x + _flecheD->dimensions().x;
+	}
 	
 	dimension_t hauteur = std::accumulate(colonne1.begin() + premier, colonne1.begin() + premier + nb, dimension_t(0), hauteurTexte_t(10 * Ecran::echelleMin())) - 10 * Ecran::echelleMin();
 	if(!premierAffiche) {
@@ -637,8 +973,11 @@ Rectangle Parametres::afficherColonnes(Unichar const &titre, index_t premier, si
 	for_each(colonne1.begin() + premier, colonne1.begin() + premier + nb, afficheur);
 	cadre.haut = sauveHaut;
 	cadre.gauche += largeur1 + 40 * Ecran::echelleMin();
-	if(colonne2.size())
+	if(colonne2.size()) {
+		cadre.largeur = largeur2;
+		afficheur.definirFleches(fleches);
 		for_each(colonne2.begin() + premier, colonne2.begin() + premier + nb, afficheur);
+	}
 	if(sel1 >= 0)
 		colonne1[sel1]._texte.definir(Couleur::blanc);
 	if(sel2 >= 0)
@@ -652,8 +991,10 @@ Rectangle Parametres::afficherColonnes(Unichar const &titre, index_t premier, si
 	cadre.largeur = largeur2;
 	cadre.haut = sauveHaut;
 	cadre.gauche += largeur1 + 40 * Ecran::echelleMin();
-	if(colonne2.size())
+	if(colonne2.size()) {
+		initCadres.definirFleches(true);
 		for_each(colonne2.begin() + premier, colonne2.begin() + premier + nb, initCadres);
+	}
 	
 	cadre.gauche -= largeur1 + 40 * Ecran::echelleMin();
 	if(!dernierAffiche) {
@@ -666,7 +1007,9 @@ Rectangle Parametres::afficherColonnes(Unichar const &titre, index_t premier, si
 	return total;
 }
 
-void Parametres::gestionEvenementsAfficheur(horloge_t &ancienDefilement, bool &continuer, index_t &premier, index_t nbAffiches, index_t &selection, bool &modification, std::vector<etiquetteTexte_t> const &colonne1, std::vector<etiquetteTexte_t> const &colonne2) {
+void Parametres::gestionEvenementsAfficheur(horloge_t &ancienDefilement, bool &continuer, int &dep, index_t &premier, index_t nbAffiches, index_t &selection, std::vector<etiquetteTexte_t> const &colonne1, std::vector<etiquetteTexte_t> const &colonne2) {
+	dep = 0;
+	
 	bool premierAffiche = premier == 0;
 	if(!premierAffiche)
 		--nbAffiches;
@@ -676,26 +1019,36 @@ void Parametres::gestionEvenementsAfficheur(horloge_t &ancienDefilement, bool &c
 
 	if(Session::evenement(Session::T_ESC)) {
 		continuer = false;
-	}
-	else if(Session::evenement(Session::T_ENTREE)) {
-		modification = true;
-		Session::reinitialiser(Session::T_ENTREE);
+		Session::reinitialiser(Session::T_ESC);
 	}
 	else if(Session::evenement(Session::B_GAUCHE)) {
 		std::vector<etiquetteTexte_t>::const_iterator souris = std::find_if(colonne1.begin(), colonne1.end(), trouveSouris_t());
 		if(souris != colonne1.end()) {
 			selection = std::distance(colonne1.begin(), souris);
-			modification = true;
 		}
 		else  {
 			souris = std::find_if(colonne2.begin(), colonne2.end(), trouveSouris_t());
 			if(souris != colonne2.end()) {
 				selection = std::distance(colonne2.begin(), souris);
-				modification = true;
+				Session::reinitialiser(Session::B_GAUCHE);
+			}
+
+			if(Session::souris() < colonne2[selection]._flecheG) {
+				dep = -1;
+				Session::reinitialiser(Session::B_GAUCHE);
+			}
+			else if(Session::souris() < colonne2[selection]._flecheD) {
+				dep = 1;
+				Session::reinitialiser(Session::B_GAUCHE);
 			}
 		}
 	}
-
+	else if(Session::evenement(Session::T_GAUCHE)) {
+		dep = -1;
+	}
+	else if(Session::evenement(Session::T_DROITE)) {
+		dep = 1;
+	}
 	else if(Session::evenement(Session::T_HAUT) && horloge() - ancienDefilement > INTERVALLE_DEFILEMENT) {
 		if(selection > 0) {
 			--selection;
@@ -827,7 +1180,7 @@ void Parametres::afficherCredits(Image const &fond, Shader const &s) {
 		
 		Ecran::afficherRectangle(Ecran::ecran(), Couleur(0, 0, 0, 128));
 		
-		Rectangle cadre = Parametres::afficherColonnes("Crédits", 0, noms.size(), false, noms, -1, roles, -1, 40);
+		Rectangle cadre = Parametres::afficherColonnes("Crédits", 0, noms.size(), false, noms, -1, roles, -1, false, 40);
 		
 		cadreOk.definirDimensions(ok.dimensions()); 
 		cadreOk.definirOrigine(cadre.origine() + Coordonnees(20 * Ecran::echelleMin(), 20 * Ecran::echelleMin() + cadre.hauteur)); 

@@ -495,7 +495,7 @@ void Niveau::ajouterElement(index_t x, index_t y, couche_t couche, ElementNiveau
 	this->definirContenuCase(x, y, couche, elem);
 }
 
-void Niveau::supprimerElement(ElementNiveau *e, couche_t couche, bool deleteElement) {
+void Niveau::supprimerElement(ElementNiveau *e, index_t x, index_t y, couche_t couche, bool deleteElement) {
 	if(deleteElement) {
 		_aEffacer.push_back(e);
 	}
@@ -504,11 +504,11 @@ void Niveau::supprimerElement(ElementNiveau *e, couche_t couche, bool deleteElem
 		_entitesMobiles.remove(CaseMobile(static_cast<EntiteMobile *>(e)));
 	}
 
-	elements_t::iterator i = std::find(_elements[e->pY()][e->pX()]._entites[couche].begin(), _elements[e->pY()][e->pX()]._entites[couche].end(), e);
-	_elements[e->pY()][e->pX()]._entites[couche].erase(i);
+	elements_t::iterator i = std::find(_elements[y][x]._entites[couche].begin(), _elements[y][x]._entites[couche].end(), e);
+	_elements[y][x]._entites[couche].erase(i);
 }
 
-Niveau::elements_t::iterator Niveau::supprimerElement(elements_t::iterator i, couche_t couche, bool deleteElement) {
+Niveau::elements_t::iterator Niveau::supprimerElement(elements_t::iterator i, index_t x, index_t y, couche_t couche, bool deleteElement) {
 	ElementNiveau *e = i->_entite;
 	if(deleteElement) {
 		_aEffacer.push_back(e);
@@ -518,7 +518,7 @@ Niveau::elements_t::iterator Niveau::supprimerElement(elements_t::iterator i, co
 		_entitesMobiles.remove(CaseMobile(static_cast<EntiteMobile *>(e)));
 	}
 	
-	return _elements[i->_entite->pY()][i->_entite->pX()]._entites[couche].erase(i);
+	return _elements[y][x]._entites[couche].erase(i);
 }
 
 void Niveau::notifierDeplacement(EntiteMobile *e, index_t ancienX, index_t ancienY, couche_t ancienneCouche) {
@@ -662,6 +662,7 @@ void Niveau::afficherObjetsInventaire(Coordonnees const &cam) {
 				img = &_objet;
 			else if(nb > 1)
 				img = &_objets;
+			
 			if(img) {
 				Coordonnees pos = referentielNiveauVersEcran(Coordonnees(x, y) * LARGEUR_CASE) - Coordonnees(11, 18) + Coordonnees(LARGEUR_CASE, 0);
 				img->afficher(pos - cam);
@@ -721,7 +722,7 @@ void Niveau::afficherTransitionsSol(Coordonnees const &cam) {
 	Shader::desactiver();
 }
 
-void Niveau::afficherBordure(int cote, Coordonnees const &cam) {	
+void Niveau::afficherBordure(int cote, Coordonnees const &cam) {
 	ssize_t dim = this->longueurBordure(cote);
 
 	size_t dimI = _solBordures->dimY(), dimJ = _solBordures->dimX();

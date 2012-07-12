@@ -811,6 +811,17 @@ void TiXmlElement::SetAttribute( const char *name, double val )
 	SetAttribute( name, buf );
 }
 
+void TiXmlElement::SetAttribute( const char *name, float val )
+{	
+	char buf[512];
+#if defined(TIXML_SNPRINTF)		
+	TIXML_SNPRINTF( buf, sizeof(buf), "%f", val );
+#else
+	sprintf( buf, "%f", val );
+#endif
+	SetAttribute( name, buf );
+}
+
 #ifdef TIXML_USE_STL
 void TiXmlElement::SetAttribute( const std::string& name, int val )
 {	

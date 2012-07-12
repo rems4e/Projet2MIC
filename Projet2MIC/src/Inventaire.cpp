@@ -496,7 +496,9 @@ void InventaireMarchand::masquer() {
 			delete *i;
 		}
 	}
-	this->vider();	
+	this->vider();
+	
+	_infos = 0;
 }
 
 void InventaireMarchand::preparationAffichage() {
@@ -529,8 +531,8 @@ void InventaireJoueur::afficher() const {
 	
 	_sortie = Rectangle(341, 442, 46, 49).etirer(Ecran::echelle());
 		
-	_fond.afficher(Coordonnees());
 	_fond.redimensionner(Ecran::echelle());
+	_fond.afficher(Coordonnees());
 	
 	_or.definir(20 * Ecran::echelleMin());
 	_or.definir(nombreVersTexte(this->monnaie()));

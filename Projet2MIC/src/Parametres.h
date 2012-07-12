@@ -24,9 +24,18 @@ namespace Parametres {
 	int hauteurEcran();
 	bool pleinEcran();
 	
+	bool ips();
+	bool limiteIPS();
+	bool synchroVerticale();
+	bool rechercherMaj();
+	
 	void editerParametres(Image const &fond, Shader const &s = Shader::flou(1.0f));
 	
 	void afficherCredits(Image const &fond, Shader const &s);
+	
+	char const *versionTexte();
+	bool majDisponible();
+	char const *URLMaj();
 }
 
 inline Parametres::action_t &operator++(Parametres::action_t &e) { return e = static_cast<Parametres::action_t>(static_cast<int>(e) + 1); }

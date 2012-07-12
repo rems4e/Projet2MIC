@@ -1046,6 +1046,7 @@ public:
 	void SetAttribute( const char *name, unsigned int val );
 	void SetAttribute( const char *name, unsigned long val );
 	void SetAttribute( const char *name, double val );
+	void SetAttribute( const char *name, float val );
 
     #ifdef TIXML_USE_STL
 	const std::string* Attribute( const std::string& name ) const;

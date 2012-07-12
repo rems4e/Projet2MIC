@@ -67,10 +67,10 @@ ElementNiveau *ElementNiveau::elementNiveau(bool decoupagePerspective, Niveau *n
 ElementNiveau::ElementNiveau(bool decoupagePerspective, Niveau *n, uindex_t index, elementNiveau_t cat) throw(ElementNiveau::Exc_DefinitionEntiteIncomplete) : _niveau(n), _position(), _origine(), _centrage(false), _categorie(cat), _index(index), _dimX(1), _dimY(1), _decoupagePerspective(decoupagePerspective), _relief(true), _pX(0), _pY(0) {
 	TiXmlElement *e = ElementNiveau::description(index, cat);
 
-	if(e->Attribute("x"))
-		e->Attribute("x", &_origine.x);
-	if(e->Attribute("y"))
-		e->Attribute("y", &_origine.y);
+	if(e->Attribute("oX"))
+		e->Attribute("oX", &_origine.x);
+	if(e->Attribute("oY"))
+		e->Attribute("oY", &_origine.y);
 	
 	if(e->Attribute("dimX"))
 		e->Attribute("dimX", &_dimX);

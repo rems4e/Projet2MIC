@@ -11,6 +11,7 @@
 #define EN_TETE_FONCTIONS
 
 #include <string>
+#include <vector>
 
 template <typename T>
 T signe(T const &t) {
@@ -35,5 +36,54 @@ std::string nombreVersTexte(double nombre, int decimales);
 std::string nombreVersTexte(long nombre);
 
 int nombreDecimales(double nombre);
+
+template <unsigned int val>
+struct nombreChiffres {
+	enum {nb = nombreChiffres<val / 10 + 1>::nb + 1};
+};
+
+void decouperChaine(std::string c, std::string const &separateur, std::vector<std::string> &sousChaines);
+
+template <>
+struct nombreChiffres<1> {
+	enum {nb = 1};
+};
+
+template <>
+struct nombreChiffres<2> {
+	enum {nb = 1};
+};
+template <>
+struct nombreChiffres<3> {
+	enum {nb = 1};
+};
+template <>
+struct nombreChiffres<4> {
+	enum {nb = 1};
+};
+template <>
+struct nombreChiffres<5> {
+	enum {nb = 1};
+};
+template <>
+struct nombreChiffres<6> {
+	enum {nb = 1};
+};
+template <>
+struct nombreChiffres<7> {
+	enum {nb = 1};
+};
+template <>
+struct nombreChiffres<8> {
+	enum {nb = 1};
+};
+template <>
+struct nombreChiffres<9> {
+	enum {nb = 1};
+};
+template <>
+struct nombreChiffres<0> {
+	enum {nb = 1};
+};
 
 #endif

@@ -10,6 +10,7 @@
 #include "NavigateurFichiers.h"
 #include <dirent.h>
 #include <algorithm>
+#include <sys/stat.h>
 
 namespace NavigateurFichiers {
 	std::vector<std::string> const &extensionsImage() {
@@ -30,38 +31,38 @@ namespace NavigateurFichiers {
 
 	std::vector<std::string> listeDossiers(std::string const &chemin) {
 		std::vector<std::string> dossiers;
-		char const *emplacement = chemin.c_str();
-		struct dirent **liste;
-		int nombreElements;
-		nombreElements = scandir(emplacement, &liste, 0, alphasort);
-		for(int j = 0; j < nombreElements; ++j) {
-			if(liste[j]->d_type == DT_DIR) {
-				if(liste[j]->d_name[0] != '.')
-					dossiers.push_back(liste[j]->d_name);
+
+		DIR *dossier = opendir(chemin.c_str());
+		struct dirent *el = 0;
+		while((el = readdir(dossier))) {
+			struct stat st; 
+			stat(el->d_name, &st); 
+			if(S_ISDIR(st.st_mode)) {
+				if(el->d_name[0] != '.')
+					dossiers.push_back(el->d_name);
 			}
-			free(liste[j]);
 		}
-		if(nombreElements != -1)
-			free(liste);
+		closedir(dossier);
 		
+		std::sort(dossiers.begin(), dossiers.end());
+				
 		return dossiers;
 	}
 	
 	std::vector<std::string> listeFichiers(std::string const &chemin, std::vector<std::string> const &extensions) {
 		std::vector<std::string> fichiers;
-		char const *emplacement = chemin.c_str();
-		struct dirent **liste;
-		int nombreElements;
-		nombreElements = scandir(emplacement, &liste, 0, alphasort);
-		for(int j = 0; j < nombreElements; ++j) {
-			if(liste[j]->d_type == DT_REG) {
-				if(liste[j]->d_name[0] != '.')
-					fichiers.push_back(liste[j]->d_name);
+		
+		DIR *dossier = opendir(chemin.c_str());
+		struct dirent *el = 0;
+		while((el = readdir(dossier))) {
+			struct stat st; 
+			stat(el->d_name, &st); 
+			if(S_ISREG(st.st_mode)) {
+				if(el->d_name[0] != '.')
+					fichiers.push_back(el->d_name);
 			}
-			free(liste[j]);
 		}
-		if(nombreElements != -1)
-			free(liste);
+		closedir(dossier);
 		
 		if(!extensions.empty()) {
 			for(unsigned int i = 0; i < fichiers.size(); ++i) {
@@ -82,6 +83,8 @@ namespace NavigateurFichiers {
 			}
 		}
 		
+		std::sort(fichiers.begin(), fichiers.end());
+
 		return fichiers;
 	}
 	

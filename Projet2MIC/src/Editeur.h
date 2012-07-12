@@ -19,6 +19,7 @@
 #include <list>
 #include <set>
 #include <stack>
+#include <limits>
 
 class Editeur {
 public:
@@ -97,9 +98,9 @@ private:
 	};
 
 	typedef void (Editeur::*fonctionEditeur_t)();
-	
 	typedef std::list<std::pair<Rectangle, fonctionEditeur_t> > listeFonctions_t;
 	enum etat_selection_t {es_ok, es_aj, es_sup};
+	
 	struct ElementSelection {
 		ElementEditeur const *_e;
 		index_t _posX, _posY;
@@ -308,7 +309,20 @@ private:
 		LoiProba _originale, _nouvelle;
 	};
 
-	//friend class Editeur::RedimensionnerNiveau;
+	struct ApercuEntite {
+		ApercuEntite(ElementNiveau::elementNiveau_t cat) : _aSel(-1), _elem(0), _cat(cat) {
+			
+		}
+		
+		~ApercuEntite() {
+			delete _elem;
+		}
+		void operator()(Rectangle const &dejaAffiche, index_t selection, Image &apercu);
+		
+		index_t _aSel;
+		Editeur::ElementEditeur *_elem;
+		ElementNiveau::elementNiveau_t _cat;
+	};
 
 protected:
 	Editeur();
@@ -358,6 +372,8 @@ protected:
 	void modifIndex();
 	void modifCategorie();
 	void modifDimensions();
+	
+	void remplissageGrille();
 	
 	void modifLoisProbas();
 	void editerLoiProba(index_t loi, Image &fond);
