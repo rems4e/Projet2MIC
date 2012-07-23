@@ -291,5 +291,7 @@ void main( void )
 	
 	col = mix( col, col2, .5-.5*ref.w );
 	
+	col.rgb *= 0.8;
+	
 	gl_FragColor = col;
 }

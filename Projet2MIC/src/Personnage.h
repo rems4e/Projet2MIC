@@ -38,7 +38,7 @@ public:
 		int _valeurs[nbCompetences];
 	};
 	
-	static char const *nomCompetence(competences_t c);
+	static Unichar nomCompetence(competences_t c);
 	
 	enum positionTenue_t {premierePositionTenue, brasG = premierePositionTenue, brasD, casque, armure, gants, bottes, nbPositionsTenue};
 	virtual ~Personnage();

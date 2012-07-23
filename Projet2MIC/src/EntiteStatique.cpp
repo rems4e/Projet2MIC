@@ -11,6 +11,7 @@
 #include "tinyxml.h"
 #include "Niveau.h"
 #include <cmath>
+#include "Session.h"
 
 EntiteStatique::EntiteStatique(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : ElementNiveau(decoupagePerspective, n, index, cat), _image(), _cadres(0), _nb(1) {
 	TiXmlElement *e = ElementNiveau::description(index, cat);

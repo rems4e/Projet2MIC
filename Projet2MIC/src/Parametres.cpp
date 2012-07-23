@@ -21,7 +21,12 @@ namespace cURL {
 #include <curl/curl.h>
 }
 #include "fonctions.h"
+#include "nombre.h"
 #include <sstream>
+
+namespace Session {
+	void rechargerLangue();
+}
 
 namespace Parametres {
 	void charger();
@@ -35,8 +40,8 @@ namespace Parametres {
 	void definirEvenementAction(action_t action, Session::evenement_t e);
 	void definirVolumeMusique(float v);
 	void definirVolumeEffets(float v);
-	
-	char const *transcriptionAction(action_t);
+		
+	Unichar transcriptionAction(action_t);
 	char const *nomBalise(action_t);
 	
 	char const *_shadVolume = "_volume";
@@ -61,8 +66,10 @@ namespace Parametres {
 	Session::evenement_t _evenementsAction[nbActions];
 	float _volumeMusique;
 	float _volumeEffets;
-	
+		
 	Audio::audio_t _sonEffets = 0;
+	
+	std::string _langue;
 	
 	int _largeurEcran;
 	int _hauteurEcran;
@@ -73,7 +80,7 @@ namespace Parametres {
 	bool _rechercherMaj;
 	Image *_flecheG = 0;
 	Image *_flecheD = 0;
-
+	
 	struct hauteurTexte_t {
 		hauteurTexte_t(dimension_t ecart) : _ecart(ecart) {
 			
@@ -162,7 +169,7 @@ static size_t ecrireDonnees(char *ptr, size_t size, size_t nmemb, void *userdata
 }
 
 bool Parametres::majDisponible() {
-	char const *fichierMaj = "https://etud.insa-toulouse.fr/~saurel/projet2MIC-version.txt";
+	char const *fichierMaj = "r4.saurel.free.fr/Projet2MIC/fichiers/version.txt";
 	
 	std::ostringstream data;
 	cURL::CURL *session = cURL::curl_easy_init();
@@ -186,6 +193,7 @@ bool Parametres::majDisponible() {
 		if(l.size() == 3 && l[0] == "majProjet2MIC") {
 			int maj = texteVersNombre(l[1]);
 			int min = texteVersNombre(l[2]);
+
 			if(maj > VERSION_MAJ || (maj == VERSION_MAJ && min > VERSION_MIN)) {
 				return true;
 			}
@@ -193,13 +201,14 @@ bool Parametres::majDisponible() {
 			return false;
 		}
 		else {
+			std::cerr << "Fichier de mise à jour malformé." << std::endl;
 			return false;
 		}
 	}
 }
 
 char const *Parametres::URLMaj() {
-	return "https://etud.insa-toulouse.fr/~saurel/projet2mic.html";
+	return "http://r4.saurel.free.fr/Projet2MIC/index.php";
 }
 
 char const *Parametres::versionTexte() {
@@ -227,22 +236,28 @@ void Parametres::charger() {
 
 	_evenementsAction[remplirVie] = Session::T_h;
 	
+#if defined(DEVELOPPEMENT)
 	for(action_t a = premiereAction; a != nbActions; ++a) {
-		if(_evenementsAction[a] == Session::aucunEvenement)
-			std::cout << "Aucune valeur par défaut pour l'événement " << + Parametres::transcriptionAction(a) << std::endl;
+		if(_evenementsAction[a] == Session::aucunEvenement) {
+			std::cout << "Aucune valeur par défaut pour l'événement " << Parametres::transcriptionAction(a) << std::endl;
+			throw 0;
+		}
 	}
+#endif
 	
 	_volumeEffets = 1.0f;
 	_volumeMusique = 1.0f;
 	
 	_largeurEcran = 800;
 	_hauteurEcran = 600;
-	_pleinEcran = true;
+	_pleinEcran = false;
 	_ips = false;
 	_limiteIPS = true;
 	_synchroVerticale = true;
 	_rechercherMaj = true;
-
+	
+	_langue = "fr";
+	
 	TiXmlDocument document(Session::cheminRessources() + "config.xml");
 	if(document.LoadFile()) {
 		TiXmlElement *config = document.FirstChildElement("Config");
@@ -254,7 +269,7 @@ void Parametres::charger() {
 					continue;
 				char const *evenement = action->Attribute("valeur");
 				for(Session::evenement_t e = Session::PREMIER_EVENEMENT_CLAVIER; e <= Session::DERNIER_EVENEMENT_CLAVIER; ++e) {
-					std::string ee = Session::transcriptionEvenement(e);
+					std::string ee = Session::transcriptionEvenement(e, false);
 					if(ee == evenement) {
 						_evenementsAction[a] = e;
 						break;
@@ -309,9 +324,14 @@ void Parametres::charger() {
 					general->Attribute("rechercherMaj", &val);
 					_rechercherMaj = val;
 				}
+				if(general->Attribute("langue")) {
+					_langue = general->Attribute("langue");
+				}
 			}
 		}
 	}
+	
+	Session::rechargerLangue();
 	
 	_sonEffets = Audio::chargerSon(Session::cheminRessources() + "testEffet.wav");
 }
@@ -337,7 +357,7 @@ void Parametres::enregistrer() {
 	TiXmlElement *clavier = config->FirstChildElement("Clavier");
 	for(action_t a = premiereAction; a != nbActions; ++a) {
 		TiXmlElement action(Parametres::nomBalise(a));
-		action.SetAttribute("valeur", Session::transcriptionEvenement(Parametres::evenementAction(a)));
+		action.SetAttribute("valeur", Session::transcriptionEvenement(Parametres::evenementAction(a), false));
 		clavier->InsertEndChild(action);
 	}
 	
@@ -354,10 +374,11 @@ void Parametres::enregistrer() {
 	video->SetAttribute("limiteIPS", Parametres::limiteIPS());
 	
 	TiXmlElement *general = config->FirstChildElement("General");
+	general->SetAttribute("langue", Parametres::langue());
 	general->SetAttribute("rechercherMaj", Parametres::rechercherMaj());
 	
 	if(!document->SaveFile())
-		std::cout << "L'enregistrement du fichier de paramètres " << document->Value() << " a échoué." << std::endl;
+		std::cerr << "L'enregistrement du fichier de paramètres " << document->Value() << " a échoué." << std::endl;
 }
 
 void Parametres::nettoyer() {
@@ -388,6 +409,10 @@ float Parametres::volumeMusique() {
 
 float Parametres::volumeEffets() {
 	return _volumeEffets;
+}
+
+std::string const &Parametres::langue() {
+	return _langue;
 }
 
 int Parametres::largeurEcran() {
@@ -433,14 +458,16 @@ void Parametres::editerParametres(Image const &fond, Shader const &s) {
 	}
 	
 	std::vector<Unichar> elements;
-	elements.push_back("Réglages contrôles");
-	elements.push_back("Réglages audios");
-	elements.push_back("Réglages vidéos");
-	elements.push_back("Réglages généraux");
-	Menu menu("Réglages", elements);
 	
 	index_t selection = 0;
 	do {
+		elements.clear();
+		elements.push_back(TRAD("reg Contrôles"));
+		elements.push_back(TRAD("reg Audio"));
+		elements.push_back(TRAD("reg Vidéo"));
+		elements.push_back(TRAD("reg Général"));
+		Menu menu(TRAD("reg Réglages"), elements);
+
 		selection = menu.afficher(selection, fond, s);
 		switch(selection) {
 			case 3:
@@ -465,26 +492,27 @@ std::string Parametres::transcriptionResolution(std::pair<int, int> const &r) {
 
 void Parametres::general(Image const &fond, Shader const &s) {
 	bool maj = Parametres::rechercherMaj();
-	
-	char const *txt[2] = {"Désactivé", "Activé"};
-	
-	std::vector<etiquetteTexte_t> enTetes, champs;
-	
-	enTetes.push_back(Unichar("Recherche de mises à jour :"));
-	champs.push_back(Unichar());
-	
-	Texte valider("Valider",  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
-	Texte annuler("Annuler",  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
-	
+		
 	Rectangle cadreAnnuler, cadreValider;
 	
 	bool continuer = true;
 	index_t selection = 0, premier = 0;
-	size_t nbAffiches = std::min<size_t>(enTetes.size(), 8);
 	horloge_t ancienDefilement = horloge();
 	
 	Session::reinitialiserEvenements();
 	while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, continuer)) {
+		Unichar txt[2] = {TRAD("reg Désactivé"), TRAD("reg Activé")};
+
+		std::vector<etiquetteTexte_t> enTetes, champs;
+		
+		enTetes.push_back(Unichar(TRAD("reg Rechercher les mises à jour")));
+		champs.push_back(Unichar::uninull);
+		
+		size_t nbAffiches = std::min<size_t>(enTetes.size(), 8);
+
+		Texte valider(TRAD("reg Valider"),  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
+		Texte annuler(TRAD("reg Annuler"),  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
+
 		champs[0]._texte.definir(Unichar(txt[maj]));
 		
 		fond.redimensionner(Coordonnees(Ecran::largeur() / fond.dimensionsReelles().x, Ecran::hauteur() / fond.dimensionsReelles().y));
@@ -497,10 +525,8 @@ void Parametres::general(Image const &fond, Shader const &s) {
 		s.definirParametre(Shader::tempsAbsolu, horloge());
 		fond.afficher(Coordonnees());
 		Shader::desactiver();
-		
-		Ecran::afficherRectangle(Ecran::ecran(), Couleur(0, 0, 0, 128));
-		
-		Rectangle cadre = Parametres::afficherColonnes("Vidéo", premier, nbAffiches, false, enTetes, -1, champs, selection, true);
+				
+		Rectangle cadre = Parametres::afficherColonnes(TRAD("reg Général"), premier, nbAffiches, false, enTetes, -1, champs, selection, true);
 		
 		valider.definir(POLICE_DECO, 26 * Ecran::echelleMin());
 		annuler.definir(POLICE_DECO, 26 * Ecran::echelleMin());
@@ -557,27 +583,27 @@ void Parametres::video(Image const &fond, Shader const &s) {
 	bool limiteIPS = Parametres::limiteIPS();
 	bool synchroVerticale = Parametres::synchroVerticale();
 	
-	char const *txt[2] = {"Désactivé", "Activé"};
+	Unichar txt[2] = {TRAD("reg Désactivé"), TRAD("reg Activé")};
 	
 	std::vector<etiquetteTexte_t> enTetes, champs;
 
-	enTetes.push_back(Unichar("Plein écran :"));
+	enTetes.push_back(Unichar(TRAD("reg Plein écran :")));
 	champs.push_back(Unichar());
 	
-	enTetes.push_back(Unichar("Résolution :"));
+	enTetes.push_back(Unichar(TRAD("reg Résolution :")));
 	champs.push_back(Unichar());
 
-	enTetes.push_back(Unichar("Synchronisation verticale :"));
+	enTetes.push_back(Unichar(TRAD("reg Synchronisation verticale :")));
 	champs.push_back(Unichar());
 
-	enTetes.push_back(Unichar("Limiter la fréquence d'affichage :"));
+	enTetes.push_back(Unichar(TRAD("reg Limiter la fréquence d'affichage :")));
 	champs.push_back(Unichar());
 
-	enTetes.push_back(Unichar("Afficher images par seconde :"));
+	enTetes.push_back(Unichar(TRAD("reg Afficher les images par seconde :")));
 	champs.push_back(Unichar());
 	
-	Texte valider("Valider",  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
-	Texte annuler("Annuler",  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
+	Texte valider(TRAD("reg Valider"),  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
+	Texte annuler(TRAD("reg Annuler"),  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
 	
 	Rectangle cadreAnnuler, cadreValider;
 	
@@ -604,10 +630,8 @@ void Parametres::video(Image const &fond, Shader const &s) {
 		s.definirParametre(Shader::tempsAbsolu, horloge());
 		fond.afficher(Coordonnees());
 		Shader::desactiver();
-		
-		Ecran::afficherRectangle(Ecran::ecran(), Couleur(0, 0, 0, 128));
-		
-		Rectangle cadre = Parametres::afficherColonnes("Vidéo", premier, nbAffiches, false, enTetes, -1, champs, selection, true);
+				
+		Rectangle cadre = Parametres::afficherColonnes(TRAD("reg Vidéo"), premier, nbAffiches, false, enTetes, -1, champs, selection, true);
 		
 		valider.definir(POLICE_DECO, 26 * Ecran::echelleMin());
 		annuler.definir(POLICE_DECO, 26 * Ecran::echelleMin());
@@ -682,8 +706,8 @@ void Parametres::video(Image const &fond, Shader const &s) {
 
 void Parametres::audio(Image const &fond, Shader const &s) {
 	std::vector<etiquetteTexte_t> texte, vide;
-	texte.push_back(Unichar("Volume musique"));
-	texte.push_back(Unichar("Volume effets"));
+	texte.push_back(Unichar(TRAD("reg Volume musique")));
+	texte.push_back(Unichar(TRAD("reg Volume effets")));
 	Unichar blanc("                                       ");
 	vide.push_back(blanc);
 	vide.push_back(blanc);
@@ -700,8 +724,8 @@ void Parametres::audio(Image const &fond, Shader const &s) {
 	
 	horloge_t ancienSon = 0;
 	
-	Texte valider("Valider",  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
-	Texte annuler("Annuler",  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
+	Texte valider(TRAD("reg Valider"),  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
+	Texte annuler(TRAD("reg Annuler"),  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
 	
 	Rectangle cadreAnnuler, cadreValider;
 
@@ -717,10 +741,8 @@ void Parametres::audio(Image const &fond, Shader const &s) {
 		s.definirParametre(Shader::tempsAbsolu, horloge());
 		fond.afficher(Coordonnees());
 		Shader::desactiver();
-		
-		Ecran::afficherRectangle(Ecran::ecran(), Couleur(0, 0, 0, 128));
-		
-		Rectangle cadre = Parametres::afficherColonnes("Audio", premier, nbAffiches, false, texte, -1, vide, -1, false);
+				
+		Rectangle cadre = Parametres::afficherColonnes(TRAD("reg Audio"), premier, nbAffiches, false, texte, -1, vide, -1, false);
 		
 		float *valeur[2] = {&vMusique, &vEffets};
 		shader.activer();
@@ -795,7 +817,7 @@ void Parametres::controles(Image const &fond, Shader const &s) {
 	
 	for(action_t i = premiereAction; i != nbActions; ++i) {
 		actions.push_back(Unichar(Parametres::transcriptionAction(i)));
-		etiquetteEvenements.push_back(Session::transcriptionEvenement(Parametres::evenementAction(i)));
+		etiquetteEvenements.push_back(Session::transcriptionEvenement(Parametres::evenementAction(i), false));
 		evenements[i] = _evenementsAction[i];
 	}
 	
@@ -804,8 +826,8 @@ void Parametres::controles(Image const &fond, Shader const &s) {
 	size_t nbAffiches = std::min<size_t>(actions.size(), 8);
 	horloge_t ancienDefilement = horloge();
 	
-	Texte valider("Valider",  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
-	Texte annuler("Annuler",  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
+	Texte valider(TRAD("reg Valider"),  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
+	Texte annuler(TRAD("reg Annuler"),  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
 	
 	Rectangle cadreAnnuler, cadreValider;
 
@@ -821,10 +843,8 @@ void Parametres::controles(Image const &fond, Shader const &s) {
 		s.definirParametre(Shader::tempsAbsolu, horloge());
 		fond.afficher(Coordonnees());
 		Shader::desactiver();
-		
-		Ecran::afficherRectangle(Ecran::ecran(), Couleur(0, 0, 0, 128));
-		
-		Rectangle cadre = Parametres::afficherColonnes("Contrôles", premier, nbAffiches, modification, actions, -1, etiquetteEvenements, selection, false);
+				
+		Rectangle cadre = Parametres::afficherColonnes(TRAD("reg Contrôles"), premier, nbAffiches, modification, actions, -1, etiquetteEvenements, selection, false);
 
 		valider.definir(POLICE_DECO, 26 * Ecran::echelleMin());
 		annuler.definir(POLICE_DECO, 26 * Ecran::echelleMin());
@@ -840,7 +860,7 @@ void Parametres::controles(Image const &fond, Shader const &s) {
 		Ecran::finaliser();
 		
 		for(action_t i = premiereAction; i != nbActions; ++i) {
-			etiquetteEvenements[i]._texte.definir(Session::transcriptionEvenement(evenements[i]));
+			etiquetteEvenements[i]._texte.definir(Session::transcriptionEvenement(evenements[i], false));
 		}
 
 		if(!modification) {
@@ -1093,24 +1113,24 @@ void Parametres::gestionEvenementsAfficheur(horloge_t &ancienDefilement, bool &c
 	}
 }
 
-char const *Parametres::transcriptionAction(action_t a) {
+Unichar Parametres::transcriptionAction(action_t a) {
 	switch(a) {
 		case depBas:
-			return "Bas";			
+			return TRAD("reg ta Bas");			
 		case depHaut:
-			return "Haut";
+			return TRAD("reg ta Haut");
 		case depDroite:
-			return "Droite";
+			return TRAD("reg ta Droite");
 		case depGauche:
-			return "Gauche";
+			return TRAD("reg ta Gauche");
 		case afficherInventaire:
-			return "Afficher/masquer l'inventaire";
+			return TRAD("reg ta Afficher/masquer l'inventaire");
 		case interagir:
-			return "Interagir/Ramasser";
+			return TRAD("reg ta Interagir/ramasser");
 		case remplirVie:
-			return "Potion de vie";
+			return TRAD("reg ta Potion de vie");
 		case nbActions:
-			return 0;
+			return Unichar::uninull;
 	}
 }
 
@@ -1139,22 +1159,22 @@ void Parametres::afficherCredits(Image const &fond, Shader const &s) {
 	std::vector<etiquetteTexte_t> noms, roles;
 	
 	noms.push_back(Unichar("Marc Promé"));
-	roles.push_back(Unichar("Level design, graphismes, programmation"));
+	roles.push_back(Unichar(TRAD("cred Level design, graphismes, programmation")));
 
 	noms.push_back(Unichar("Rémi Saurel"));
-	roles.push_back(Unichar("Level design, graphismes, programmation"));
+	roles.push_back(Unichar(TRAD("cred Level design, graphismes, programmation")));
 	
 	noms.push_back(Unichar("OpenGameArt.org"));
-	roles.push_back(Unichar("Graphismes"));
+	roles.push_back(Unichar(TRAD("cred Graphismes")));
 	
 	noms.push_back(Unichar("Semaphore (Newgrounds)"));
-	roles.push_back(Unichar("Musique \"Dream of Water and Land\""));
+	roles.push_back(Unichar(TRAD("cred Musique %1", "Dream of Water and Land")));
 	
 	noms.push_back(Unichar("Sexual-Lobster (Newgrounds)"));
-	roles.push_back(Unichar("Musique \"Man vs. Walrus-Man\""));
+	roles.push_back(Unichar(TRAD("cred Musique %1", "Man vs. Walrus-Man")));
 
 	noms.push_back(Unichar("Xerferic (Newgrounds)"));
-	roles.push_back(Unichar("Musique \"Laid-Back\""));
+	roles.push_back(Unichar(TRAD("cred Musique %1", "Laid-Back")));
 	
 	for(int i = 0; i < noms.size(); ++i) {
 		noms[i]._texte.definir(POLICE_DECO, 16 * Ecran::echelleMin());
@@ -1162,7 +1182,7 @@ void Parametres::afficherCredits(Image const &fond, Shader const &s) {
 	}
 	
 	bool continuer = true;
-	Texte ok("Retour",  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
+	Texte ok(TRAD("cred Retour"),  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
 	Rectangle cadreOk;
 	
 	Session::reinitialiserEvenements();
@@ -1177,10 +1197,8 @@ void Parametres::afficherCredits(Image const &fond, Shader const &s) {
 		s.definirParametre(Shader::tempsAbsolu, horloge());
 		fond.afficher(Coordonnees());
 		Shader::desactiver();
-		
-		Ecran::afficherRectangle(Ecran::ecran(), Couleur(0, 0, 0, 128));
-		
-		Rectangle cadre = Parametres::afficherColonnes("Crédits", 0, noms.size(), false, noms, -1, roles, -1, false, 40);
+				
+		Rectangle cadre = Parametres::afficherColonnes(TRAD("cred Crédits"), 0, noms.size(), false, noms, -1, roles, -1, false, 40);
 		
 		cadreOk.definirDimensions(ok.dimensions()); 
 		cadreOk.definirOrigine(cadre.origine() + Coordonnees(20 * Ecran::echelleMin(), 20 * Ecran::echelleMin() + cadre.hauteur)); 

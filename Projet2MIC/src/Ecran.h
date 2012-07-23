@@ -12,7 +12,7 @@
 #include "Geometrie.h"
 #include <string>
 #include <list>
-#include "fonctions.h"
+#include "nombre.h"
 #include <exception>
 
 #define LARGEUR_ECRAN 800

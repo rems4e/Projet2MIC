@@ -1,0 +1,244 @@
+// Transcritions événements
+"tev souris gauche" = "souris gauche";
+"tev souris droite" = "souris droite";
+"tev déplacement souris" = "déplacement souris";
+"tev espace" = "espace";
+"tev tab" = "tab";
+"tev gauche" = "gauche";
+"tev droite" = "droite";
+"tev haut" = "haut";
+"tev bas" = "bas";
+"tev esc" = "esc";
+"tev effacer" = "effacer";
+"tev entrée" = "entrée";
+"tev quitter" = "quitter";
+"tev aucun événement" = "<aucun événement>";
+"tmod cmd" = "cmd";
+"tmod ctrl" = "ctrl";
+"tmod alt" = "alt";
+"tmod maj" = "maj";
+
+// Éléments niveau
+"eniv Entité statique" = "Entité statique";
+"eniv Sol" = "Sol";
+"eniv Ennemi" = "Ennemi";
+"eniv Arbre" = "Arbre";
+"eniv Entité statique animée" = "Entité statique animée";
+"eniv Objet inventaire" = "Objet inventaire";
+"eniv Téléporteur" = "Téléporteur";
+"eniv Maison" = "Maison";
+"eniv Arbre mort" = "Arbre mort";
+"eniv Marchand" = "Marchand";
+"eniv Boss" = "Boss";
+
+// Inventaire
+// %1 : prix objet
+"inv %1 p. or" = "%1 p. or";
+// %1 : défense de l'objet
+"inv Défense : %1" = "Défense : %1;
+// %1 : points de vie de l'objet
+"inv Points de vie : %1" = "Points de vie : %1;
+// %1 : défense objet
+"inv Attaque : %1" = "Attaque : %1;
+
+"obji Arme" = "obji Arme";
+"obji Bouclier" = "obji Bouclier";
+"obji Armure" = "obji Armure";
+"obji Bottes" = "obji Bottes";
+"obji Gants" = "obji Gants";
+"obji Casque" = "obji Casque";
+"obji Potion" = "obji Potion";
+"obji Clé" = "obji Clé";
+
+// Général
+"gen Chargement…" = "Chargement…";
+"gen Version de développement" = "Version de développement";
+"gen Mise à jour disponible !" = "Mise à jour disponible !";
+"gen Cliquez pour l'afficher." = "Cliquez pour l'afficher.";
+
+"gen Menu principal" = "Menu principal";
+"gen Nouvelle partie" = "Nouvelle partie";
+"gen Charger une partie" = "Charger une partie";
+"gen Réglages" = "Réglages";
+"gen Crédits" = "Crédits";
+"gen Éditeur de niveaux" = "Éditeur de niveaux";
+"gen Quitter" = "Quitter";
+
+"menu Retour" = "Retour";
+
+// Réglages
+"reg Réglages" = "Réglages";
+"reg Contrôles" = "Contrôles";
+"reg Audio" = "Audio";
+"reg Vidéo" = "Vidéo";
+"reg Général" = "Général";
+
+"reg Activé" = "Activé";
+"reg Désactivé" = "Desactivé";
+"reg Valider" = "Valider";
+"reg Annuler" = "Annuler";
+
+"reg Rechercher les mises à jour" = "Rechercher les mises à jour";
+
+"reg Plein écran :" = "Plein écran :";
+"reg Résolution :" = "Résolution :";
+"reg Synchronisation verticale :" = "Synchronisation verticale :";
+"reg Limiter la fréquence d'affichage :" = "Limiter la fréquence d'affichage :";
+"reg Afficher les images par seconde :" = "Afficher les images par seconde :";
+"reg Volume musique" = "Volume musique";
+"reg Volume effets" = "Volume effets";
+
+"reg ta Bas" = "Bas";
+"reg ta Haut" = "Haut";
+"reg ta Droite" = "Droite";
+"reg ta Gauche" = "Gauche";
+"reg ta Afficher/masquer l'inventaire" = "Afficher/masquer l'inventaire";
+"reg ta Interagir/ramasser" = "Interagir/ramasser";
+"reg ta Potion de vie" = "Potion de vie";
+
+"cred Crédits" = "Crédits";
+"cred Level design, graphismes, programmation" = "Level design, graphismes, programmation";
+"cred Graphismes" = "Graphismes";
+// %1 : nom musique
+"cred Musique %1" = "Musique \"%1\"";
+"cred Retour" = "Retour";
+
+// Niveau
+"niv Chargement…" = "Chargement";
+
+// Compétences perso
+"compét Force" = "Force";
+"compét Agilité" = "Agilité";
+"compét Endurance" = "Endurance";
+
+// Tableau de bord
+// %1 : vie actuelle joueur, %2 : vie totale joueur
+"tabBord vie %1/%2" = "%1/%2";
+// %1 : niveau du joueur, %2 : xp du joueur, %3 : xp pour passer au niveau suivant
+"tabBord Niveau %1 - %2/%3" = "Niveau %1 - %2/%3";
+// %1 : vie actuele de l'ennemi, %2 : vie totale de l'ennemi
+"tabBord Attaquer l'ennemi (%1/%2 vie)" = "Attaquer l'ennemi (%1/%2 vie)";
+"tabBord Acheter/vendre des objets" = "Acheter/vendre des objets";
+
+// %1 : soit le nombre d'objets, soit la quantité d'or, %2 : la quantité d'or
+"tabBord Ramasser 1 objet" = "Ramasser 1";
+"tabBord Ramasser %1 objets" = "Ramasser %1 objets";
+"tabBord Ramasser 1 objet et 1 or" = "Ramasser 1 objet et 1 or";
+"tabBord Ramasser %1 objets et 1 or" = "Ramasser %1 objets et 1 or";
+"tabBord Ramasser 1 or" = "Ramasser 1 or";
+"tabBord Ramasser 1 objet et %1 or" = "Ramasser 1 objet et %1 or";
+"tabBord Ramasser %1 objets et %2 or" = "Ramasser %1 objets et %2 or";
+"tabBord Ramasser %1 or" = "Ramasser %1 or";
+
+"tabBord Terminer le niveau" = "Terminer le niveau";
+
+// Partie
+"partie Choisissez une sauvegarde :" = "Choisisssez une sauvegarde";
+// %1 : numéro du slot
+"partie Slot %1 (occupé)" = "Slot %1 (occupé)";
+"partie Slot %1 (libre)" = "Slot %1 (libre)";
+"partie Slot %1" = "Slot %1";
+"partie Remplacer la sauvegarde ?" = "Remplacer la sauvegarde";
+"partie Remplacer" = "Remplacer";
+"partie Annuler" = "Annuler";
+"partie charge Choisissez une sauvegarde :" = "Choisissez une sauvegarde :";
+
+"partie Pause" = "Pause";
+"partie Sauvegarder la partie" = "Sauvegarder la partie";
+"partie Charger une partie" = "Charger une partie";
+"partie Menu principal" = "Menu principal";
+
+"partie Quitter sans sauvegarder ?" = "Quitter sans sauvegarder ?";
+"partie Quitter" = "Quitter";
+"partie Retour" = "Retour";
+
+"partie T'es mort !" = "T'es mort !";
+"partie Recommencer" = "Recommencer";
+
+
+//////////////////////////////////////////////////////////////////////////
+ //                                             Éditeur                                                            //
+//////////////////////////////////////////////////////////////////////////
+
+// Menu principal
+"ed Ouvrir un niveau" = "Ouvrir un niveau";
+"ed Créer un niveau" = "Créer un niveau";
+"ed Quitter" = "Quitter";
+"ed Éditeur de niveaux" = "Éditeur de niveaux";
+
+// Choix niveau
+// %1 : numéro niveau
+"ed Niveau %1" = "Niveau %1";
+"ed Ouvrir un niveau :" = "Ouvrir un niveau";
+
+// Menu
+"ed Enregistrer le niveau" = "Enregistrer le niveau";
+"ed Revenir à la version enregistrée" = "Revenir à la version enregistrée";
+"ed Réglages" = "Réglages";
+"ed Quitter l'éditeur" = "Quitter l'éditeur";
+"ed Menu éditeur" = "Menu éditeur";
+
+// Confirmation fermeture
+"ed Enregistrer" = "Enregistrer";
+"ed Ne pas enregistrer" = "Ne pas enregistrer";
+"ed Niveau modifié. Enregistrer ?" = "Niveau modifié. Enregistrer ?";
+
+// Inventaire
+"ed Entités sélectionnées :" = "Entités sélectionnées";
+"ed Entité sélectionnée :" = "Entité sélectionnée";
+"ed Aucune sélection" = "Aucune sélection";
+"ed Sélectionner les entités identiques" = "Sélectionner les entités\nidentiques";
+"ed Remplissage grille…" = "Remplissage grille…";
+"ed Cases vides" = "Cases vides";
+"ed Case vide" = "Case vide";
+"ed Sélection hétérogène" = "Sélection hétérogène";
+"ed Défini par : Loi de probabilité" = "Défini par :\nLoi de probabilité";
+"ed Lois différentes" = "Lois différentes";
+// %1 : n° de loi, %2 : nom de la loi
+"ed Loi n°%1 (%2)" = "Loi n°%1 (%2)";
+"ed Défini par : Catégorie + index" = "Défini par :\nCatégorie + index";
+"ed Catégories différentes" = "Catégories différentes";
+// %1 : nom de la catégorie
+"ed Catégorie : %1" = "Catégorie :\n%1";
+"ed Index différents" = "Index différents";
+// %1 : index de l'élément
+"ed Index : %1" = "Index : %1";
+
+// Contrôles
+// %1 : nom de la couche
+"ed Afficher la couche : %1" = "Afficher la couche :\n%1";
+"ed Éditer les lois de proba" = "Éditer les lois de proba";
+"ed Éditer les dimensions du niveau" = "Éditer les dimensions\ndu niveau";
+
+// Réglages du niveau
+"ed Réglages du niveau" = "Réglages du niveau";
+"ed Valider" = "Valider";
+"ed Annuler" = "Annuler";
+
+// Modif entités
+"ed Choisissez une loi de probabilité :" = "Choisissez une loi de probabilité";
+// %1 : index loi, %2 : nom de la loi
+"ed Loi %1 (%2)" = "Loi %1 (%2)";
+"ed Ajouter une loi" = "Ajouter une loi";
+"ed Choisissez une loi à modifier :" = "Choisissez une loi à modifier :";
+// %1 : numéro de loi, %2 : nom de la loi.
+"ed Édition de la loi %1 (%2) :" = "Édition de la loi %1 (%2) :";
+"ed Supprimer la loi" = "Supprimer la loi";
+"ed La loi de probabilité est utilisée !" = "La loi de probabilité est utilisée !";
+"ed annulerSupLoi OK" = "OK";
+"ed Redimensionnement du niveau" = "Redimensionnement du niveau";
+"ed redimNiveau OK" = "OK";
+"ed Largeur (X) : " = "Largeur (X) : ";
+"ed Hauteur (Y) : " = "Hauteur (Y) : ";
+"ed Des éléments seront supprimés" = "Des élements seront supprimés";
+"ed redimNiveauConfirm Continuer" = "Continuer";
+
+"ed Choisissez un index :" = "Choisissez un index :";
+"ed Choisissez une couche :" = "Choisissez une couche :";
+"ed Choisissez une catégorie :" = "Choisissez une catégorie :";
+
+"ed Loi de probabilité" = "Loi de probabilité";
+"ed Catégorie + index" = "Catégorie + index";
+"ed Dernière entité utilisée" = "Dernière entité utilisée";
+"ed L'entité est définie par :" = "L'entité est définie par :";
+"ed Les entités sont définies par :" = "Les entités sont définies par :";

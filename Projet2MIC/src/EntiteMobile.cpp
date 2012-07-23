@@ -12,7 +12,8 @@
 #include "tinyxml.h"
 #include "Niveau.h"
 #include <cmath>
-#include "fonctions.h"
+#include "nombre.h"
+#include "Session.h"
 
 EntiteMobile::action_t &operator++(EntiteMobile::action_t &c) { return c = static_cast<EntiteMobile::action_t>(static_cast<int>(c + 1)); }
 

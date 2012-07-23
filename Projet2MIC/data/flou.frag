@@ -24,5 +24,7 @@ void main(void) {
 	couleur /= nb;
 	couleur *= _color;
 	
+	couleur.rgb *= 0.6;
+	
 	gl_FragColor = couleur;
 }

@@ -10,8 +10,8 @@
 #ifndef CONSTANTES_H
 #define CONSTANTES_H
 
-#define VERSION_MAJ 0
-#define VERSION_MIN 9
+#define VERSION_MAJ 1
+#define VERSION_MIN 1
 
 #define DEVELOPPEMENT
 
@@ -37,9 +37,5 @@
 
 typedef size_t uindex_t;
 typedef ssize_t index_t;
-
-namespace Session {
-	std::string const &cheminRessources();
-}
 
 #endif

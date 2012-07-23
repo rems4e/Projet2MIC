@@ -15,6 +15,7 @@
 #include "Image.h"
 #include "horloge.h"
 #include <exception>
+#include "Unichar.h"
 
 class Niveau;
 class TiXmlElement;
@@ -106,7 +107,7 @@ public:
 	uindex_t index() const;
 
 	static TiXmlElement *description(uindex_t index, elementNiveau_t cat);
-	static char const *nomCategorie(elementNiveau_t cat);
+	static Unichar nomCategorie(elementNiveau_t cat);
 
 protected:
 	ElementNiveau(bool decoupagePerspective, Niveau *n, uindex_t index, elementNiveau_t cat) throw(Exc_DefinitionEntiteIncomplete);

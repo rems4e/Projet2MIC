@@ -12,7 +12,7 @@
 #include "EntiteMobile.h"
 #include "EntiteStatique.h"
 #include "Session.h"
-#include "fonctions.h"
+#include "nombre.h"
 #include "Personnage.h"
 #include "Joueur.h"
 #include <cmath>
@@ -85,7 +85,7 @@ Niveau::Case::Case() : _entites(), _monnaie(0), _transitions() {
 }
 
 Niveau::Niveau(Joueur *j, std::string const &nomFichier) : _elements(0), _dimX(0), _dimY(0), _entitesMobiles(), _perso(), _bordures(), _persoInit(), _pluie(Session::cheminRessources() + "aucun.vert", Session::cheminRessources() + "pluie.frag"), _transitionSol(Session::cheminRessources() + "aucun.vert", Session::cheminRessources() + "transitionSol.frag"), _tonnerre(0), _transitionsBordures(), _musique(0) {	
-	Texte txt("Chargement…", POLICE_DECO, TAILLE_TEXTE_CHARGEMENT, Couleur::blanc);
+	Texte txt(TRAD("niv Chargement…"), POLICE_DECO, TAILLE_TEXTE_CHARGEMENT, Couleur::blanc);
 	Ecran::afficherRectangle(Ecran::ecran(), Couleur::noir);
 	txt.afficher(Coordonnees((Ecran::dimensions().x - txt.dimensions().x) / 2, (Ecran::dimensions().y - txt.dimensions().y) / 2 - 50));
 	Ecran::maj();
@@ -824,6 +824,7 @@ void Niveau::definirJoueur(Joueur *j) {
 	this->definirContenuCase(j->pX(), j->pY(), _perso->couche(), _perso);
 }
 
+// FIXME: traduction (éditeur…)
 char const *Niveau::nomCouche(couche_t couche) {
 	switch(couche) {
 		case cn_objet:

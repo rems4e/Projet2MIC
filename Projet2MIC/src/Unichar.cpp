@@ -1,10 +1,10 @@
-//
-//  Unichar.cpp
-//  Projet2MIC
-//
-//  Créé par Marc Promé et Rémi Saurel.
-//  Ce fichier et son contenu sont librement distribuables, modifiables et utilisables pour toute œuvre non commerciale, à condition d'en citer les auteurs.
-//
+/*
+ *  Unichar.cpp
+ *
+ *  Created by Rémi on 06/05/11.
+ *  Copyright 2011 Rémi Saurel. All rights reserved.
+ *
+ */
 
 #include "Unichar.h"
 #include <cstring>
@@ -28,17 +28,24 @@ static Unichar::unichar const uniAcc[nbLettresAccentuees] = {0xC0, 0xC8, 0xCC, 0
 static bool const tilde[nbLettresAccentuees] = {true, false, false, true, false};
 static int const correspondanceAccents[9] = {GRAVE, AIGU, CIRCONFLEXE, TILDE, -1, -1, -1, -1, TREMA};
 
-//template Unichar::Unichar(std::vector<int>::const_iterator, std::vector<int>::const_iterator);
-
-Unichar::Unichar(char const *txt, size_t nbCar) : _unitxt(), _txt() {
+Unichar::Unichar(char const *txt, size_t nbCar) : _unitxt(), _utf8(), _utf8AJour(false) {
 	this->init(txt, nbCar);
 }
 
-Unichar::Unichar(std::string const &txt) : _unitxt(), _txt() {
+Unichar::Unichar(std::string const &txt) : _unitxt(), _utf8(), _utf8AJour(false) {
 	this->init(txt.c_str(), txt.size());
 }
 
-Unichar::Unichar(Unichar const &txt) : _unitxt(txt._unitxt), _txt(txt._txt) {
+Unichar::Unichar(Unichar const &txt) : _unitxt(txt._unitxt), _utf8(txt._utf8), _utf8AJour(txt._utf8AJour) {
+}
+
+Unichar &Unichar::operator=(Unichar const &txt) {
+	_unitxt = txt._unitxt;
+	_utf8AJour = txt._utf8AJour;
+	if(_utf8AJour)
+		_utf8 = txt._utf8;
+	
+	return *this;
 }
 
 Unichar::~Unichar() {
@@ -54,24 +61,25 @@ void Unichar::init(char const *txt, size_t nbCar) {
 	}
 	
 	_unitxt.clear();
-	_txt.assign(txt, nbCar);
+	_utf8.assign(txt, nbCar);
+	_utf8AJour = true;
 
-	for(unichar i = 0, c; i < nbCar; ++i) {
-		c = ((unsigned char *)txt)[i];
+	for(uindex_t i = 0; i < nbCar; ++i) {
+		unichar c = reinterpret_cast<unsigned char const *>(txt)[i];
 		if(c >= 0xF0) {
-			c = (unichar)(txt[i] & 0x07) << 18;
-			c |= (unichar)(txt[++i] & 0x3F) << 12;
-			c |= (unichar)(txt[++i] & 0x3F) << 6;
-			c |= (unichar)(txt[++i] & 0x3F);
+			c = static_cast<unichar>(txt[i] & 0x07) << 18;
+			c |= static_cast<unichar>(txt[++i] & 0x3F) << 12;
+			c |= static_cast<unichar>(txt[++i] & 0x3F) << 6;
+			c |= static_cast<unichar>(txt[++i] & 0x3F);
 		}
 		else if(c >= 0xE0) {
-			c = (unichar)(txt[i] & 0x0F) << 12;
-			c |= (unichar)(txt[++i] & 0x3F) << 6;
-			c |= (unichar)(txt[++i] & 0x3F);
+			c = static_cast<unichar>(txt[i] & 0x0F) << 12;
+			c |= static_cast<unichar>(txt[++i] & 0x3F) << 6;
+			c |= static_cast<unichar>(txt[++i] & 0x3F);
 		}
 		else if(c >= 0xC0) {
-			c = (unichar)(txt[i] & 0x1F) << 6;
-			c |= (unichar)(txt[++i] & 0x3F);
+			c = static_cast<unichar>(txt[i] & 0x1F) << 6;
+			c |= static_cast<unichar>(txt[++i] & 0x3F);
 		}
 		if((c == AC_GRAVE  || c == AC_AIGU || c == AC_CIRCONFLEXE || c == AC_TILDE || c == AC_TREMA) && _unitxt.size()) {
 			int let = -1;
@@ -117,9 +125,8 @@ void Unichar::init(char const *txt, size_t nbCar) {
 }
 
 size_t Unichar::unisize(char const *utf8txt) {
-	size_t i = 0;
-	for(long c; *utf8txt; ++utf8txt, ++i) {
-		c = *((unsigned char *)utf8txt);
+	size_t taille = 0;
+	for(unsigned char c = *reinterpret_cast<unsigned char const *>(utf8txt); *utf8txt; ++utf8txt, ++taille) {
 		if(c >= 0xF0) {
 			utf8txt += 3;
 		}
@@ -131,53 +138,50 @@ size_t Unichar::unisize(char const *utf8txt) {
 		}
 	}
 	
-	return i;
+	return taille;	
 }
 
 void Unichar::replace(iterator i1, iterator i2, Unichar const &txt) {
 	iterator i = _unitxt.erase(i1, i2);
 	_unitxt.insert(i, txt.begin(), txt.end());
-	_txt = this->calcUtf8();
+	_utf8AJour = false;
 }
 
 void Unichar::replace(iterator i1, iterator i2, std::string const &txt) {
 	Unichar t(txt);
 	iterator i = _unitxt.erase(i1, i2);
 	_unitxt.insert(i, t.begin(), t.end());
-	_txt = this->calcUtf8();
+	_utf8AJour = false;
 }
 
-void Unichar::replace(iterator i1, iterator i2, char c) {
-	if(i1 == i2)
-		return;
-	_unitxt.erase(i1 + 1, i2);
-	*i1 = c;
+void Unichar::replace(iterator i1, iterator i2, unichar c) {
+	iterator i = _unitxt.erase(i1, i2);
+	_unitxt.insert(i, c);
+	_utf8AJour = false;
 }
 
-std::string Unichar::calcUtf8() const {
-	std::string txt;
-	for(unsigned int i = 0; i < _unitxt.size(); ++i) {
+void Unichar::calcUtf8() const {
+	_utf8.clear();
+	for(uindex_t i = 0; i < _unitxt.size(); ++i) {
 		int c = _unitxt[i];
 		
 		if(c < 0x80) {
-			txt.push_back(c);
+			_utf8.push_back(c);
 		}
 		else if(c < 0x800) {
-			txt.push_back(0xC0 | c >> 6);
-			txt.push_back(0x80 | (c & 0x3F));
+			_utf8.push_back(0xC0 | c >> 6);
+			_utf8.push_back(0x80 | (c & 0x3F));
 		}
 		else if(c < 0x10000) {
-			txt.push_back(0xE0 | c >> 12);
-			txt.push_back(0x80 | (c >> 6 & 0x3F));
-			txt.push_back(0x80 | (c & 0x3F));
+			_utf8.push_back(0xE0 | c >> 12);
+			_utf8.push_back(0x80 | (c >> 6 & 0x3F));
+			_utf8.push_back(0x80 | (c & 0x3F));
 		}
 		else if(c < 0x200000) {
-			txt.push_back(0xF0 | c >> 18);
-			txt.push_back(0x80 | (c >> 12 & 0x3F));
-			txt.push_back(0x80 | (c >> 6 & 0x3F));
-			txt.push_back(0x80 | (c & 0x3F));
+			_utf8.push_back(0xF0 | c >> 18);
+			_utf8.push_back(0x80 | (c >> 12 & 0x3F));
+			_utf8.push_back(0x80 | (c >> 6 & 0x3F));
+			_utf8.push_back(0x80 | (c & 0x3F));
 		}
-	}
-	
-	return txt;
+	}	
 }

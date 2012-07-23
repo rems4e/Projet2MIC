@@ -43,7 +43,7 @@ Editeur *Editeur::editeur() {
 	return _editeur;
 }
 
-Editeur::Editeur() : _sauve(Session::cheminRessources() + "save.png"), _select(Session::cheminRessources() + "select.png"), _coller(Session::cheminRessources() + "coller.png"), _copier(Session::cheminRessources() + "copier.png"), _recharger(Session::cheminRessources() + "recharger.png"), _annuler(Session::cheminRessources() + "annuler.png"), _retablir(Session::cheminRessources() + "retablir.png") {
+Editeur::Editeur() : _sauve(Session::cheminRessources() + "save.png"), _select(Session::cheminRessources() + "select.png"), _coller(Session::cheminRessources() + "coller.png"), _copier(Session::cheminRessources() + "copier.png"), _recharger(Session::cheminRessources() + "recharger.png"), _annuler(Session::cheminRessources() + "annuler.png"), _retablir(Session::cheminRessources() + "retablir.png"), _reglages(Session::cheminRessources() + "reglages.png") {
 	
 }
 
@@ -51,17 +51,18 @@ Editeur::~Editeur() {
 	Editeur::_editeur = 0;
 }
 
-void Editeur::ouvrirEditeur(Image &fond, Shader &s) {
-	std::vector<Unichar> el;
-	el.push_back("Ouvrir un niveau");
-	el.push_back("Créer un niveau");
-	el.push_back("Quitter");
-	Menu m("Éditeur de niveaux", el, "");
-	
+void Editeur::ouvrirEditeur(Image &fond, Shader &s) {	
 	index_t selection;
 	
 	do {
+		std::vector<Unichar> el;
+		el.push_back(TRAD("ed Ouvrir un niveau"));
+		el.push_back(TRAD("ed Créer un niveau"));
+		el.push_back(TRAD("ed Quitter"));
+		Menu m(TRAD("ed Éditeur de niveaux"), el, "");
+
 		selection = m.afficher(0, fond, s);
+		// Ouvrir niveau
 		if(selection == 0) {
 			std::vector<Unichar> el;
 			std::vector<std::string> f = NavigateurFichiers::listeFichiers(Session::cheminRessources(), std::vector<std::string>(1, "xml"));
@@ -71,17 +72,18 @@ void Editeur::ouvrirEditeur(Image &fond, Shader &s) {
 				if(pos == f.end())
 					break;
 				else
-					el.push_back("Niveau " + nombreVersTexte(i));
+					el.push_back(TRAD("ed Niveau %1", i));
 			}
 			
 			if(el.size()) {
-				Menu choix("Ouvrir un niveau :", el);
+				Menu choix(TRAD("ed Ouvrir un niveau :"), el);
 				index_t selection = choix.afficher(0, fond, s);
 				if(selection != el.size()) {
 					this->editerNiveau("niveau" + nombreVersTexte(selection + 1) + ".xml");
 				}
 			}
 		}
+		// Créer niveau
 		else if(selection == 1) {
 			std::vector<std::string> f = NavigateurFichiers::listeFichiers(Session::cheminRessources(), std::vector<std::string>(1, "xml"));
 			
@@ -118,15 +120,7 @@ void Editeur::editerNiveau(std::string const &fichier) {
 	_outil = o_selection;
 	
 	_aIndex = -1;
-	
-	std::vector<Unichar> elemMenus;
-	elemMenus.push_back("Enregistrer le niveau");
-	elemMenus.push_back("Revenir à la version enregistrée");
-	elemMenus.push_back("Réglages");
-	elemMenus.push_back("Quitter l'éditeur");
 		
-	Menu menuEditeur("Menu éditeur", elemMenus);
-	
 	while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, _continuer)) {
 		Editeur::initCadres();
 
@@ -137,6 +131,15 @@ void Editeur::editerNiveau(std::string const &fichier) {
 		
 		if(Session::evenement(Session::T_ESC)) {
 			Image *fond = Ecran::apercu();
+
+			std::vector<Unichar> elemMenus;
+			elemMenus.push_back(TRAD("ed Enregistrer le niveau"));
+			elemMenus.push_back(TRAD("ed Revenir à la version enregistrée"));
+			elemMenus.push_back(TRAD("ed Réglages"));
+			elemMenus.push_back(TRAD("ed Quitter l'éditeur"));
+			
+			Menu menuEditeur(TRAD("ed Menu éditeur"), elemMenus);
+
 			index_t retour = menuEditeur.afficher(0, *fond);
 			if(retour < elemMenus.size()) {
 				if(retour == 3) {
@@ -239,10 +242,10 @@ void Editeur::editerNiveau(std::string const &fichier) {
 
 void Editeur::demandeEnregistrement(Image const &fond) {
 	std::vector<Unichar> txt;
-	txt.push_back("Enregistrer");
-	txt.push_back("Ne pas enregistrer");
+	txt.push_back(TRAD("ed Enregistrer"));
+	txt.push_back(TRAD("ed Ne pas enregistrer"));
 	
-	Menu m("Niveau modifié. Enregistrer ?", txt);
+	Menu m(TRAD("ed Niveau modifié. Enregistrer ?"), txt);
 	index_t retour = m.afficher(0, fond);
 	if(retour == 0) {
 		this->enregistrer();
@@ -402,13 +405,13 @@ void Editeur::afficherInventaire() {
 	}
 
 	if(tailleSelection > 1) {
-		cc.definir("Entités sélectionnées :");
+		cc.definir(TRAD("ed Entités sélectionnées :"));
 	}
 	else if(tailleSelection == 1) {
-		cc.definir("Entité sélectionnée :");
+		cc.definir(TRAD("ed Entité sélectionnée :"));
 	}
 	else {
-		cc.definir("Aucune sélection");
+		cc.definir(TRAD("ed Aucune sélection"));
 	}
 	rectCat.definirDimensions(cc.dimensions());
 	cc.afficher(rectCat.origine());
@@ -477,7 +480,7 @@ void Editeur::afficherInventaire() {
 		
 		if(vide || (!diffProba && !diffIndexProba && !diffIndex && !diffCategorie)) {
 			rectCat.haut += rectCat.dimensions().y + 10;
-			cc.definir("Sélectionner les entités\nidentiques");
+			cc.definir(TRAD("ed Sélectionner les entités identiques"));
 			rectCat.definirDimensions(cc.dimensions());
 			cc.afficher(rectCat.origine());
 			
@@ -485,7 +488,7 @@ void Editeur::afficherInventaire() {
 		}
 		
 		rectCat.haut += rectCat.dimensions().y + 10;
-		cc.definir("Remplissage grille…");
+		cc.definir(TRAD("ed Remplissage grille…"));
 		rectCat.definirDimensions(cc.dimensions());
 		cc.afficher(rectCat.origine());
 		
@@ -494,9 +497,9 @@ void Editeur::afficherInventaire() {
 		if(vide) {
 			rectCat.haut += rectCat.dimensions().y + 10;
 			if(nbVide > 1)
-				cc.definir("Cases vides");
+				cc.definir(TRAD("ed Cases vides"));
 			else
-				cc.definir("Case vide");
+				cc.definir(TRAD("ed Case vide"));
 			rectCat.definirDimensions(cc.dimensions());
 			cc.afficher(rectCat.origine());
 			
@@ -504,7 +507,7 @@ void Editeur::afficherInventaire() {
 		}
 		else if(diffProba) {
 			rectCat.haut += rectCat.dimensions().y + 10;
-			cc.definir("Sélection hétérogène");
+			cc.definir(TRAD("ed Sélection hétérogène"));
 			rectCat.definirDimensions(cc.dimensions());
 			cc.afficher(rectCat.origine());
 			
@@ -513,20 +516,20 @@ void Editeur::afficherInventaire() {
 		else {
 			if(proba) {
 				rectCat.haut += rectCat.dimensions().y + 10;
-				cc.definir("Défini par :\nLoi de probabilité");
+				cc.definir(TRAD("ed Défini par : Loi de probabilité"));
 				rectCat.definirDimensions(cc.dimensions());
 				cc.afficher(rectCat.origine());
 				_fonctionsInventaire.push_back(std::make_pair(rectCat, &Editeur::modifProba));
 				
 				if(diffIndexProba) {
 					rectCat.haut += rectCat.dimensions().y + 10;
-					cc.definir("Lois différentes");
+					cc.definir(TRAD("ed Lois différentes"));
 					rectCat.definirDimensions(cc.dimensions());
 					cc.afficher(rectCat.origine());
 				}
 				else {
 					rectCat.haut += rectCat.dimensions().y + 10;
-					cc.definir("Loi n°" + nombreVersTexte(indexProba + 1) + " (" + _niveau->_probas[indexProba]._nom + ")");
+					cc.definir(TRAD("ed Loi n°%1 (%2)", indexProba + 1, _niveau->_probas[indexProba]._nom));
 					rectCat.definirDimensions(cc.dimensions());
 					cc.afficher(rectCat.origine());
 				}
@@ -534,20 +537,20 @@ void Editeur::afficherInventaire() {
 			}
 			else {
 				rectCat.haut += rectCat.dimensions().y + 10;
-				cc.definir("Défini par :\nCatégorie + index");
+				cc.definir(TRAD("ed Défini par : Catégorie + index"));
 				rectCat.definirDimensions(cc.dimensions());
 				cc.afficher(rectCat.origine());
 				_fonctionsInventaire.push_back(std::make_pair(rectCat, &Editeur::modifProba));
 
 				if(diffCategorie) {
 					rectCat.haut += rectCat.dimensions().y + 10;
-					cc.definir("Catégories différentes ");
+					cc.definir(TRAD("ed Catégories différentes "));
 					rectCat.definirDimensions(cc.dimensions());
 					cc.afficher(rectCat.origine());
 				}
 				else {
 					rectCat.haut += rectCat.dimensions().y + 10;
-					cc.definir(std::string("Catégorie :\n") + ElementNiveau::nomCategorie(cat));
+					cc.definir(TRAD("ed Catégorie : %1", ElementNiveau::nomCategorie(cat)));
 					rectCat.definirDimensions(cc.dimensions());
 					cc.afficher(rectCat.origine());
 				}
@@ -555,13 +558,13 @@ void Editeur::afficherInventaire() {
 				
 				if(diffIndex) {
 					rectCat.haut += rectCat.dimensions().y + 10;
-					cc.definir("Index différents");
+					cc.definir(TRAD("ed Index différents"));
 					rectCat.definirDimensions(cc.dimensions());
 					cc.afficher(rectCat.origine());
 				}
 				else {
 					rectCat.haut += rectCat.dimensions().y + 10;
-					cc.definir("Index " + nombreVersTexte(index));
+					cc.definir(TRAD("ed Index : %1", index));
 					rectCat.definirDimensions(cc.dimensions());
 					cc.afficher(rectCat.origine());
 				}
@@ -588,11 +591,6 @@ void Editeur::afficherControles() {
 	rect.definirDimensions(_recharger.dimensions());
 	_fonctionsControles.push_back(std::make_pair(rect, &Editeur::outilRecharger));
 
-	rect.gauche += _recharger.dimensions().x;
-	_select.afficher(rect.origine());
-	rect.definirDimensions(_select.dimensions());
-	_fonctionsControles.push_back(std::make_pair(rect, &Editeur::outilSelection));
-
 	rect.gauche += _select.dimensions().x;
 	_annuler.afficher(rect.origine());
 	rect.definirDimensions(_annuler.dimensions());
@@ -602,6 +600,11 @@ void Editeur::afficherControles() {
 	_retablir.afficher(rect.origine());
 	rect.definirDimensions(_retablir.dimensions());
 	_fonctionsControles.push_back(std::make_pair(rect, &Editeur::outilRetablir));
+	
+	rect.gauche += _retablir.dimensions().x;
+	_reglages.afficher(rect.origine());
+	rect.definirDimensions(_reglages.dimensions());
+	_fonctionsControles.push_back(std::make_pair(rect, &Editeur::outilReglages));
 
 	rect.gauche = Editeur::cadreControles().origine().x + 10;
 	rect.haut += rect.hauteur + 10;
@@ -611,6 +614,11 @@ void Editeur::afficherControles() {
 	_fonctionsControles.push_back(std::make_pair(rect, &Editeur::outilCopier));
 
 	rect.gauche += _copier.dimensions().x;
+	_select.afficher(rect.origine());
+	rect.definirDimensions(_select.dimensions());
+	_fonctionsControles.push_back(std::make_pair(rect, &Editeur::outilSelection));
+	
+	rect.gauche += _select.dimensions().x;
 	_coller.afficher(rect.origine());
 	rect.definirDimensions(_coller.dimensions());
 	_fonctionsControles.push_back(std::make_pair(rect, &Editeur::outilColler));
@@ -618,20 +626,20 @@ void Editeur::afficherControles() {
 	rect.gauche = Editeur::cadreControles().origine().x + 10;
 	rect.haut += rect.hauteur + 10;
 	
-	Texte cc(std::string("Afficher la couche : \n") + Niveau::nomCouche(_coucheEdition));
+	Texte cc(TRAD("ed Afficher la couche : %1", Niveau::nomCouche(_coucheEdition)));
 	cc.definir(Couleur::noir);
 	rect.definirDimensions(cc.dimensions());
 	cc.afficher(rect.origine());
 	_fonctionsControles.push_back(std::make_pair(rect, &Editeur::modifCouche));
 	
 	rect.haut += rect.hauteur + 10;
-	cc.definir("Éditer les lois de proba");
+	cc.definir(TRAD("ed Éditer les lois de proba"));
 	rect.definirDimensions(cc.dimensions());
 	cc.afficher(rect.origine());
 	_fonctionsControles.push_back(std::make_pair(rect, &Editeur::modifLoisProbas));
 
 	rect.haut += rect.hauteur + 10;
-	cc.definir("Éditer les dimensions\ndu niveau");
+	cc.definir(TRAD("ed Éditer les dimensions du niveau"));
 	rect.definirDimensions(cc.dimensions());
 	cc.afficher(rect.origine());
 	_fonctionsControles.push_back(std::make_pair(rect, &Editeur::modifDimensions));
@@ -800,6 +808,12 @@ void Editeur::outilRecharger() {
 	this->recharger();
 }
 
+void Editeur::outilReglages() {
+	Image *fond = Ecran::apercu();
+	this->reglages(*fond);
+	delete fond;
+}
+
 void Editeur::presenter(index_t x, index_t y) {
 	if(x != -1 && y != -1) {
 		//_origine = -Coordonnees(0, Ecran::hauteur() / 2) + referentielNiveauVersEcran(Coordonnees(x, y) * LARGEUR_CASE);
@@ -922,6 +936,56 @@ void Editeur::coller(index_t pX, index_t pY) {
 	this->posterAction(a);
 }
 
+void Editeur::reglages(Image &fond) {
+	bool continuer = true;
+	
+	Texte titre(TRAD("ed Réglages du niveau"), POLICE_GRANDE, 20);
+	
+	Rectangle cadreValider, cadreAnnuler;
+	Texte valider(TRAD("ed Valider"), POLICE_GRANDE, 20 * Ecran::echelleMin());
+	Texte annuler(TRAD("ed Annuler"), POLICE_GRANDE, 20 * Ecran::echelleMin());
+	while(Session::boucle(100.0f, continuer)) {		
+		Ecran::effacer();
+		
+		Shader::flou(1).activer();
+		fond.afficher(Coordonnees());
+		Shader::desactiver();
+		
+		Ecran::afficherRectangle(Ecran::ecran(), Couleur(255, 255, 255, 200));
+
+		titre.definir(POLICE_GRANDE, 20 * Ecran::echelleMin());
+		valider.definir(POLICE_GRANDE, 20 * Ecran::echelleMin());
+		annuler.definir(POLICE_GRANDE, 20 * Ecran::echelleMin());
+		
+		Rectangle pos(Coordonnees(80, 80), titre.dimensions());
+		
+		titre.afficher(pos.origine());
+		
+		pos.definirOrigine(pos.origine() + Coordonnees(0, pos.dimensions().y + 10 * Ecran::echelleMin()));
+		
+		cadreValider.definirDimensions(valider.dimensions()); 
+		cadreAnnuler.definirDimensions(annuler.dimensions()); 
+		cadreValider.definirOrigine(pos.origine() + Coordonnees(20 * Ecran::echelleMin(), 20 * Ecran::echelleMin())); 
+		cadreAnnuler.definirOrigine(cadreValider.origine() + Coordonnees(80 * Ecran::echelleMin() + cadreValider.largeur, 0));
+		
+		valider.afficher(cadreValider.origine());
+		annuler.afficher(cadreAnnuler.origine());
+		
+		Ecran::finaliser();
+		
+		if(Session::evenement(Session::B_GAUCHE)) {
+			if(Session::souris() < cadreValider) {
+				continuer = false;
+			}
+			else if(Session::souris() < cadreAnnuler) {
+				continuer = false;
+			}
+		}
+		
+		Ecran::maj();
+	}
+}
+
 void Editeur::recharger() {
 	std::string f = _niveau->_fichier;
 	delete _niveau;
@@ -997,7 +1061,7 @@ void Editeur::enregistrer() {
 	}
 	
 	if(!document->SaveFile())
-		std::cout << "La sauvegarde du fichier de niveau " << document->Value() << " a échoué. Vérifiez le chemin du fichier." << std::endl;
+		std::cerr << "La sauvegarde du fichier de niveau " << document->Value() << " a échoué. Vérifiez le chemin du fichier." << std::endl;
 	delete document;
 	
 	_modifie = false;
@@ -1021,7 +1085,7 @@ void Editeur::modifIndexProba() {
 	}
 	
 	Image *ap = Ecran::apercu();
-	index_t elem = choisirElement(cat, sel, "Choisissez une loi de probabilité :", *ap, &afficheRien);
+	index_t elem = choisirElement(cat, sel, TRAD("ed Choisissez une loi de probabilité :"), *ap, &afficheRien);
 	delete ap;
 	
 	_aIndexProba = elem;
@@ -1052,12 +1116,12 @@ void Editeur::modifIndexProba() {
 void Editeur::modifLoisProbas() {
 	std::vector<Unichar> lois;
 	for(std::vector<LoiProba>::iterator i = _niveau->_probas.begin(); i != _niveau->_probas.end(); ++i) {
-		lois.push_back("Loi " + nombreVersTexte(std::distance(_niveau->_probas.begin(), i) + 1) + " (" + i->_nom + ")");
+		lois.push_back(TRAD("ed Loi %1 (%2)", std::distance(_niveau->_probas.begin(), i) + 1, i->_nom));
 	}
-	lois.push_back("Ajouter une loi");
+	lois.push_back(TRAD("ed Ajouter une loi"));
 	
 	Image *fond = Ecran::apercu();
-	index_t elem = choisirElement(lois, 0, "Choisissez une loi à modifier :", *fond, &afficheRien);
+	index_t elem = choisirElement(lois, 0, TRAD("ed Choisissez une loi à modifier :"), *fond, &afficheRien);
 	
 	if(elem == lois.size() - 1) {
 		LoiProba l("proba" + nombreVersTexte(Editeur::editeur()->_niveau->_probas.size()));
@@ -1132,13 +1196,13 @@ void Editeur::editerLoiProba(index_t loi, Image &fond) {
 	
 	horloge_t ancienDefilement = 0;
 	
-	Texte titre("Édition de la loi " + nombreVersTexte(loi + 1) + " (" + _niveau->_probas[loi]._nom + ")", POLICE_NORMALE, 20);
-	Texte sup("Supprimer la loi", POLICE_NORMALE, 16);
+	Texte titre(TRAD("ed Édition de la loi %1 (%2) :", loi + 1, _niveau->_probas[loi]._nom), POLICE_NORMALE, 20);
+	Texte sup(TRAD("ed Supprimer la loi"), POLICE_NORMALE, 16);
 	std::vector<Texte> categories;
 	categories.reserve(ElementNiveau::nbTypesElement);
 	for(ElementNiveau::elementNiveau_t i = ElementNiveau::premierTypeElement; i != ElementNiveau::nbTypesElement; ++i) {
-		char const *cat = ElementNiveau::nomCategorie(i);
-		if(!cat)
+		Unichar cat = ElementNiveau::nomCategorie(i);
+		if(cat == Unichar::uninull)
 			break;
 		categories.push_back(Texte(cat + std::string(" : "), POLICE_NORMALE, 16));
 	}
@@ -1313,8 +1377,8 @@ void Editeur::editerLoiProba(index_t loi, Image &fond) {
 		}
 		else {
 			std::vector<Unichar> elem;
-			elem.push_back("OK");
-			Menu m("La loi de probabilité est utilisée !", elem);
+			elem.push_back(TRAD("ed annulerSupLoi OK"));
+			Menu m(TRAD("La loi de probabilité est utilisée !"), elem);
 			m.afficher(0, fond);
 		}
 	}
@@ -1327,11 +1391,11 @@ void Editeur::editerLoiProba(index_t loi, Image &fond) {
 void Editeur::modifDimensions() {
 	bool continuer = true;
 	
-	Texte titre("Redimensionnement du niveau", POLICE_NORMALE, 20);
-	Texte ok("OK", POLICE_NORMALE, 16);
+	Texte titre(TRAD("ed Redimensionnement du niveau"), POLICE_NORMALE, 20);
+	Texte ok(TRAD("ed redimNiveau OK"), POLICE_NORMALE, 16);
 	std::vector<Texte> enTetes;
-	enTetes.push_back(Texte("Largeur (X) : ", POLICE_NORMALE, 16));
-	enTetes.push_back(Texte("Hauteur (Y) : ", POLICE_NORMALE, 16));
+	enTetes.push_back(Texte(TRAD("ed Largeur (X) : "), POLICE_NORMALE, 16));
+	enTetes.push_back(Texte(TRAD("ed Hauteur (Y) : "), POLICE_NORMALE, 16));
 	
 	std::vector<Texte> valeurs;
 	valeurs.push_back(Texte(nombreVersTexte(_niveau->_dimX), POLICE_NORMALE, 16));
@@ -1463,8 +1527,8 @@ void Editeur::modifDimensions() {
 		bool redim = true;
 		if(dimX < _niveau->_dimX || dimY < _niveau->_dimY) {
 			std::vector<Unichar> elem;
-			elem.push_back("Continuer");
-			Menu m("Des éléments seront supprimés", elem);
+			elem.push_back(TRAD("ed redimNiveauConfirm Continuer"));
+			Menu m(TRAD("ed Des éléments seront supprimés"), elem);
 			index_t reponse = m.afficher(0, *ap);
 			if(reponse != 0)
 				redim = false;
@@ -1503,7 +1567,7 @@ void Editeur::modifIndex() {
 	}
 
 	Image *ap = Ecran::apercu();
-	selection = choisirElement(index, selection, "Choisissez un index :", *ap, Editeur::ApercuEntite(catSel));
+	selection = choisirElement(index, selection, TRAD("ed Choisissez un index :"), *ap, Editeur::ApercuEntite(catSel));
 	delete ap;
 		
 	if(selection != index.size()) {
@@ -1568,8 +1632,8 @@ static index_t choisirElement(std::vector<Unichar> const &el, index_t sel, Unich
 	float teinteSelection = 0;
 	int sensTeinte = 1;
 	
-	Texte valider("Valider",  POLICE_GRANDE, 20 * Ecran::echelleMin(), Couleur::noir);
-	Texte annuler("Annuler",  POLICE_GRANDE, 20 * Ecran::echelleMin(), Couleur::noir);
+	Texte valider(TRAD("ed Valider"),  POLICE_GRANDE, 20 * Ecran::echelleMin(), Couleur::noir);
+	Texte annuler(TRAD("ed Annuler"),  POLICE_GRANDE, 20 * Ecran::echelleMin(), Couleur::noir);
 	
 	Rectangle cadreAnnuler, cadreValider;
 
@@ -1705,7 +1769,7 @@ void Editeur::modifCouche() {
 	}
 	
 	Image *ap = Ecran::apercu();
-	index_t selection = choisirElement(couches, _coucheEdition, "Choisissez une couche :", *ap, &afficheRien);
+	index_t selection = choisirElement(couches, _coucheEdition, TRAD("ed Choisissez une couche :"), *ap, &afficheRien);
 	delete ap;
 	if(selection != couches.size()) {
 		_coucheEdition = static_cast<Niveau::couche_t>(selection);
@@ -1720,17 +1784,17 @@ void Editeur::modifProba() {
 		return;
 	
 	std::vector<Unichar> txt;
-	txt.push_back("Loi de probabilité");
-	txt.push_back("Catégorie + index");
+	txt.push_back(TRAD("ed Loi de probabilité"));
+	txt.push_back(TRAD("ed Catégorie + index"));
 	if(_aIndex != -1)
-		txt.push_back("Dernière entité utilisée");
+		txt.push_back(TRAD("ed Dernière entité utilisée"));
 		
-	char const *titre = 0;
+	Unichar titre;
 	if(_selection.size() == 1)
-		titre = "L'entité est définie par:";
+		titre = TRAD("ed L'entité est définie par :");
 	else
-		titre = "Les entités sont définies par :";
-
+		titre = TRAD("ed Les entités sont définies par :");
+	
 	Image *ap = Ecran::apercu();
 	index_t selection = choisirElement(txt, 0, titre, *ap, &afficheRien);
 	delete ap;
@@ -1823,7 +1887,7 @@ void Editeur::modifCategorie() {
 	}
 	
 	Image *ap = Ecran::apercu();
-	index_t selection = choisirElement(cat, catSel, "Choisissez une catégorie :", *ap, &afficheRien);
+	index_t selection = choisirElement(cat, catSel, TRAD("ed Choisissez une catégorie :"), *ap, &afficheRien);
 	delete ap;
 		
 	if(selection != cat.size()) {		
@@ -1859,7 +1923,7 @@ void Editeur::remplissageGrille() {
 			cat.push_back(ElementNiveau::nomCategorie(c));
 	}
 	
-	index_t selection = choisirElement(cat, 0, "Choisissez une catégorie :", *ap, &afficheRien);
+	index_t selection = choisirElement(cat, 0, TRAD("ed Choisissez une catégorie :"), *ap, &afficheRien);
 	
 	if(selection != cat.size()) {
 		ElementNiveau::elementNiveau_t categorie = static_cast<ElementNiveau::elementNiveau_t>(selection);
@@ -1869,7 +1933,7 @@ void Editeur::remplissageGrille() {
 			index.push_back(nombreVersTexte(i));
 		}
 
-		index_t selection = choisirElement(index, 0, "Choisissez un index :", *ap, Editeur::ApercuEntite(categorie));
+		index_t selection = choisirElement(index, 0, TRAD("Choisissez un index :"), *ap, Editeur::ApercuEntite(categorie));
 		if(selection != index.size()) {
 			ElementEditeur el(categorie, selection);
 			size_t dimX = el.dimensions().x / LARGEUR_CASE, dimY = el.dimensions().y / LARGEUR_CASE;

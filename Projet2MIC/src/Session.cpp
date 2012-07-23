@@ -49,6 +49,11 @@ namespace Session {
 	bool _evenements[nombreEvenements] = {false};
 	modificateur_touche_t _modificateurTouches = M_AUCUN;
 	Coordonnees _souris;
+	Traducteur *_traducteur = nullptr;
+	
+	Traducteur const &traducteur() {
+		return *_traducteur;
+	}
 	
 	bool modificateurTouches(modificateur_touche_t const &mod) { return _modificateurTouches & mod; }
 	modificateur_touche_t const &modificateurTouches() { return _modificateurTouches; }
@@ -68,6 +73,25 @@ namespace Session {
 	
 	bool gestionEvenements();
 	void reinitialiserEvenementsClavier();
+	
+	void rechargerLangue();
+	
+	EtatInterface::EtatInterface() : _largeurEcran(Ecran::largeur()), _hauteurEcran(Ecran::hauteur()), _langue(Parametres::langue()) {
+		
+	}
+	
+	EtatInterface::~EtatInterface() {
+		
+	}
+	
+	bool EtatInterface::operator==(EtatInterface const &e) {
+		return _largeurEcran == e._largeurEcran && _hauteurEcran == e._hauteurEcran && _langue == e._langue;
+	}
+	
+	bool EtatInterface::operator!=(EtatInterface const &e) {
+		return !(*this == e);
+	}
+
 }
 
 #if defined(__MACOSX__) && !defined(DEVELOPPEMENT)
@@ -91,6 +115,10 @@ void Session::initialiser() {
 		exit(1);
 	}
 	SDL_EnableUNICODE(1);
+	
+#if defined(DEVELOPPEMENT)
+	std::cout << "Version de développement !" << std::endl;
+#endif
 	
 	// Ici on règle le problème des chemins de fichiers différents suivant le système d'exploitation
 #if defined(__MACOSX__)
@@ -123,13 +151,14 @@ void Session::initialiser() {
 	
 #endif
 	_chemin += "data/";
-	
+		
 	Audio::initialiser();
 	ImagesBase::initialiser();
 	Parametres::charger();
+		
 	Ecran::init(Parametres::largeurEcran(), Parametres::hauteurEcran(), Parametres::pleinEcran());
 	
-	Texte txt("Chargement…", POLICE_DECO, TAILLE_TEXTE_CHARGEMENT, Couleur::blanc);
+	Texte txt(TRAD("gen Chargement…"), POLICE_DECO, TAILLE_TEXTE_CHARGEMENT, Couleur::blanc);
 	Ecran::afficherRectangle(Ecran::ecran(), Couleur::noir);
 	txt.afficher(Coordonnees((Ecran::dimensions().x - txt.dimensions().x) / 2, (Ecran::dimensions().y - txt.dimensions().y) / 2 - 50));
 	Ecran::maj();
@@ -149,6 +178,11 @@ void Session::nettoyer() {
 	Ecran::nettoyageFinal();
 	
 	SDL_Quit();
+}
+
+void Session::rechargerLangue() {
+	delete _traducteur;
+	_traducteur = new Traducteur(Session::cheminRessources() + Parametres::langue() + ".trad");
 }
 
 bool Session::gestionEvenements() {
@@ -361,7 +395,7 @@ bool Session::boucle(float freq, bool continuer) {
 	return continuer;
 }
 
-Unichar Session::transcriptionEvenement(Session::evenement_t const &e) {
+Unichar Session::transcriptionEvenement(Session::evenement_t const &e, bool trad) {
 	if(e >= T_a && e <= T_z) {
 		char t[2] = {static_cast<char>('a' + (e - T_a))};
 		return Unichar(t);
@@ -387,9 +421,9 @@ Unichar Session::transcriptionEvenement(Session::evenement_t const &e) {
 		return ">";
 	
 	else if(e == T_ESPACE)
-		return "espace";
+		return trad ? TRAD("tev espace") : "espace";
 	else if(e == T_TAB)
-		return "tab";
+		return trad ? TRAD("tev tab") : "tab";
 	else if(e == T_TIRET_BAS)
 		return "_";
 	else if(e == T_POINT)
@@ -427,37 +461,43 @@ Unichar Session::transcriptionEvenement(Session::evenement_t const &e) {
 		return "]";
 	
 	else if(e == T_GAUCHE)
-		return "gauche";
+		return trad ? TRAD("tev gauche") : "gauche";
 	else if(e == T_DROITE)
-		return "droite";
+		return trad ? TRAD("tev droite") : "droite";
 	else if(e == T_HAUT)
-		return "haut";
+		return trad ? TRAD("tev haut") : "haut";
 	else if(e == T_BAS)
-		return "bas";
+		return trad ? TRAD("tev bas") : "bas";
 	
 	else if(e == T_ESC)
-		return "esc";
+		return trad ? TRAD("tev esc") : "esc";
 	else if(e == T_EFFACER)
-		return "effacer";
+		return trad ? TRAD("tev effacer") : "effacer";
 	else if(e == T_ENTREE)
-		return "entrée";
+		return trad ? TRAD("tev entrée") : "entrée";
 	else if(e == QUITTER)
-		return "quitter";
-	
-	return "<aucun événement>";
+		return trad ? TRAD("tev quitter") : "quitter";
+	else if(e == B_GAUCHE)
+		return trad ? TRAD("tev souris gauche") : "souris gauche";
+	else if(e == B_DROIT)
+		return trad ? TRAD("tev souris droite") : "souris droite";
+	else if(e == SOURIS)
+		return trad ? TRAD("tev déplacement souris") : "déplacement souris";
+
+	return trad ? TRAD("tev aucun événement") : "<aucun événement>";
 }
 
-Unichar Session::transcriptionModificateur(Session::modificateur_touche_t const &m) {
+Unichar Session::transcriptionModificateur(Session::modificateur_touche_t const &m, bool trad) {
 	Unichar retour;
 	
 	if(m & M_CONTROLE)
-		retour += "ctrl";
+		retour += trad ? TRAD("tmod ctrl") : "ctrl";
 	if(m & M_OPTION)
-		retour += (!retour.empty() ? Unichar("+") : Unichar()) + "alt";
+		retour += (!retour.empty() ? Unichar("+") : Unichar::uninull) + (trad ? TRAD("tmod alt") : "alt");
 	if(m & M_MAJ)
-		retour += (!retour.empty() ? Unichar("+") : Unichar()) + "maj";
+		retour += (!retour.empty() ? Unichar("+") : Unichar::uninull) + (trad ? TRAD("tmod maj") : "maj");
 	if(m & M_COMMANDE)
-		retour += (!retour.empty() ? Unichar("+") : Unichar()) + "cmd";
+		retour += (!retour.empty() ? Unichar("+") : Unichar::uninull) + (trad ? TRAD("tmod cmd") : "cmd");
 	
 	return retour;
 }

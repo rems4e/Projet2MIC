@@ -8,7 +8,6 @@
 
 #include "Ecran.h"
 #include "Constantes.h"
-#include "fonctions.h"
 
 #include "SDL/SDL.h"
 #include "Texte.h"
@@ -260,6 +259,7 @@ void Ecran::maj() {
 	if(Parametres::ips()) {
 		static char ips[TAILLE_IPS];
 		
+		// TODO: Trad
 		snprintf(ips, TAILLE_IPS, "%.2f s - %.1f ips", horloge(), Ecran::_attributs->_frequence);
 		ips[TAILLE_IPS - 1] = 0;
 		Ecran::_attributs->_texte->definir(ips);

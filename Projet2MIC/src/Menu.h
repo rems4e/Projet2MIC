@@ -42,11 +42,11 @@ public:
 		}
 	};
 	
-	Menu(Unichar const &titre, std::vector<Unichar> const &elements, Unichar const &dernierElement = "Retour");
+	Menu(Unichar const &titre, std::vector<Unichar> const &elements, Unichar const &dernierElement = TRAD("menu Retour"));
 	virtual ~Menu();
 	
 	template<class AfficheurAuxiliaire = AfficheRien>
-	index_t afficher(index_t selection, Image const &fond, Shader const &s = Shader::flou(1), bool voile = true, AfficheurAuxiliaire const &aff = AfficheurAuxiliaire());
+	index_t afficher(index_t selection, Image const &fond, Shader const &s = Shader::flou(1), horloge_t tempsInitial = horloge(), AfficheurAuxiliaire const &aff = AfficheurAuxiliaire());
 	
 protected:
 	Menu (Menu const &);
@@ -71,14 +71,12 @@ private:
 };
  
 template<class AfficheurAuxiliaire>
-index_t Menu::afficher(index_t selection, Image const &fond, Shader const &s, bool voile, AfficheurAuxiliaire const &afficheurAuxiliaire) {
+index_t Menu::afficher(index_t selection, Image const &fond, Shader const &s, horloge_t tempsInitial, AfficheurAuxiliaire const &afficheurAuxiliaire) {
 	bool continuer = true;
 	index_t retour = 0;
 	index_t elementSelectionne = selection;
 	horloge_t ancienDefilement = 0;
-	
-	horloge_t const tempsInitial = horloge();
-	
+		
 	Session::reinitialiserEvenements();
 	
 	while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, continuer)) {
@@ -106,10 +104,7 @@ index_t Menu::afficher(index_t selection, Image const &fond, Shader const &s, bo
 		s.definirParametre(Shader::tempsAbsolu, horloge());
 		fond.afficher(Coordonnees());
 		Shader::desactiver();
-		
-		if(voile)
-			Ecran::afficherRectangle(Ecran::ecran(), Couleur(0, 0, 0, 128));
-		
+				
 		this->afficherElements(elementSelectionne);
 		afficheurAuxiliaire.afficher();
 		

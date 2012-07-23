@@ -13,6 +13,7 @@
 #include "Geometrie.h"
 #include <exception>
 #include "Shader.h"
+#include "horloge.h"
 
 class Niveau;
 class Joueur;
@@ -23,7 +24,7 @@ class Image;
 
 class Partie {
 public:
-	static TiXmlElement *charger(Image &fond, Shader const &s = Shader::aucun());
+	static TiXmlElement *charger(Image &fond, Shader const &s, horloge_t tempsInitial);
 	
 	void restaurer(TiXmlElement *sauve);
 	
@@ -50,7 +51,7 @@ private:
 	void animer();
 	TiXmlElement *mortJoueur(bool &continuer);
 		
-	void sauvegarder(Image *fond);
+	void sauvegarder(Image &fond);
 	TiXmlElement *sauvegarde();
 
 	Niveau *_niveau;

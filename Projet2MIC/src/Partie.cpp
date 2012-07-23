@@ -63,7 +63,7 @@ Partie::~Partie() {
 	_partie = 0;
 }
 
-void Partie::sauvegarder(Image *i) {
+void Partie::sauvegarder(Image &fond) {
 	TiXmlDocument sauves(Session::cheminRessources() + "parties.xml");
 	std::vector<Unichar> elements;
 	
@@ -81,28 +81,28 @@ void Partie::sauvegarder(Image *i) {
 	for(index_t pos = 1; pos <= 4; ++pos) {
 		slots[pos - 1] = pp->FirstChildElement("Slot" + nombreVersTexte(pos));
 		if(slots[pos - 1])
-			elements.push_back("Slot " + nombreVersTexte(pos) + " (occupé)");
+			elements.push_back(TRAD("partie Slot %1 (occupé)", pos));
 		else
-			elements.push_back("Slot " + nombreVersTexte(pos) + " (vide)");
+			elements.push_back(TRAD("partie Slot %1 (libre)", pos));
 	}
 	
 	index_t slot = 0;
 	bool choix;
 	do {
 		choix = true;
-		Menu m("Choisissez une sauvegarde :", elements);
+		Menu m(TRAD("partie Choisissez une sauvegarde :"), elements);
 		
-		slot = m.afficher(0, *i);
+		slot = m.afficher(0, fond);
 		
 		if(slot == 4)
 			return;
 		
 		if(slots[slot]) {
 			std::vector<Unichar> elements;
-			elements.push_back("Remplacer");
-			Menu m("Remplacer la sauvegarde ?", elements, "Annuler");
+			elements.push_back(TRAD("partie Remplacer"));
+			Menu m(TRAD("partie Remplacer la sauvegarde ?"), elements, TRAD("partie Annuler"));
 			
-			index_t val = m.afficher(0, *i);
+			index_t val = m.afficher(0, fond);
 			if(val == 1) {
 				choix = false;
 			}
@@ -136,7 +136,7 @@ TiXmlElement *Partie::sauvegarde() {
 	return sauve;
 }
 
-TiXmlElement *Partie::charger(Image &fond, Shader const &s) {
+TiXmlElement *Partie::charger(Image &fond, Shader const &s, horloge_t tempsInitial) {
 	TiXmlDocument sauves(Session::cheminRessources() + "parties.xml");
 	std::vector<Unichar> elements;
 	
@@ -154,16 +154,16 @@ TiXmlElement *Partie::charger(Image &fond, Shader const &s) {
 	for(index_t pos = 1; pos <= 4; ++pos) {
 		slots[pos - 1] = pp->FirstChildElement("Slot" + nombreVersTexte(pos));
 		if(slots[pos - 1])
-			elements.push_back("Slot " + nombreVersTexte(pos));
+			elements.push_back(TRAD("partie Slot %1", pos));
 	}
 	
 	if(elements.empty())
 		return 0;
 	
 	index_t slot = 0;
-	Menu m("Choisissez une sauvegarde :", elements);
+	Menu m(TRAD("partie charge Choisissez une sauvegarde :"), elements);
 	
-	slot = m.afficher(0, fond, s);
+	slot = m.afficher(0, fond, s, tempsInitial);
 	
 	if(slot == elements.size())
 		return 0;
@@ -186,16 +186,6 @@ struct triPotions_t {
 };
 
 TiXmlElement *Partie::commencer() {	
-	Menu *menu = 0;
-	{
-		std::vector<Unichar> elem;
-		elem.push_back("Réglages");
-		elem.push_back("Sauvegarder la partie");
-		elem.push_back("Charger une partie");
-		elem.push_back("Menu principal");
-		
-		menu = new Menu("Pause", elem);
-	}
 	TiXmlElement *charge = 0;
 	Image *apercu = 0;
 	
@@ -256,15 +246,22 @@ TiXmlElement *Partie::commencer() {
 				apercu = Ecran::apercu();
 			index_t selection = 0;
 			do {
-				selection = menu->afficher(0, *apercu);
+				std::vector<Unichar> elem;
+				elem.push_back(TRAD("gen Réglages"));
+				elem.push_back(TRAD("partie Sauvegarder la partie"));
+				elem.push_back(TRAD("partie Charger une partie"));
+				elem.push_back(TRAD("partie Menu principal"));
+					
+				Menu menu(TRAD("partie Pause"), elem);
+				selection = menu.afficher(0, *apercu);
 				if(selection == REGLAGES) {
 					Parametres::editerParametres(*apercu);
 				}
 				else if(selection == SAUVE) {
-					this->sauvegarder(apercu);
+					this->sauvegarder(*apercu);
 				}
 				else if(selection == CHARG) {
-					charge = this->charger(*apercu);
+					charge = this->charger(*apercu, Shader::flou(1.0), 0);
 					if(charge) {
 						continuer = false;
 					}
@@ -318,8 +315,8 @@ TiXmlElement *Partie::commencer() {
 				apercu = Ecran::apercu();
 
 			std::vector<Unichar> e;
-			e.push_back("Quitter");
-			Menu m("Quitter sans sauvegarder ?", e, "Retour");
+			e.push_back(TRAD("partie Quitter"));
+			Menu m(TRAD("partie Quitter sans sauvegarder ?"), e, TRAD("partie Retour"));
 			if(m.afficher(0, *apercu) == 1) {
 				continuer = true;
 				delete charge;
@@ -331,7 +328,6 @@ TiXmlElement *Partie::commencer() {
 	}
 
 	delete apercu;
-	delete menu;
 
 	return charge;
 }
@@ -418,11 +414,11 @@ TiXmlElement *Partie::mortJoueur(bool &continuer) {
 	sMort.definirParametre("duree", dureeTransition);
 
 	std::vector<Unichar> elem;
-	elem.push_back("Recommencer");
-	elem.push_back("Charger une partie");
-	elem.push_back("Menu principal");
+	elem.push_back(TRAD("partie Recommencer"));
+	elem.push_back(TRAD("gen Charger une partie"));
+	elem.push_back(TRAD("partie Menu principal"));
 		
-	Menu menu("T'es mort !", elem, "");
+	Menu menu(TRAD("partie T'es mort !"), elem, "");
 	Image *ap = Ecran::apercu();
 	
 	
@@ -430,8 +426,9 @@ TiXmlElement *Partie::mortJoueur(bool &continuer) {
 	
 	TiXmlElement *retour = 0;
 
+	horloge_t tempsInitial = horloge();
 	do {
-		selection = menu.afficher(0, *ap, sMort, false);
+		selection = menu.afficher(0, *ap, sMort, tempsInitial);
 	
 		if(selection == 0) {
 			this->reinitialiser();
@@ -439,7 +436,7 @@ TiXmlElement *Partie::mortJoueur(bool &continuer) {
 			break;
 		}
 		else if(selection == 1) {
-			retour = this->charger(*ap);
+			retour = this->charger(*ap, sMort, tempsInitial);
 			continuer = !retour;
 		}
 		else if(selection == 2) {

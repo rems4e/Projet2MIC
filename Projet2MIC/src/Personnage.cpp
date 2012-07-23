@@ -285,16 +285,16 @@ bool Personnage::attaquer(Personnage *p) {
 	return false;
 }
 
-char const *Personnage::nomCompetence(competences_t c) {
+Unichar Personnage::nomCompetence(competences_t c) {
 	switch(c) {
 		case force:
-			return "Force";
+			return TRAD("compét Force");
 		case agilite:
-			return "Agilité";
+			return TRAD("compét Agilité");
 		case endurance:
-			return "Endurance";
+			return TRAD("compét Endurance");
 		case nbCompetences:
-			return 0;
+			return Unichar::uninull;
 	}
 }
 

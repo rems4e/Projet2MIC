@@ -50,7 +50,8 @@ template <template <class e, class = std::allocator<e> > class Conteneur>
 template <typename InputIterator>
 InventaireC<Conteneur>::InventaireC(Personnage &perso, size_t capacite, InputIterator debut, InputIterator fin) : Inventaire(perso), _elements(debut, fin), _capacite(capacite) {
 	if(capacite < std::distance(debut, fin)) {
-		std::cerr << "initialisation erronée de l'inventaire : trop d'objets pour sa capacité. fuite de mémoire." << std::endl;
+		// FIXME: pourri
+		std::cerr << "Initialisation erronée de l'inventaire : trop d'objets pour sa capacité. fuite de mémoire." << std::endl;
 		iterator i = this->debut();
 		std::advance(i, _capacite);
 		for(; i != this->end();) {
@@ -421,7 +422,7 @@ void InventaireMarchand::afficher() const {
 
 	if(_infos) {
 		std::list<Texte *> infos = infoObjet(_infos, *Partie::partie()->joueur());
-		Texte *t = new Texte(nombreVersTexte(Partie::partie()->marchand()->prixVente(_infos)) + " p. or");
+		Texte *t = new Texte(TRAD("inv %1 p. or", Partie::partie()->marchand()->prixVente(_infos)));
 		if(Partie::partie()->marchand()->prixVente(_infos) > Partie::partie()->joueur()->inventaire()->monnaie())
 			t->definir(Couleur::rouge);
 		else
@@ -573,6 +574,7 @@ void InventaireJoueur::afficher() const {
 	t.definir(Couleur::blanc);
 	t.definir(POLICE_DECO, 14 * Ecran::echelleMin());
 	for(Personnage::competences_t c = Personnage::premiereCompetence; c != Personnage::nbCompetences; ++c) {
+		// FIXME: traduction " : "
 		t.definir(Personnage::nomCompetence(c) + std::string(" :"));
 		infosJoueur.push_back(std::make_pair(t, pos));
 		pos.y += 5 * Ecran::echelle().y + t.dimensions().y;
@@ -589,7 +591,7 @@ void InventaireJoueur::afficher() const {
 	if(_infos) {
 		std::list<Texte *> infos = infoObjet(_infos, this->personnage());
 		if(Partie::partie()->marchand() && _infos->categorieObjet() != ObjetInventaire::cle) {
-			Texte *t = new Texte(nombreVersTexte(Partie::partie()->marchand()->prixAchat(_infos)) + " p. or");
+			Texte *t = new Texte(TRAD("inv %1 p. or", Partie::partie()->marchand()->prixAchat(_infos)));
 			t->definir(Couleur::jaune);
 			infos.push_back(t);
 		}
@@ -820,7 +822,7 @@ std::list<Texte *> infoObjet(ObjetInventaire *o, Personnage const &reference) {
 		case ObjetInventaire::casque:
 		case ObjetInventaire::gants:
 		case ObjetInventaire::bottes: {
-			Texte *t = new Texte("Défense : " + nombreVersTexte(o->defense()));
+			Texte *t = new Texte(TRAD("inv Défense : %1", o->defense()));
 			t->definir(Couleur::bleu);
 			retour.push_back(t);
 		}
@@ -838,7 +840,7 @@ std::list<Texte *> infoObjet(ObjetInventaire *o, Personnage const &reference) {
 			break;
 		}
 		case ObjetInventaire::potion: {
-			Texte *t = new Texte("Points de vie : " + nombreVersTexte(o->vie()));
+			Texte *t = new Texte(TRAD("inv Points de vie : %1", o->vie()));
 			t->definir(Couleur::bleu);
 			retour.push_back(t);
 			break;
@@ -849,7 +851,7 @@ std::list<Texte *> infoObjet(ObjetInventaire *o, Personnage const &reference) {
 	}
 	
 	if(o->categorieObjet() == ObjetInventaire::arme) {
-		Texte *t = new Texte("Attaque : " + nombreVersTexte(o->attaque()));
+		Texte *t = new Texte(TRAD("inv Attaque : %1", o->attaque()));
 		t->definir(Couleur::bleu);
 		retour.push_front(t);
 	}

@@ -21,7 +21,7 @@ namespace WinWin {
 #include <iostream>
 #include "fmod/fmod_errors.h"
 #include "horloge.h"
-#include "fonctions.h"
+#include "nombre.h"
 
 #define NB_CANAUX 32
 

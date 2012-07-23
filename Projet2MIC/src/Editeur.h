@@ -337,11 +337,13 @@ protected:
 	void retablir();
 	void posterAction(ActionEditeur *a);
 	void reinitialiserActions();
+	void reglages(Image &fond);
 	
 	void outilCopier();
 	void outilColler();
 	void outilSelection();
 	void outilRecharger();
+	void outilReglages();
 	void copier();
 	void coller(index_t pX, index_t pY);
 
@@ -390,6 +392,7 @@ private:
 	Image _recharger;
 	Image _annuler;
 	Image _retablir;
+	Image _reglages;
 	
 	NiveauEditeur *_niveau;
 	Coordonnees _origine;

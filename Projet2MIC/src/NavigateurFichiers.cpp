@@ -15,7 +15,7 @@
 namespace NavigateurFichiers {
 	std::vector<std::string> const &extensionsImage() {
 		static std::vector<std::string> imgs;
-		
+
 		if(!imgs.size()) {
 			imgs.push_back("jpg");
 			imgs.push_back("jp2");

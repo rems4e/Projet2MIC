@@ -181,24 +181,25 @@ void ObjetInventaire::equilibrerAvecJoueur() {
 	}
 }
 
-char const *ObjetInventaire::nomCategorieObjet() const {
+// FIXME: vérif trad
+Unichar ObjetInventaire::nomCategorieObjet() const {
 	switch(_categorie) {
 		case arme:
-			return "Arme";
+			return TRAD("obji Arme");
 		case bouclier:
-			return "Bouclier";
+			return TRAD("obji Bouclier");
 		case armure:
-			return "Armure";
+			return TRAD("obji Armure");
 		case bottes:
-			return "Bottes";
+			return TRAD("obji Bottes");
 		case gants:
-			return "Gants";
+			return TRAD("obji Gants");
 		case casque:
-			return "Casque";
+			return TRAD("obji Casque");
 		case potion:
-			return "Potion";
+			return TRAD("obji Potion");
 		case cle:
-			return "Cle";
+			return TRAD("obji Clé");
 	}
 }
 

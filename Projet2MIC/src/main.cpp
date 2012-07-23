@@ -32,11 +32,15 @@ struct AfficheurMaj {
 	}
 	
 	Rectangle afficher() const {
+		Unichar txt;
+#if defined(DEVELOPPEMENT)
+		txt += TRAD("gen Version de développement") + "\n";
+#endif
+		txt += std::string("v. ") + Parametres::versionTexte();
 		if(_maj)
-			_txt.definir("v. " + std::string(Parametres::versionTexte()) + "\nMise à jour disponible !\nCliquez pour l'afficher.");
-		else
-			_txt.definir(std::string("v. ") + Parametres::versionTexte());
-			
+			txt += "\n" + TRAD("gen Mise à jour disponible !") + "\n" + TRAD("gen Cliquez pour l'afficher.");
+
+		_txt.definir(txt);
 		_txt.definir(POLICE_NORMALE, 16 * Ecran::echelleMin());
 		_txt.definir(Couleur::blanc);
 		_cadre.definirDimensions(_txt.dimensions() + Coordonnees(10, 10));
@@ -107,20 +111,14 @@ static void jeu() {
 	Audio::audio_t musique = Audio::chargerMusique(Session::cheminRessources() + "menu.mp3");
 	
 	Shader sFond(Session::cheminRessources() + "aucun.vert", Session::cheminRessources() + "menuPrincipal.frag");
-	std::vector<Unichar> elements;
-	elements.push_back("Nouvelle partie");
-	elements.push_back("Charger une partie");
-	elements.push_back("Réglages");
-	elements.push_back("Crédits");
-	elements.push_back("Éditeur de niveaux");
-	elements.push_back("Quitter");
-	Menu menu("Menu principal", elements, "");
 	
 	Image fond(Session::cheminRessources() + "tex0.jpg");
 	index_t selection = 0;
 	
 	AfficheurMaj afficheurMaj(false);
 	TiXmlElement *charge = 0;
+	std::vector<Unichar> elements;
+
 	do {		
 		if(charge) {
 			Partie *nouvellePartie = Partie::partie();
@@ -133,7 +131,17 @@ static void jeu() {
 			Audio::jouerMusique();
 			
 			afficheurMaj.definirMaj(Parametres::rechercherMaj() && Parametres::majDisponible());
-			selection = menu.afficher(0, fond, sFond, true, afficheurMaj);
+	
+			elements.clear();
+			elements.push_back(TRAD("gen Nouvelle partie"));
+			elements.push_back(TRAD("gen Charger une partie"));
+			elements.push_back(TRAD("gen Réglages"));
+			elements.push_back(TRAD("gen Crédits"));
+			elements.push_back(TRAD("gen Éditeur de niveaux"));
+			elements.push_back(TRAD("gen Quitter"));
+			Menu menu(TRAD("gen Menu principal"), elements, "");
+
+			selection = menu.afficher(0, fond, sFond, 0, afficheurMaj);
 			if(selection == 0) {
 				Partie *nouvellePartie = Partie::partie();
 				nouvellePartie->restaurer(0);
@@ -141,7 +149,7 @@ static void jeu() {
 				delete nouvellePartie;
 			}
 			else if(selection == 1) {
-				charge = Partie::charger(fond, sFond);
+				charge = Partie::charger(fond, sFond, 0);
 			}
 			else if(selection == 2) {
 				Parametres::editerParametres(fond, sFond);

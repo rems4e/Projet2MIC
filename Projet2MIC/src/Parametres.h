@@ -11,14 +11,19 @@
 
 #include "Session.h"
 #include "Shader.h"
+#include "Traducteur.h"
+#include <string>
 
 class Image;
 
 namespace Parametres {
 	enum action_t {premiereAction, depGauche = premiereAction, depDroite, depHaut, depBas, afficherInventaire, interagir, remplirVie, nbActions};
+		
 	Session::evenement_t evenementAction(action_t action);
 	float volumeMusique();
 	float volumeEffets();
+	
+	std::string const &langue();
 	
 	int largeurEcran();
 	int hauteurEcran();

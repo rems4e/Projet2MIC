@@ -184,14 +184,14 @@ TiXmlElement *ElementNiveau::description(uindex_t index, elementNiveau_t cc) {
 	
 	TiXmlElement *element = _description->FirstChildElement("ElementsNiveau");
 	if(!element) {
-		std::cout << "Balise \"ElementsNiveau\" indisponible." << std::endl;
+		std::cerr << "Balise \"ElementsNiveau\" indisponible." << std::endl;
 		return 0;
 	}
 	
 	std::string const cat(ElementNiveau::nomBalise(cc));
 	element = element->FirstChildElement(cat);
 	if(!element) {
-		std::cout << "Catégorie \"" << cat << "\" indisponible." << std::endl;
+		std::cerr << "Catégorie \"" << cat << "\" indisponible." << std::endl;
 		return 0;
 	}
 	std::string balise("Element");
@@ -296,30 +296,30 @@ char const *ElementNiveau::nomBalise(elementNiveau_t cat) {
 	}
 }
 
-char const *ElementNiveau::nomCategorie(elementNiveau_t cat) {
+Unichar ElementNiveau::nomCategorie(elementNiveau_t cat) {
 	switch(cat) {
 		case entiteStatique:
-			return "Entité statique";
+			return TRAD("eniv Entité statique");
 		case sol:
-			return "Sol";
+			return TRAD("eniv Sol");
 		case ennemi:
-			return "Ennemi";
+			return TRAD("eniv Ennemi");
 		case arbre:
-			return "Arbre";
+			return TRAD("eniv Arbre");
 		case entiteStatiqueAnimee:
-			return "Entite statique animée";
+			return TRAD("eniv Entité statique animée");
 		case objetInventaire:
-			return "Objet inventaire";
+			return TRAD("eniv Objet inventaire");
 		case teleporteur:
-			return "Téléporteur";
+			return TRAD("eniv Téléporteur");
 		case maison:
-			return "Maison";
+			return TRAD("eniv Maison");
 		case arbreMort:
-			return "Arbre mort";
+			return TRAD("eniv Arbre mort");
 		case marchand:
-			return "Marchand";
+			return TRAD("eniv Marchand");
 		case boss:
-			return "Boss";
+			return TRAD("eniv Boss");
 		case ndef12:case ndef13:case ndef14:case ndef15:case ndef16:
 		case ndef17:case ndef18:case ndef19:case ndef20:case ndef21:case ndef22:case ndef23:case ndef24:
 		case ndef25:case ndef26:case ndef27:case ndef28:case ndef29:case ndef30:case ndef31:case ndef32:
@@ -328,6 +328,6 @@ char const *ElementNiveau::nomCategorie(elementNiveau_t cat) {
 		case ndef49:case ndef50:case ndef51:case ndef52:case ndef53:case ndef54:case ndef55:case ndef56:
 		case ndef57:case ndef58:case ndef59:case ndef60:case ndef61:case ndef62:case ndef63:case ndef64:
 		case nbTypesElement:
-			return 0;
+			return Unichar::uninull;
 	}
 }

@@ -44,7 +44,7 @@ public:
 	
 	void equilibrerAvecJoueur();
 	
-	char const *nomCategorieObjet() const;
+	Unichar nomCategorieObjet() const;
 		
 protected:
 	static ElementNiveau::elementNiveau_t cat() { return ElementNiveau::objetInventaire; }

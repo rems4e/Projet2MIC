@@ -15,10 +15,11 @@
 #include "horloge.h"
 #include <list>
 #include "Unichar.h"
+#include "Traducteur.h"
+
+#define TRAD(...) Session::traducteur().traduction(__VA_ARGS__)
 
 namespace Session {
-	class horloge_locale_t;
-	
 	// Le chemin vers le répertoire où sont contenues les ressources (image, son, xml…) du programme.
 	// Il est obligatoire pour charger une ressource d'utiliser cette fonction : 'std::string chemin = Session::cheminRessources + "monFichier.xml";'
 	std::string const &cheminRessources();
@@ -93,8 +94,23 @@ namespace Session {
 	void nettoyer();
 	
 	// Retourne une chaîne de caractères associée à l'événement ou au modificateur demandé
-	Unichar transcriptionEvenement(evenement_t const &);
-	Unichar transcriptionModificateur(modificateur_touche_t const &);
+	Unichar transcriptionEvenement(evenement_t const &, bool trad);
+	Unichar transcriptionModificateur(modificateur_touche_t const &, bool trad);
+	
+	Traducteur const &traducteur();
+			
+	struct EtatInterface {
+		EtatInterface();
+		virtual ~EtatInterface();
+		
+		bool operator==(EtatInterface const &e);
+		bool operator!=(EtatInterface const &e);
+		
+	private:
+		int _largeurEcran, _hauteurEcran;
+		std::string _langue;
+	};
+
 }
 
 inline Session::evenement_t &operator++(Session::evenement_t &e) { return e = static_cast<Session::evenement_t>(static_cast<int>(e) + 1); }
