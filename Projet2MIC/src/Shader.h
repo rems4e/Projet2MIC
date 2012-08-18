@@ -43,7 +43,7 @@ public:
 	static char const * const pos;
 	static char const * const temps;
 	static char const * const tempsAbsolu;
-		
+	
 	class Exc_CreationImpossible : public std::exception {
 	public:
 		Exc_CreationImpossible() throw() : std::exception() {
@@ -61,24 +61,31 @@ public:
 	static Shader const &flou(float rayon);
 	
 	void definirParametre(char const *param, float v) const;
-	void definirParametre(char const *param, float v1, float v2) const;
-	void definirParametre(char const *param, float v1, float v2, float v3) const;
-	void definirParametre(char const *param, float v1, float v2, float v3, float v4) const;
+	void definirParametre(char const *param, glm::vec2 const &vec) const;
+	void definirParametre(char const *param, glm::vec3 const &vec) const;
+	void definirParametre(char const *param, glm::vec4 const &vec) const;
+
+	void definirParametre(char const *param, glm::mat3 const &mat) const;
+	void definirParametre(char const *param, glm::mat4 const &mat) const;
+	
+	static void majModele();
+	static void majProjection();
 
 	void activer() const;
 	
 	GLint vertCoord() const { return _prog->_vertCoord; }
 	GLint texCoord() const { return _prog->_texCoord; }
 	GLint coul() const { return _prog->_coul; }
+	GLint normales() const { return _prog->_norm; }
 	
 	static void desactiver();
 	
 	static Shader const &shaderActuel();
-	static Coordonnees versShader(Coordonnees const &);
+	static glm::vec2 versShader(glm::vec2 const &);
 	static Rectangle versShader(Rectangle const &);
 		
 protected:
-	static void compiler(GLuint shader) throw(Exc_CreationImpossible);
+	static void compiler(GLuint shader, std::string const &fichier) throw(Exc_CreationImpossible);
 	static void lier(GLint prog) throw(Exc_CreationImpossible);
 	
 	static GLint chargerShader(std::string const &chemin, GLint type) throw(Exc_CreationImpossible);
@@ -91,7 +98,7 @@ private:
 		GLint _id;
 		SousProgramme *_vert, *_frag;
 
-		GLint _vertCoord, _texCoord, _coul;
+		GLint _vertCoord, _texCoord, _coul, _norm;
 		
 		size_t _ref;
 	};

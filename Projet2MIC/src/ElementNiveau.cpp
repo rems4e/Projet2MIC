@@ -129,18 +129,18 @@ ElementNiveau::~ElementNiveau() {
 	delete[] _collision;
 }
 
-Coordonnees ElementNiveau::position() const {
+glm::vec2 ElementNiveau::position() const {
 	return _position;
 }
 
-void ElementNiveau::definirPosition(Coordonnees const &p) {
+void ElementNiveau::definirPosition(glm::vec2 const &p) {
 	_position = p;
 	this->calcPX();
 	this->calcPY();
 }
 
-Coordonnees ElementNiveau::positionAffichage() const {
-	return referentielNiveauVersEcran(this->position()) - this->origine() + this->centrage() * Coordonnees(LARGEUR_CASE, 0) / 2;
+glm::vec2 ElementNiveau::positionAffichage() const {
+	return referentielNiveauVersEcran(this->position()) - this->origine() + static_cast<coordonnee_t>(this->centrage()) * glm::vec2(LARGEUR_CASE, 0) / 2.0f;
 }
 
 Niveau *ElementNiveau::niveau() {
@@ -151,7 +151,7 @@ void ElementNiveau::definirNiveau(Niveau *n) {
 	_niveau = n;
 }
 
-Coordonnees ElementNiveau::origine() const {
+glm::vec2 ElementNiveau::origine() const {
 	return _origine;
 }
 

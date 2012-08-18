@@ -14,17 +14,20 @@
 #include <list>
 #include "nombre.h"
 #include <exception>
+#include "Unichar.h"
+#include <glm/glm.hpp>
 
 #define LARGEUR_ECRAN 800
 #define HAUTEUR_ECRAN 600
 #define PLEIN_ECRAN false
-#define FREQUENCE_RAFRAICHISSEMENT (Parametres::limiteIPS() ? 100 : 10000)
 
 class Texte;
+class Texture;
 class Image;
 
 struct Couleur {
-	unsigned char r, v, b, a;
+	typedef unsigned char composante_t;
+	composante_t r, v, b, a;
 
 	static Couleur const noir;
 	static Couleur const gris;
@@ -38,9 +41,9 @@ struct Couleur {
 	static Couleur const transparent;
 	
 	inline Couleur() : r(255), v(255), b(255), a(255) { }
-	inline Couleur(unsigned char _r, unsigned char _v, unsigned char _b, unsigned char _a = 255) : r(_r), v(_v), b(_b), a(_a) { }
-	inline Couleur(unsigned char gris, unsigned char _a = 255) : r(gris), v(gris), b(gris), a(_a) { }
-	inline Couleur(Couleur const &c, unsigned char _a) : r(c.r), v(c.v), b(c.b), a(_a) { }
+	inline Couleur(composante_t _r, composante_t _v, composante_t _b, composante_t _a = 255) : r(_r), v(_v), b(_b), a(_a) { }
+	inline Couleur(composante_t gris, composante_t _a = 255) : r(gris), v(gris), b(gris), a(_a) { }
+	inline Couleur(Couleur const &c, composante_t _a) : r(c.r), v(c.v), b(c.b), a(_a) { }
 };
 
 namespace Ecran {
@@ -55,7 +58,7 @@ namespace Ecran {
 	
 	void modifierResolution(unsigned int largeur, unsigned int hauteur, bool pleinEcran) throw(Exc_InitialisationImpossible);
 	
-	Coordonnees dimensions();
+	glm::ivec2 dimensions();
 	int largeur();
 	int hauteur();
 	
@@ -68,31 +71,40 @@ namespace Ecran {
 	
 	Image *apercu();
 	
-	// Met à jour l'affichage en fonction des éléments affichés depuis le dernier appel à la fonction
 	void maj();
-	void finaliser();
-	// Remplis l'écran avec une couleur unie
-	void effacer();
-	
-	// Affiche une couleur unie dans un rectangle. La couleur peut être transparente.
-	void afficherRectangle(Rectangle const &r, Couleur const &c);
-	void afficherLigne(Coordonnees const &depart, Coordonnees const &arrivee, Couleur const &c, dimension_t epaisseur = 1.0);
-	void afficherQuadrilatere(Coordonnees const &p1, Coordonnees const &p2, Coordonnees const &p3, Coordonnees const &p4, Couleur const &c);
-	void afficherTriangle(Coordonnees const &p1, Coordonnees const &p2, Coordonnees const &p3, Couleur const &c);
 	
 	// Pointeur
 	bool pointeurAffiche();
 	void definirPointeurAffiche(bool af);
 	
+	Texture const &vide();
+
 	Image const *pointeur();
 	// Si image vaut 0, le pointeur par défaut est utilisé. La valeur decalage représente les coordonnées du point cliquable de l'image du pointeur.
-	void definirPointeur(Image const *image, Coordonnees const &decalage = Coordonnees());
+	void definirPointeur(Image const *image, glm::vec2 const &decalage = glm::vec2(0.0f));
 	
-	Coordonnees const &echelle();
+	glm::vec2 const &echelle();
 	coordonnee_t echelleMin();
 	
 	// Les résolutions disponibles pour la fenêtre/le plein écran.
-	std::list<std::pair<int, int> > resolutionsDisponibles(bool pleinEcran);
+	std::list<glm::ivec2> resolutionsDisponibles(bool pleinEcran);
+
+	Rectangle const &cadreAffichage();
+	void ajouterCadreAffichage(Rectangle const &);
+	void supprimerCadreAffichage();
+
+	Unichar const &bulleAide();
+	void definirBulleAide(Unichar const &txt);
+	
+	void ajouterTransformation(glm::mat4 const &transfo);
+	// Si on supprime plus que ce que l'on doit, exception lancée !
+	void supprimerTransformation() throw(int);
+	glm::vec4 transformerVecteur(glm::vec4 const &vec);
+	
+	void perspective(float angle, float near, float far);
+
+	glm::mat4 const &projection();
+	glm::mat4 const &modeleVue();
 }
 
 #endif

@@ -21,7 +21,21 @@
 #include <stack>
 #include <limits>
 
+// FIXME: revoir l'intégration des vues dans l'éditeur.
+
+class VueEditeur;
+class EditeurLoiProba;
+class EditeurDimensions;
+template<typename Afficheur>
+class SelecteurElement;
+
 class Editeur {
+	friend class VueEditeur;
+	friend class EditeurLoiProba;
+	friend class EditeurDimensions;
+
+	template<typename Afficheur>
+	friend class SelecteurElement;
 public:
 	class Exc_ChargementEditeur : public std::exception {
 	public:
@@ -50,8 +64,8 @@ private:
 		
 		Image const &image() const;
 		Rectangle cadre() const;
-		Coordonnees dimensions() const;
-		Coordonnees origine() const;
+		glm::vec2 dimensions() const;
+		glm::vec2 origine() const;
 		Couleur teinte() const;
 		
 	private:
@@ -61,9 +75,9 @@ private:
 		
 		Image _image;
 		Rectangle _cadre;
-		Coordonnees _origine;
+		glm::vec2 _origine;
 		Couleur _teinte;
-		Coordonnees _dimensions;
+		glm::vec2 _dimensions;
 		
 		ElementNiveau::elementNiveau_t _categorie;
 	};
@@ -317,7 +331,7 @@ private:
 		~ApercuEntite() {
 			delete _elem;
 		}
-		void operator()(Rectangle const &dejaAffiche, index_t selection, Image &apercu);
+		void operator()(Rectangle const &dejaAffiche, index_t selection, Image const &apercu);
 		
 		index_t _aSel;
 		Editeur::ElementEditeur *_elem;
@@ -348,9 +362,8 @@ protected:
 	void coller(index_t pX, index_t pY);
 
 	void presenter(index_t x, index_t y);
-	void afficher();
 	void afficherCouche(Niveau::couche_t couche);
-	void afficherGrille(unsigned char opacite);
+	void afficherGrille(Couleur::composante_t opacite);
 	void afficherInterface();
 	void afficherInventaire();
 	void afficherControles();
@@ -363,10 +376,10 @@ protected:
 	void sourisEditeur();
 	void sourisCarte();
 	
-	Rectangle const &cadreInventaire() const;
-	Rectangle const &cadreControles() const;
-	Rectangle const &cadreEditeur() const;
-	Rectangle const &cadreCarte() const;
+	static Rectangle const &cadreInventaire();
+	static Rectangle const &cadreControles();
+	static Rectangle const &cadreEditeur();
+	static Rectangle const &cadreCarte();
 	
 	void modifCouche();
 	void modifProba();
@@ -395,7 +408,7 @@ private:
 	Image _reglages;
 	
 	NiveauEditeur *_niveau;
-	Coordonnees _origine;
+	glm::vec2 _origine;
 	Niveau::couche_t _coucheEdition;
 	Rectangle const *_ancienRectangle;
 	Rectangle _affichageSelection;

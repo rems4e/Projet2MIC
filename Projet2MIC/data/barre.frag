@@ -1,6 +1,6 @@
 #version 120
 
-uniform sampler2D _tex;
+/*uniform sampler2D _tex;
 uniform vec2 _dim;
 uniform vec2 _ecran;
 
@@ -23,4 +23,4 @@ void main(void) {
 	}
 	
 	gl_FragColor = couleur;
-}
+}*/

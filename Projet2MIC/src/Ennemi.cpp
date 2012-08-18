@@ -37,17 +37,17 @@ void Ennemi::animer() {
 	}
 
 	Joueur *j = this->niveau()->joueur();
-	if((j->position() - this->position()).norme() < this->porteeVision() * LARGEUR_CASE) {
+	if(glm::length(j->position() - this->position()) < this->porteeVision() * LARGEUR_CASE) {
 		_cible = j->position();
 		_recherche = true;
 
 		bool suivre;
-		Coordonnees dep = _cible - this->position();
-		if(dep.vecteurNul()) {
+		glm::vec2 dep = _cible - this->position();
+		if(vecteurNul(dep)) {
 			suivre = false;
 		}
 		else {
-			dep.normaliser();
+			dep = glm::normalize(dep);
 			dep *= this->vitesse() * 60.0 / Ecran::frequenceInstantanee();
 			index_t pX = this->nPX(this->position().x + dep.x), pY = this->nPY(this->position().y + dep.y);
 			suivre = j->pX() != pX || j->pY() != pY;
@@ -72,7 +72,7 @@ void Ennemi::animer() {
 	}
 	else {
 		this->definirAction(EntiteMobile::a_immobile);
-		_cible = Coordonnees::aucun;
+		_cible = vec2Aucun;
 		_recherche = false;
 	}
 }
@@ -118,7 +118,7 @@ void Ennemi::equilibrerAvecJoueur() {
 	for(competences_t c = premiereCompetence; c != nbCompetences; ++c) {
 		double nb = (nombreAleatoire(21) - 10) / 100.0;
 		cc[c] *= std::max(0.0, _coef[c] + nb);
-		cc[c] = std::max<size_t>(cc[c] / 1.5, 1);
+		cc[c] = std::max<int>(cc[c] / 1.5, 1);
 	}
 	this->definirCompetences(cc);
 	this->modifierVieActuelle(cc[endurance] * 10);

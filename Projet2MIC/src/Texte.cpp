@@ -8,6 +8,7 @@
 
 #include "Texte.h"
 #include "Image.h"
+#include "Affichage.h"
 #include "Constantes.h"
 #include <cstring>
 #include <cstdlib>
@@ -94,15 +95,15 @@ Texte &Texte::definir(Couleur const &coul) {
 	return *this;
 }
 
-void Texte::afficher(Coordonnees const &pos) const {
+void Texte::afficher(glm::vec2 const &pos) const {
 	Texte::afficher(_texte, _police, _taille, _couleur, pos);
 }
 
-void Texte::afficher(Unichar const &txt, police_t police, taillePolice_t taille, Couleur const &coul, Coordonnees pos) {
-	Couleur teinte = Image::teinte();
-	unsigned char alpha = Image::opacite();
-	Image::definirTeinte(Couleur(coul, 255));
-	Image::definirOpacite(coul.a);
+void Texte::afficher(Unichar const &txt, police_t police, taillePolice_t taille, Couleur const &coul, glm::vec2 pos) {
+	Couleur teinte = Affichage::teinte();
+	
+	Affichage::ajouterOpacite(coul.a);
+	Affichage::definirTeinte(Couleur(coul, 255));
 	
 	int hauteur = hauteurs[police];
 	float tailleRendu = taillesRendu[police];
@@ -115,7 +116,7 @@ void Texte::afficher(Unichar const &txt, police_t police, taillePolice_t taille,
 	image->redimensionner(rapportTaille);
 
 	initialiserCaracteres();
-	Coordonnees posInitiale = pos;
+	glm::vec2 posInitiale = pos;
 	
 	for(Unichar::const_iterator i = txt.begin(); i != txt.end(); ++i) {
 		Unichar::unichar c = *i;
@@ -135,8 +136,8 @@ void Texte::afficher(Unichar const &txt, police_t police, taillePolice_t taille,
 		}
 	}
 	
-	Image::definirTeinte(teinte);
-	Image::definirOpacite(alpha);
+	Affichage::definirTeinte(teinte);
+	Affichage::supprimerOpacite();
 }
 
 static void initialiserCaracteres() {
@@ -148,8 +149,8 @@ static void initialiserCaracteres() {
 	std::copy(texte.unitxt(), texte.unitxt() + nbCaracteres, caracteres);
 }
 
-Coordonnees Texte::dimensions(Unichar const &texte, police_t police, taillePolice_t taille) {
-	Coordonnees retour;
+glm::vec2 Texte::dimensions(Unichar const &texte, police_t police, taillePolice_t taille) {
+	glm::vec2 retour;
 	if(!texte.size())
 		return retour;
 	
@@ -165,7 +166,7 @@ Coordonnees Texte::dimensions(Unichar const &texte, police_t police, taillePolic
 		Unichar::unichar c = *i;
 		
 		if(c == '\n') {
-			retour.x = std::max(abscisse, retour.x);
+			retour.x = std::max<coordonnee_t>(abscisse, retour.x);
 			retour.y += 4.0 / 4 * hauteur * taille / tailleRendu;
 			abscisse = 0;
 		}
@@ -178,7 +179,7 @@ Coordonnees Texte::dimensions(Unichar const &texte, police_t police, taillePolic
 		}
 	}
 	
-	retour.x = (std::max(abscisse, retour.x)) * taille / tailleRendu;
+	retour.x = (std::max<coordonnee_t>(abscisse, retour.x)) * taille / tailleRendu;
 	
 	return retour;
 }

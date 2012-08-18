@@ -1,48 +1,48 @@
 #include "TableauDeBord.h"
 #include "Geometrie.h"
-#include "Ecran.h"
+#include "Affichage.h"
 #include "Joueur.h"
 #include "nombre.h"
 
-TableauDeBord::TableauDeBord(Joueur *j) : _joueur(j), _fond(Session::cheminRessources() + "clearedFont.png"), _interactionJoueur("", POLICE_NORMALE, 12, Couleur::noir) {
+TableauDeBord::TableauDeBord(Joueur *j) : VueInterface(Rectangle::zero), _joueur(j), _fond(Session::cheminRessources() + "clearedFont.png"), _interactionJoueur("", POLICE_NORMALE, 12, Couleur::noir) {
 	
 }
-
 
 TableauDeBord::~TableauDeBord() {
 	
 }
 
-void TableauDeBord::afficher() {
-	dimension_t posTab = Ecran::hauteur() - this->hauteur();
-	
+void TableauDeBord::preparationDessin() {
 	float facteur = Ecran::largeur() / _fond.dimensionsReelles().x;
-	_fond.redimensionner(Coordonnees(facteur, Ecran::echelle().y));
+	_fond.redimensionner(glm::vec2(facteur, Ecran::echelle().y));
+	this->definirCadre(Rectangle(0, Ecran::hauteur() - this->hauteur(), _fond.dimensions().x, _fond.dimensions().y));
+}
 
-	Image::definirOpacite(220);
-	_fond.afficher(Coordonnees(0, posTab));
-	Image::definirOpacite(255);
+void TableauDeBord::dessiner() {
+	Affichage::ajouterOpacite(220);
+	_fond.afficher(glm::vec2(0, 0));
+	Affichage::supprimerOpacite();
 	
 	size_t lBarre = 200, hBarre = 30;
 
-	Coordonnees const positionVie(50, 100);
+	glm::vec2 const positionVie(50, 100);
 
 	for(index_t i = 0; i != hBarre; ++i) {
-		Ecran::afficherRectangle(Rectangle(positionVie.x * Ecran::echelle().x, posTab + (positionVie.y + i) * Ecran::echelle().y, lBarre * Ecran::echelle().x, 1 * Ecran::echelle().y), Couleur(255 - 6 * std::abs(15 - i), 80, 80));
-		Ecran::afficherRectangle(Rectangle(positionVie.x * Ecran::echelle().x, posTab + (positionVie.y + i) * Ecran::echelle().y, _joueur->vieActuelle() * lBarre / _joueur->vieTotale() * Ecran::echelle().x, 1 * Ecran::echelle().y), Couleur(230 - 8 * std::abs(15 - i), 0, 0));
+		Affichage::afficherRectangle(Rectangle(positionVie.x * Ecran::echelle().x, (positionVie.y + i) * Ecran::echelle().y, lBarre * Ecran::echelle().x, 1 * Ecran::echelle().y), Couleur(255 - 6 * std::abs(15 - i), 80, 80));
+		Affichage::afficherRectangle(Rectangle(positionVie.x * Ecran::echelle().x, (positionVie.y + i) * Ecran::echelle().y, _joueur->vieActuelle() * lBarre / _joueur->vieTotale() * Ecran::echelle().x, 1 * Ecran::echelle().y), Couleur(230 - 8 * std::abs(15 - i), 0, 0));
 	}
 	 
 	Texte chiffres(TRAD("tabBord vie %1/%2", _joueur->vieActuelle(), _joueur->vieTotale()), POLICE_GRANDE, 16 * Ecran::echelleMin(), Couleur::blanc);
-	chiffres.afficher(Coordonnees(positionVie.x * Ecran::echelle().x, posTab + positionVie.y * Ecran::echelle().y) + (Coordonnees(lBarre * Ecran::echelle().x, hBarre * Ecran::echelle().y) - chiffres.dimensions()) / 2);
+	chiffres.afficher(glm::vec2(positionVie.x * Ecran::echelle().x, positionVie.y * Ecran::echelle().y) + (glm::vec2(lBarre * Ecran::echelle().x, hBarre * Ecran::echelle().y) - chiffres.dimensions()) / 2.0f);
 	
-	Coordonnees const positionXp(Ecran::largeur() / Ecran::echelle().x - 50 - lBarre , positionVie.y);
+	glm::vec2 const positionXp(Ecran::largeur() / Ecran::echelle().x - 50 - lBarre , positionVie.y);
 	for(index_t i = 0; i != hBarre; ++i) {
-		Ecran::afficherRectangle(Rectangle(positionXp.x * Ecran::echelle().x, posTab + (positionXp.y + i) * Ecran::echelle().y, lBarre * Ecran::echelle().x, 1 * Ecran::echelle().y), Couleur(12 * std::abs(15 - i), 12 * std::abs(15 - i), 12 * std::abs(15 - i)));
-		Ecran::afficherRectangle(Rectangle(positionXp.x * Ecran::echelle().x, posTab + (positionXp.y + i) * Ecran::echelle().y, _joueur->xp() * lBarre / _joueur->xpTotale() * Ecran::echelle().x, 1 * Ecran::echelle().y), Couleur(6 * std::abs(15 - i), 6 * std::abs(15 - i), 6 * std::abs(15 - i)));
+		Affichage::afficherRectangle(Rectangle(positionXp.x * Ecran::echelle().x, (positionXp.y + i) * Ecran::echelle().y, lBarre * Ecran::echelle().x, 1 * Ecran::echelle().y), Couleur(12 * std::abs(15 - i), 12 * std::abs(15 - i), 12 * std::abs(15 - i)));
+		Affichage::afficherRectangle(Rectangle(positionXp.x * Ecran::echelle().x, (positionXp.y + i) * Ecran::echelle().y, _joueur->xp() * lBarre / _joueur->xpTotale() * Ecran::echelle().x, 1 * Ecran::echelle().y), Couleur(6 * std::abs(15 - i), 6 * std::abs(15 - i), 6 * std::abs(15 - i)));
 	}
 	
 	chiffres.definir(TRAD("tabBord Niveau %1 - %2/%3", _joueur->niveauXp(), _joueur->xp(), _joueur->xpTotale()));
-	chiffres.afficher(Coordonnees(positionXp.x * Ecran::echelle().x, posTab + positionXp.y * Ecran::echelle().y) + (Coordonnees(lBarre * Ecran::echelle().x, hBarre * Ecran::echelle().y) - chiffres.dimensions()) / 2);
+	chiffres.afficher(glm::vec2(positionXp.x * Ecran::echelle().x,  positionXp.y * Ecran::echelle().y) + (glm::vec2(lBarre * Ecran::echelle().x, hBarre * Ecran::echelle().y) - chiffres.dimensions()) / 2.0f);
 
 	Unichar txt;
 	switch(_joueur->interaction()) {
@@ -82,7 +82,11 @@ void TableauDeBord::afficher() {
 	
 	_interactionJoueur.definir(12 * Ecran::echelleMin());
 	_interactionJoueur.definir(txt);
-	_interactionJoueur.afficher(Coordonnees((Ecran::largeur() - _interactionJoueur.dimensions().x) / 2, posTab + (positionVie.y + hBarre / 2) * Ecran::echelle().y - _interactionJoueur.dimensions().y / 2));
+	_interactionJoueur.afficher(glm::vec2((Ecran::largeur() - _interactionJoueur.dimensions().x) / 2, (positionVie.y + hBarre / 2) * Ecran::echelle().y - _interactionJoueur.dimensions().y / 2));
+}
+
+void TableauDeBord::gestionClavier() {
+	
 }
 
 dimension_t TableauDeBord::hauteur() const {

@@ -22,13 +22,13 @@ public:
 	
 	virtual ~ObjetInventaire();
 	
-	virtual void afficher(index_t deltaY, Coordonnees const &decalage) const;
+	virtual void afficher(index_t deltaY, glm::vec2 const &decalage) const;
 	virtual void animer();
-	virtual Coordonnees dimensions() const;
+	virtual glm::vec2 dimensions() const;
 	
 	categorie_t categorieObjet() const;
 	bool tenue() const;
-	Coordonnees dimensionsInventaire() const;
+	glm::ivec2 dimensionsInventaire() const;
 	
 	int defense() const;
 	int attaque() const;
@@ -53,7 +53,7 @@ protected:
 	ObjetInventaire(EntiteStatique const &);
 	ObjetInventaire &operator=(ObjetInventaire const &);
 	
-	Coordonnees _dimInventaire;
+	glm::ivec2 _dimInventaire;
 	Personnage::Competences _competencesRequises;
 	categorie_t _categorie;
 	

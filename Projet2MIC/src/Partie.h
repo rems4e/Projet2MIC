@@ -14,6 +14,7 @@
 #include <exception>
 #include "Shader.h"
 #include "horloge.h"
+#include "VueInterface.h"
 
 class Niveau;
 class Joueur;
@@ -22,7 +23,7 @@ class Marchand;
 class TiXmlElement;
 class Image;
 
-class Partie {
+class Partie : public VueInterface {
 public:
 	static TiXmlElement *charger(Image &fond, Shader const &s, horloge_t tempsInitial);
 	
@@ -42,17 +43,20 @@ public:
 	void definirMarchand(Marchand *m);
 	
 	Rectangle zoneJeu() const;
-	
-	
+		
 private:
 	Partie();
-
-	void afficher();
-	void animer();
+	
+	void dessiner();
+	void gestionClavier();
+	
 	TiXmlElement *mortJoueur(bool &continuer);
 		
 	void sauvegarder(Image &fond);
 	TiXmlElement *sauvegarde();
+
+	TiXmlElement *_charge;
+	Image *_apercu;
 
 	Niveau *_niveau;
 	Joueur *_joueur;

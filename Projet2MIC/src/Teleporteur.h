@@ -22,7 +22,7 @@ protected:
 	Teleporteur(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
 	
 private:
-	Coordonnees _destination;
+	glm::vec2 _destination;
 	bool _actif;
 	
 	Teleporteur(Teleporteur const &);

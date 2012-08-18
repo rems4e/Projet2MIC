@@ -14,7 +14,19 @@
 
 #include <algorithm>
 
-int nombreAleatoire(int nombreMax) {
+/*template <class T, size_t = sizeof(T) / sizeof(decltype(std::rand()))>
+struct nombreAleatoire;
+
+template <class T>
+struct nombreAleatoire<T, 0> {
+	T operator()(T nombreMax) {
+		return std::ran
+	}
+};*/
+
+
+/*template <class T>
+T nombreAleatoire<T, 0>(T nombreMax) {
 	if(nombreMax == 0)
 		return 0;
 	
@@ -22,7 +34,7 @@ int nombreAleatoire(int nombreMax) {
 	nb %= nombreMax;
 	
 	return nb;
-}
+}*/
 
 int caractereVersHexa(char c) {
 	switch(c) {
@@ -96,17 +108,15 @@ char base64VersCaractere(int c) {
 }
 
 double texteVersNombre(std::string const &s) {
-	std::string::size_type l = s.size();
-	char *txt = (char *)std::malloc(l + 1);
-	std::strcpy(txt, s.c_str());
+	std::string cp(s);
+	std::string::size_type l = cp.size();
 	
 	for(int i = 0; i < l; ++i) {
-		if(txt[i] == ',')
-			txt[i] = '.';
+		if(cp[i] == ',')
+			cp[i] = '.';
 	}
 	
-	double d = std::strtod(txt, 0);
-	std::free(txt);
+	double d = std::strtod(cp.c_str(), 0);
 	
 	return d;
 }

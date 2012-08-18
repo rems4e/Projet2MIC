@@ -65,7 +65,7 @@ EntiteMobile::EntiteMobile(bool decoupagePerspective, Niveau *n, uindex_t index,
 				}
 			}
 			
-			if(!_images[a].valide()) {
+			if(!_images[a].chargee()) {
 				throw ElementNiveau::Exc_DefinitionEntiteIncomplete();
 			}
 		}
@@ -94,7 +94,7 @@ EntiteMobile::~EntiteMobile() {
 	}
 }
 
-void EntiteMobile::afficher(index_t deltaY, Coordonnees const &decalage) const {
+void EntiteMobile::afficher(index_t deltaY, glm::vec2 const &decalage) const {
 	Rectangle const &cadre = this->cadre();
 	_images[_action].afficher(this->positionAffichage() - decalage, cadre);
 }
@@ -150,8 +150,8 @@ bool EntiteMobile::mortTerminee() const {
 	return _mortTerminee;
 }
 
-Coordonnees EntiteMobile::dimensions() const {
-	return Coordonnees(1, 1);
+glm::vec2 EntiteMobile::dimensions() const {
+	return glm::vec2(1, 1);
 }
 
 Rectangle const &EntiteMobile::cadre() const {
@@ -221,11 +221,11 @@ bool EntiteMobile::definirAction(action_t a) {
 	return false;
 }
 
-bool EntiteMobile::deplacerPosition(Coordonnees const &delta) {
-	if(delta.vecteurNul())
+bool EntiteMobile::deplacerPosition(glm::vec2 const &delta) {
+	if(vecteurNul(delta))
 		return false;
 	
-	Coordonnees anciennePosition = this->position();
+	glm::vec2 anciennePosition = this->position();
 	index_t x = this->pX(), y = this->pY();
 	
 	direction_t dir = EntiteMobile::gauche;
@@ -254,13 +254,13 @@ bool EntiteMobile::deplacerPosition(Coordonnees const &delta) {
 	
 	this->definirDirection(dir);
 	
-	size_t const n = std::floor(delta.norme());
+	coordonnee_t const n = std::floor(glm::length(delta));
 	if(n == 0) {
 		if(testerDeplacement(delta))
 			this->definirPosition(this->position() + delta);
 	}
 	else {
-		Coordonnees const dep = delta / n;
+		glm::vec2 const dep = delta / n;
 		for(index_t i = 0; i < n; ++i) {
 			if(testerDeplacement(dep)) {
 				this->definirPosition(this->position() + dep);
@@ -282,8 +282,8 @@ bool EntiteMobile::deplacerPosition(Coordonnees const &delta) {
 	return false;
 }
 
-bool EntiteMobile::testerDeplacement(Coordonnees const &dep) {
-	if(dep.vecteurNul())
+bool EntiteMobile::testerDeplacement(glm::vec2 const &dep) {
+	if(vecteurNul(dep))
 		return true;
 	
 	index_t x1 = this->nPX(this->position().x + dep.x), y1 = this->nPY(this->position().y + dep.y);

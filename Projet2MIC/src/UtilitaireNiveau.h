@@ -18,7 +18,7 @@ uint16_t entite(index_t loiProbabilite);
 
 void obtenirInfosEntites(uint16_t valeur, bool &proba, index_t &indexProba, ElementNiveau::elementNiveau_t &cat, index_t &index);
 
-Coordonnees referentielNiveauVersEcran(Coordonnees const &pos);
-Coordonnees referentielEcranVersNiveau(Coordonnees const &pos);
+glm::vec2 referentielNiveauVersEcran(glm::vec2 const &pos);
+glm::vec2 referentielEcranVersNiveau(glm::vec2 const &pos);
 
 #endif

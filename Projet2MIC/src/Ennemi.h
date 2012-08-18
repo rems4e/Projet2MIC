@@ -37,7 +37,7 @@ protected:
 	void mourir();
 
 private:
-	Coordonnees _cible;
+	glm::vec2 _cible;
 	bool _recherche;
 	
 	double _coef[Personnage::nbCompetences];

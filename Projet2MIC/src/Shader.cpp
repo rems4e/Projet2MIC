@@ -11,11 +11,7 @@
 #include <fstream>
 #include "Session.h"
 #include <cstdlib>
-#include "Ecran.h"
-
-namespace ImagesBase {
-	void changerTexture(GLint tex);
-}
+#include "Affichage.h"
 
 char const * const Shader::rayonFlou = "rayon";
 char const * const Shader::dim = "_dim";
@@ -69,14 +65,14 @@ void Shader::reinitialiser() throw(Shader::Exc_CreationImpossible) {
 		SousProgramme &v = i->second;
 		
 		v._id = Shader::chargerShader(v._fichier, GL_VERTEX_SHADER);
-		Shader::compiler(v._id);
+		Shader::compiler(v._id, v._fichier);
 	}
 
 	for(std::map<std::string, SousProgramme>::iterator i = _fragmentShaders->begin(); i != _fragmentShaders->end(); ++i) {
 		SousProgramme &f = i->second;
 		
 		f._id = Shader::chargerShader(f._fichier, GL_FRAGMENT_SHADER);
-		Shader::compiler(f._id);
+		Shader::compiler(f._id, f._fichier);
 	}
 		
 	for(std::map<std::pair<std::string, std::string>, Programme>::iterator i = _programmes->begin(); i != _programmes->end(); ++i) {
@@ -99,6 +95,7 @@ void Shader::reinitialiser() throw(Shader::Exc_CreationImpossible) {
 		p._vertCoord =  glGetAttribLocation(p._id, "vertCoord");
 		p._texCoord = glGetAttribLocation(p._id, "texCoord");
 		p._coul = glGetAttribLocation(p._id, "color");
+		p._norm = glGetAttribLocation(p._id, "norm");
 	}
 	
 	Shader const &a = Shader::shaderActuel();
@@ -122,7 +119,7 @@ Shader::Shader(std::string const &vert, std::string const &frag) throw(Shader::E
 			idVert._fichier = vert;
 			idVert._id = Shader::chargerShader(vert, GL_VERTEX_SHADER);
 			
-			Shader::compiler(idVert._id);
+			Shader::compiler(idVert._id, vert);
 		}
 		
 		// On charge le fragment shader
@@ -130,7 +127,7 @@ Shader::Shader(std::string const &vert, std::string const &frag) throw(Shader::E
 			idFrag._fichier = frag;
 			idFrag._id = Shader::chargerShader(frag, GL_FRAGMENT_SHADER);
 			
-			Shader::compiler(idFrag._id);
+			Shader::compiler(idFrag._id, frag);
 		}
 		
 		idProgramme._id = glCreateProgram();
@@ -151,6 +148,7 @@ Shader::Shader(std::string const &vert, std::string const &frag) throw(Shader::E
 		idProgramme._vertCoord =  glGetAttribLocation(idProgramme._id, "vertCoord");
 		idProgramme._texCoord = glGetAttribLocation(idProgramme._id, "texCoord");
 		idProgramme._coul = glGetAttribLocation(idProgramme._id, "color");
+		idProgramme._norm = glGetAttribLocation(idProgramme._id, "norm");
 	}
 
 	++idProgramme._ref;
@@ -215,43 +213,87 @@ void Shader::nettoyer() {
 }
 
 void Shader::definirParametre(char const *param, float v) const {
+	GLint loc = this->locParam(param);
+	if(loc == -1)
+		return;
+
 	if(_shaderActuel != this) {
 		this->activer();
 	}
 	else
-		ImagesBase::changerTexture(-1);
+		Affichage::changerTexture(-1);
 
-	glUniform1f(this->locParam(param), v);
+	glUniform1f(loc, v);
 }
 
-void Shader::definirParametre(char const *param, float v1, float v2) const {
+void Shader::definirParametre(char const *param, glm::vec2 const &vec) const {
+	GLint loc = this->locParam(param);
+	if(loc == -1)
+		return;
+
 	if(_shaderActuel != this) {
 		this->activer();
 	}
 	else
-		ImagesBase::changerTexture(-1);
+		Affichage::changerTexture(-1);
 
-	glUniform2f(this->locParam(param), v1, v2);
+	glUniform2fv(loc, 1, &vec[0]);
 }
 
-void Shader::definirParametre(char const *param, float v1, float v2, float v3) const {
+void Shader::definirParametre(char const *param, glm::vec3 const &vec) const {
+	GLint loc = this->locParam(param);
+	if(loc == -1)
+		return;
+
 	if(_shaderActuel != this) {
 		this->activer();
 	}
 	else
-		ImagesBase::changerTexture(-1);
+		Affichage::changerTexture(-1);
 
-	glUniform3f(this->locParam(param), v1, v2, v3);
+	glUniform3fv(loc, 1, &vec[0]);
 }
 
-void Shader::definirParametre(char const *param, float v1, float v2, float v3, float v4) const {
+void Shader::definirParametre(char const *param, glm::vec4 const &vec) const {
+	GLint loc = this->locParam(param);
+	if(loc == -1)
+		return;
+
 	if(_shaderActuel != this) {
 		this->activer();
 	}
 	else
-		ImagesBase::changerTexture(-1);
+		Affichage::changerTexture(-1);
 
-	glUniform4f(this->locParam(param), v1, v2, v3, v4);
+	glUniform4fv(loc, 1, &vec[0]);
+}
+
+void Shader::definirParametre(char const *param, glm::mat3 const &mat) const {
+	GLint loc = this->locParam(param);
+	if(loc == -1)
+		return;
+	
+	if(_shaderActuel != this) {
+		this->activer();
+	}
+	else
+		Affichage::changerTexture(-1);
+	
+	glUniformMatrix3fv(loc, 1, GL_FALSE, &mat[0][0]);
+}
+
+void Shader::definirParametre(char const *param, glm::mat4 const &mat) const {
+	GLint loc = this->locParam(param);
+	if(loc == -1)
+		return;
+	
+	if(_shaderActuel != this) {
+		this->activer();
+	}
+	else
+		Affichage::changerTexture(-1);
+	
+	glUniformMatrix4fv(loc, 1, GL_FALSE, &mat[0][0]);
 }
 
 GLint Shader::locParam(char const *param) const {
@@ -262,17 +304,29 @@ GLint Shader::locParam(char const *param) const {
 	}
 	else
 		loc = i->second;
-		
+	
 	return loc;
+}
+
+void Shader::majModele() {
+	Shader const &s = Shader::shaderActuel();
+	s.definirParametre("_matModeleVue", Ecran::modeleVue());
+}
+
+void Shader::majProjection() {
+	Shader const &s = Shader::shaderActuel();
+	s.definirParametre("_matProjection", Ecran::projection());
 }
 
 void Shader::activer() const {
 	if(_shaderActuel != this) {
-		ImagesBase::changerTexture(-1);
+		Affichage::changerTexture(-1);
 		_shaderActuel = this;
 		glUseProgram(_prog->_id);
 
-		this->definirParametre("_ecran", Ecran::largeur(), Ecran::hauteur());
+		this->definirParametre("_ecran", glm::vec2(Ecran::largeur(), Ecran::hauteur()));
+		Shader::majModele();
+		Shader::majProjection();
 	}
 }
 
@@ -280,12 +334,12 @@ void Shader::desactiver() {
 	Shader::aucun().activer();
 }
 
-Coordonnees Shader::versShader(Coordonnees const &c) {
-	return Coordonnees(c.x / Ecran::largeur() * 2 - 1, -(c.y / Ecran::hauteur() * 2 - 1));
+glm::vec2 Shader::versShader(glm::vec2 const &c) {
+	return glm::vec2(c.x / Ecran::largeur() * 2 - 1, -(c.y / Ecran::hauteur() * 2 - 1));
 }
 
 Rectangle Shader::versShader(Rectangle const &r) {
-	return Rectangle(versShader(r.origine()), Coordonnees(r.largeur / Ecran::largeur(), r.hauteur / Ecran::hauteur()));
+	return Rectangle(versShader(r.origine()), glm::vec2(r.largeur / Ecran::largeur(), r.hauteur / Ecran::hauteur()));
 
 }
 
@@ -299,7 +353,7 @@ GLint Shader::chargerShader(std::string const &chemin, GLint type) throw(Shader:
 	}
 	
 	fShad.seekg(0, std::ios::end);
-	int dimShad = fShad.tellg();
+	int dimShad = static_cast<int>(fShad.tellg());
 	GLchar *shadSource = new GLchar[dimShad];
 	fShad.seekg(0, std::ios::beg);
 	fShad.read(shadSource, dimShad);
@@ -312,7 +366,7 @@ GLint Shader::chargerShader(std::string const &chemin, GLint type) throw(Shader:
 	return shad;
 }
 
-void Shader::compiler(GLuint shader) throw(Shader::Exc_CreationImpossible) {
+void Shader::compiler(GLuint shader, std::string const &fichier) throw(Shader::Exc_CreationImpossible) {
 	glCompileShader(shader);
 
 	GLint etat = 0;
@@ -334,7 +388,7 @@ void Shader::compiler(GLuint shader) throw(Shader::Exc_CreationImpossible) {
 			delete[] log;
 		}
 		
-		std::cerr << "Erreur de compilation du shader : " << str << std::endl;
+		std::cerr << "Erreur de compilation du shader (" << fichier << ") : " << str << std::endl;
 		throw Exc_CreationImpossible();
 	}
 }

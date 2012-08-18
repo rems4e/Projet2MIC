@@ -47,16 +47,16 @@ public:
 	virtual bool interagir(Personnage *p, bool test) = 0;
 	virtual bool attaquer(Personnage *p);
 	
-	virtual Coordonnees origine() const;
+	virtual glm::vec2 origine() const;
 	virtual bool centrage() const;
 	
 	// Le coefficient multiplicateur de la vitesse de déplacement de l'entité
 	virtual double vitesse() const;
 	
-	ssize_t vieActuelle() const;
+	int vieActuelle() const;
 	virtual void modifierVieActuelle(int delta);
 	
-	virtual ssize_t vieTotale() const;
+	virtual int vieTotale() const;
 	
 	virtual bool definirAction(action_t a);
 	virtual Niveau::couche_t couche() const;

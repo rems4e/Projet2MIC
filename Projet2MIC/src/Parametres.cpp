@@ -8,7 +8,7 @@
 
 #include "Parametres.h"
 #include "Image.h"
-#include "Ecran.h"
+#include "Affichage.h"
 #include "Menu.h"
 #include "Texte.h"
 #include <vector>
@@ -33,14 +33,10 @@ namespace Parametres {
 	void enregistrer();
 	void nettoyer();
 	
-	void general(Image const &fond, Shader const &s);
-	void video(Image const &fond, Shader const &s);
-	void audio(Image const &fond, Shader const &s);
-	void controles(Image const &fond, Shader const &s);
 	void definirEvenementAction(action_t action, Session::evenement_t e);
 	void definirVolumeMusique(float v);
 	void definirVolumeEffets(float v);
-		
+	
 	Unichar transcriptionAction(action_t);
 	char const *nomBalise(action_t);
 	
@@ -59,14 +55,14 @@ namespace Parametres {
 		Rectangle _flecheD;
 	};
 	
-	std::string transcriptionResolution(std::pair<int, int> const &r);
+	std::string transcriptionResolution(glm::ivec2 const &r);
 	Rectangle afficherColonnes(Unichar const &titre, index_t premier, size_t nb, bool modif, std::vector<etiquetteTexte_t> &colonne1, index_t sel1, std::vector<etiquetteTexte_t> &colonne2, index_t sel2, bool fleches, coordonnee_t abscisse = 80);
-	void gestionEvenementsAfficheur(horloge_t &ancienDefilement, bool &continuer, int &dep, index_t &premier, index_t nbAffiches, index_t &selection, std::vector<etiquetteTexte_t> const &colonne1, std::vector<etiquetteTexte_t> const &colonne2);
+	int gestionEvenementsAfficheur(horloge_t &ancienDefilement, bool &continuer, index_t &premier, index_t nbAffiches, index_t &selection, std::vector<etiquetteTexte_t> const &colonne1, std::vector<etiquetteTexte_t> const &colonne2);
 	
 	Session::evenement_t _evenementsAction[nbActions];
 	float _volumeMusique;
 	float _volumeEffets;
-		
+	
 	Audio::audio_t _sonEffets = 0;
 	
 	std::string _langue;
@@ -80,7 +76,7 @@ namespace Parametres {
 	bool _rechercherMaj;
 	Image *_flecheG = 0;
 	Image *_flecheD = 0;
-	
+		
 	struct hauteurTexte_t {
 		hauteurTexte_t(dimension_t ecart) : _ecart(ecart) {
 			
@@ -106,9 +102,9 @@ namespace Parametres {
 		
 		void operator()(Parametres::etiquetteTexte_t const &t) {
 			if(_fleches) {
-				Parametres::_flecheG->afficher(_cadre.origine() + Coordonnees(0, (_cadre.dimensions().y - Parametres::_flecheG->dimensions().y) / 2));
-				t._texte.afficher(_cadre.origine() + Coordonnees(Parametres::_flecheG->dimensions().x + 10 * Ecran::echelleMin(), 0));
-				Parametres::_flecheD->afficher(_cadre.origine() + Coordonnees(_cadre.dimensions().x - _flecheD->dimensions().x, (_cadre.dimensions().y - Parametres::_flecheD->dimensions().y) / 2));
+				Parametres::_flecheG->afficher(_cadre.origine() + glm::vec2(0, (_cadre.dimensions().y - Parametres::_flecheG->dimensions().y) / 2));
+				t._texte.afficher(_cadre.origine() + glm::vec2(Parametres::_flecheG->dimensions().x + 10 * Ecran::echelleMin(), 0));
+				Parametres::_flecheD->afficher(_cadre.origine() + glm::vec2(_cadre.dimensions().x - _flecheD->dimensions().x, (_cadre.dimensions().y - Parametres::_flecheD->dimensions().y) / 2));
 			}
 			else {
 				t._texte.afficher(_cadre.origine());
@@ -136,11 +132,11 @@ namespace Parametres {
 			t._cadre = _cadre;
 			if(_fleches) {
 				t._flecheG.definirOrigine(_cadre.origine());
-				t._flecheG.definirDimensions(Coordonnees(Parametres::_flecheG->dimensions().x, std::max(Parametres::_flecheG->dimensions().y, _cadre.hauteur)));
-
+				t._flecheG.definirDimensions(glm::vec2(Parametres::_flecheG->dimensions().x, std::max(Parametres::_flecheG->dimensions().y, _cadre.hauteur)));
+				
 				t._flecheD.definirOrigine(_cadre.origine() + _cadre.dimensions() - Parametres::_flecheD->dimensions());
-				t._flecheD.definirDimensions(Coordonnees(Parametres::_flecheD->dimensions().x, std::max(Parametres::_flecheD->dimensions().y, _cadre.hauteur)));
-}
+				t._flecheD.definirDimensions(glm::vec2(Parametres::_flecheD->dimensions().x, std::max(Parametres::_flecheD->dimensions().y, _cadre.hauteur)));
+			}
 			_cadre.haut += _cadre.hauteur + _ecart;
 		}
 		
@@ -155,8 +151,191 @@ namespace Parametres {
 	
 	struct trouveSouris_t {
 		bool operator()(Parametres::etiquetteTexte_t const &e) {
-			return Session::souris() < e._cadre;
+			return e._cadre.contientPoint(Session::souris());
 		}
+	};
+	
+	struct VueReglages : public VueInterface {
+	public:
+		VueReglages(Image const &fond, Shader const &s, Unichar const &titre, bool fleches) : VueInterface(Rectangle::zero), _s(s), _fond(fond), _titre(titre), _fleches(fleches) {
+			
+		}
+	protected:
+		void preparationDessin() override {
+			this->definirCadre(Rectangle(0, 0, Ecran::largeur(), Ecran::hauteur()));
+		}
+		
+		void dessiner() override {
+			_nbAffiches = std::min<size_t>(_enTetes.size(), 8);
+			
+			Texte valider(TRAD("reg Valider"),  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
+			Texte annuler(TRAD("reg Annuler"),  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
+			
+			_fond.redimensionner(glm::vec2(Ecran::largeur() / _fond.dimensionsReelles().x, Ecran::hauteur() / _fond.dimensionsReelles().y));
+			
+			Ecran::definirPointeurAffiche(true);
+			
+			_s.activer();
+			_s.definirParametre(Shader::temps, horloge());
+			_s.definirParametre(Shader::tempsAbsolu, horloge());
+			_fond.afficher(glm::vec2(0));
+			Shader::desactiver();
+			
+			Rectangle cadre = Parametres::afficherColonnes(_titre, _premier, _nbAffiches, _cligno, _enTetes, -1, _champs, _selection, _fleches);
+			
+			valider.definir(POLICE_DECO, 26 * Ecran::echelleMin());
+			annuler.definir(POLICE_DECO, 26 * Ecran::echelleMin());
+			
+			_cadreValider.definirDimensions(valider.dimensions());
+			_cadreAnnuler.definirDimensions(annuler.dimensions());
+			_cadreValider.definirOrigine(cadre.origine() + glm::vec2(20 * Ecran::echelleMin(), 20 * Ecran::echelleMin() + cadre.hauteur));
+			_cadreAnnuler.definirOrigine(_cadreValider.origine() + glm::vec2(80 * Ecran::echelleMin() + _cadreValider.largeur, 0));
+			
+			valider.afficher(_cadreValider.origine());
+			annuler.afficher(_cadreAnnuler.origine());
+		}
+		
+		Shader const &_s;
+		Image const &_fond;
+		
+		Rectangle _cadreValider, _cadreAnnuler;
+		std::vector<etiquetteTexte_t> _enTetes, _champs;
+		index_t _premier = 0, _selection = 0;
+		size_t _nbAffiches;
+		
+		horloge_t _ancienDefilement = 0;
+		Unichar _titre;
+		bool _fleches;
+		bool _cligno = false;
+		
+		Unichar _txt[2] = {TRAD("reg Désactivé"), TRAD("reg Activé")};
+	};
+	
+	class VueGeneral : public VueReglages {
+	public:
+		VueGeneral(Image const &fond, Shader const &s) : VueReglages(fond, s, TRAD("reg Général"), true) {
+			_enTetes.push_back(Unichar(TRAD("reg Rechercher les mises à jour")));
+			_champs.push_back(_txt[_maj]);
+		}
+	protected:
+		void gestionClavier() override;
+		
+	private:
+		bool _maj = Parametres::rechercherMaj();
+	};
+	
+	class VueControles : public VueReglages {
+	public:
+		VueControles(Image const &fond, Shader const &s) : VueReglages(fond, s, TRAD("reg Contrôles"), false) {
+			for(action_t i = premiereAction; i != nbActions; ++i) {
+				_enTetes.push_back(Unichar(Parametres::transcriptionAction(i)));
+				_champs.push_back(Session::transcriptionEvenement(Parametres::evenementAction(i), true));
+				_evenements[i] = _evenementsAction[i];
+			}
+		}
+	protected:
+		void gestionClavier() override;
+		
+	private:
+		Session::evenement_t _evenements[nbActions];
+		bool _modification = false;
+	};
+	class VueAudio : public VueReglages {
+	public:
+		VueAudio(Image const &fond, Shader const &s) : VueReglages(fond, s, TRAD("reg Audio"), false), _shader(Session::cheminRessources() + "aucun.vert", Session::cheminRessources() + "volume.frag") {
+			_enTetes.push_back(Unichar(TRAD("reg Volume musique")));
+			_enTetes.push_back(Unichar(TRAD("reg Volume effets")));
+			Unichar blanc("                                       ");
+			_champs.push_back(blanc);
+			_champs.push_back(blanc);
+		}
+	protected:
+		void gestionClavier() override;
+		void dessiner() override;
+		
+	private:
+		Shader _shader;
+
+		horloge_t _ancienSon = 0;
+		float _vMusique = Parametres::volumeMusique();
+		float _vEffets = Parametres::volumeEffets();
+	};
+	class VueVideo : public VueReglages {
+	public:
+		VueVideo(Image const &fond, Shader const &s) : VueReglages(fond, s, TRAD("reg Vidéo"), true) {
+			{
+				std::list<glm::ivec2> r = Ecran::resolutionsDisponibles(false);
+				_resolutions[0].assign(r.begin(), r.end());
+				
+				r = Ecran::resolutionsDisponibles(true);
+				_resolutions[1].assign(r.begin(), r.end());
+			}
+			_resolutionActuelle = std::find(_resolutions[_pleinEcran].begin(), _resolutions[_pleinEcran].end(), Ecran::dimensions()) - _resolutions[_pleinEcran].begin();
+			
+			_enTetes.push_back(Unichar(TRAD("reg Plein écran :")));
+			_champs.push_back(Unichar(_txt[_pleinEcran]));
+			
+			_enTetes.push_back(Unichar(TRAD("reg Résolution :")));
+			_champs.push_back(Unichar(Parametres::transcriptionResolution(_resolutions[_pleinEcran][_resolutionActuelle])));
+			
+			_enTetes.push_back(Unichar(TRAD("reg Synchronisation verticale :")));
+			_champs.push_back(Unichar(_txt[_synchroVerticale]));
+			
+			_enTetes.push_back(Unichar(TRAD("reg Limiter la fréquence d'affichage :")));
+			_champs.push_back(Unichar(_txt[_limiteIPS]));
+			
+			_enTetes.push_back(Unichar(TRAD("reg Afficher les images par seconde :")));
+			_champs.push_back(Unichar(_txt[_ips]));
+		}
+	protected:
+		void gestionClavier() override;
+
+	private:
+		bool _pleinEcran = Ecran::pleinEcran();
+		std::vector<glm::ivec2> _resolutions[2];
+		index_t _resolutionActuelle;
+		bool _ips = Parametres::ips();
+		bool _limiteIPS = Parametres::limiteIPS();
+		bool _synchroVerticale = Parametres::synchroVerticale();
+	};
+	
+	class VueCredits : public VueInterface {
+	public:
+		VueCredits(Image const &fond, Shader const &s) : VueInterface(Rectangle(0, 0, Ecran::largeur(), Ecran::hauteur())), _ok(TRAD("cred Retour"),  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc), _fond(fond), _s(s) {
+			_noms.push_back(Unichar("Marc Promé"));
+			_roles.push_back(Unichar(TRAD("cred Level design, graphismes, programmation")));
+			
+			_noms.push_back(Unichar("Rémi Saurel"));
+			_roles.push_back(Unichar(TRAD("cred Level design, graphismes, programmation")));
+			
+			_noms.push_back(Unichar("OpenGameArt.org"));
+			_roles.push_back(Unichar(TRAD("cred Graphismes")));
+			
+			_noms.push_back(Unichar("Semaphore (Newgrounds)"));
+			_roles.push_back(Unichar(TRAD("cred Musique %1", "Dream of Water and Land")));
+			
+			_noms.push_back(Unichar("Sexual-Lobster (Newgrounds)"));
+			_roles.push_back(Unichar(TRAD("cred Musique %1", "Man vs. Walrus-Man")));
+			
+			_noms.push_back(Unichar("Xerferic (Newgrounds)"));
+			_roles.push_back(Unichar(TRAD("cred Musique %1", "Laid-Back")));
+			
+			for(int i = 0; i < _noms.size(); ++i) {
+				_noms[i]._texte.definir(POLICE_DECO, 16 * Ecran::echelleMin());
+				_roles[i]._texte.definir(POLICE_DECO, 16 * Ecran::echelleMin());
+			}
+		}
+	protected:
+		void dessiner() override;
+		void gestionClavier() override;
+	private:
+		std::vector<etiquetteTexte_t> _noms, _roles;
+				
+		Texte _ok;
+		Rectangle _cadreOk;
+		
+		Image const &_fond;
+		Shader const &_s;
 	};
 }
 
@@ -171,6 +350,7 @@ static size_t ecrireDonnees(char *ptr, size_t size, size_t nmemb, void *userdata
 bool Parametres::majDisponible() {
 	char const *fichierMaj = "r4.saurel.free.fr/Projet2MIC/fichiers/version.txt";
 	
+	//FIXME: timeout connexion
 	std::ostringstream data;
 	cURL::CURL *session = cURL::curl_easy_init();
 	cURL::curl_easy_setopt(session, cURL::CURLOPT_URL, fichierMaj);
@@ -180,7 +360,7 @@ bool Parametres::majDisponible() {
 	cURL::CURLcode res = cURL::curl_easy_perform(session);
 	std::string err = cURL::curl_easy_strerror(res);
 	cURL::curl_easy_cleanup(session);
-
+	
 	if(res != cURL::CURLE_OK) {
 		std::cerr << "Impossible de contacter le serveur de mise à jour : " << err << "." << std::endl;
 		return false;
@@ -193,7 +373,7 @@ bool Parametres::majDisponible() {
 		if(l.size() == 3 && l[0] == "majProjet2MIC") {
 			int maj = texteVersNombre(l[1]);
 			int min = texteVersNombre(l[2]);
-
+			
 			if(maj > VERSION_MAJ || (maj == VERSION_MAJ && min > VERSION_MIN)) {
 				return true;
 			}
@@ -215,7 +395,7 @@ char const *Parametres::versionTexte() {
 	static char dim[nombreChiffres<VERSION_MAJ>::nb + 1 + nombreChiffres<VERSION_MIN>::nb + 1] = {0};
 	if(*dim == 0) {
 		std::string version = nombreVersTexte(VERSION_MAJ) + "." + nombreVersTexte(VERSION_MIN);
-
+		
 		std::copy(version.begin(), version.end(), dim);
 	}
 	
@@ -233,13 +413,13 @@ void Parametres::charger() {
 	
 	_evenementsAction[afficherInventaire] = Session::T_i;
 	_evenementsAction[interagir] = Session::T_ESPACE;
-
+	
 	_evenementsAction[remplirVie] = Session::T_h;
 	
 #if defined(DEVELOPPEMENT)
 	for(action_t a = premiereAction; a != nbActions; ++a) {
 		if(_evenementsAction[a] == Session::aucunEvenement) {
-			std::cout << "Aucune valeur par défaut pour l'événement " << Parametres::transcriptionAction(a) << std::endl;
+			std::cerr << "Aucune valeur par défaut pour l'événement " << Parametres::transcriptionAction(a) << std::endl;
 			throw 0;
 		}
 	}
@@ -338,7 +518,7 @@ void Parametres::charger() {
 
 void Parametres::enregistrer() {
 	std::string valeurTexte;
-	char const *documentBase = 
+	char const *documentBase =
 	"<?xml version=\"1.0\" standalone='no' >\n"
 	"<Config>\n"
 	"<General>\n"
@@ -364,7 +544,7 @@ void Parametres::enregistrer() {
 	TiXmlElement *audio = config->FirstChildElement("Audio");
 	audio->SetAttribute("volumeEffets", Parametres::volumeEffets());
 	audio->SetAttribute("volumeMusique", Parametres::volumeMusique());
-
+	
 	TiXmlElement *video = config->FirstChildElement("Video");
 	video->SetAttribute("largeurEcran", Parametres::largeurEcran());
 	video->SetAttribute("hauteurEcran", Parametres::hauteurEcran());
@@ -467,447 +647,248 @@ void Parametres::editerParametres(Image const &fond, Shader const &s) {
 		elements.push_back(TRAD("reg Vidéo"));
 		elements.push_back(TRAD("reg Général"));
 		Menu menu(TRAD("reg Réglages"), elements);
-
+		
 		selection = menu.afficher(selection, fond, s);
 		switch(selection) {
-			case 3:
-				Parametres::general(fond, s);
+			case 3: {
+				VueGeneral general(fond, s);
+				Session::ajouterVueFenetre(&general);
 				break;
-			case 2:
-				Parametres::video(fond, s);
+			}
+			case 2: {
+				VueVideo video(fond, s);
+				Session::ajouterVueFenetre(&video);
 				break;
-			case 1:
-				Parametres::audio(fond, s);
+			}
+			case 1: {
+				VueAudio audio(fond, s);
+				Session::ajouterVueFenetre(&audio);
 				break;
-			case 0:
-				Parametres::controles(fond, s);
+			}
+			case 0: {
+				VueControles controles(fond, s);
+				Session::ajouterVueFenetre(&controles);
 				break;
+			}
 		}
 	} while(selection != elements.size());
 }
 
-std::string Parametres::transcriptionResolution(std::pair<int, int> const &r) {
-	return nombreVersTexte(r.first) + "*" + nombreVersTexte(r.second);
+std::string Parametres::transcriptionResolution(glm::ivec2 const &r) {
+	return nombreVersTexte(r.x) + "*" + nombreVersTexte(r.y);
 }
 
-void Parametres::general(Image const &fond, Shader const &s) {
-	bool maj = Parametres::rechercherMaj();
-		
-	Rectangle cadreAnnuler, cadreValider;
-	
+void Parametres::VueGeneral::gestionClavier() {
 	bool continuer = true;
-	index_t selection = 0, premier = 0;
-	horloge_t ancienDefilement = horloge();
-	
-	Session::reinitialiserEvenements();
-	while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, continuer)) {
-		Unichar txt[2] = {TRAD("reg Désactivé"), TRAD("reg Activé")};
-
-		std::vector<etiquetteTexte_t> enTetes, champs;
-		
-		enTetes.push_back(Unichar(TRAD("reg Rechercher les mises à jour")));
-		champs.push_back(Unichar::uninull);
-		
-		size_t nbAffiches = std::min<size_t>(enTetes.size(), 8);
-
-		Texte valider(TRAD("reg Valider"),  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
-		Texte annuler(TRAD("reg Annuler"),  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
-
-		champs[0]._texte.definir(Unichar(txt[maj]));
-		
-		fond.redimensionner(Coordonnees(Ecran::largeur() / fond.dimensionsReelles().x, Ecran::hauteur() / fond.dimensionsReelles().y));
-		
-		Ecran::definirPointeurAffiche(true);
-		Ecran::effacer();
-		
-		s.activer();
-		s.definirParametre(Shader::temps, horloge());
-		s.definirParametre(Shader::tempsAbsolu, horloge());
-		fond.afficher(Coordonnees());
-		Shader::desactiver();
-				
-		Rectangle cadre = Parametres::afficherColonnes(TRAD("reg Général"), premier, nbAffiches, false, enTetes, -1, champs, selection, true);
-		
-		valider.definir(POLICE_DECO, 26 * Ecran::echelleMin());
-		annuler.definir(POLICE_DECO, 26 * Ecran::echelleMin());
-		
-		cadreValider.definirDimensions(valider.dimensions()); 
-		cadreAnnuler.definirDimensions(annuler.dimensions()); 
-		cadreValider.definirOrigine(cadre.origine() + Coordonnees(20 * Ecran::echelleMin(), 20 * Ecran::echelleMin() + cadre.hauteur)); 
-		cadreAnnuler.definirOrigine(cadreValider.origine() + Coordonnees(80 * Ecran::echelleMin() + cadreValider.largeur, 0)); 
-		
-		valider.afficher(cadreValider.origine());
-		annuler.afficher(cadreAnnuler.origine());
-		
-		Ecran::finaliser();
-		
-		int dep;
-		Parametres::gestionEvenementsAfficheur(ancienDefilement, continuer, dep, premier, nbAffiches, selection, enTetes, champs);
-		if(Session::evenement(Session::B_GAUCHE)) {
-			if(Session::souris() < cadreValider) {
-				_rechercherMaj = maj;
-				
-				continuer = false;
-				break;
-			}
-			else if(Session::souris() < cadreAnnuler) {
-				continuer = false;
-				break;
-			}
-		}
-		if(dep) {
-			if(selection == 0) {
-				Session::reinitialiser(Session::T_GAUCHE);
-				Session::reinitialiser(Session::T_DROITE);
-				maj = !maj;
-			}
-		}
-		
-		Ecran::maj();
-	}
-}
-
-void Parametres::video(Image const &fond, Shader const &s) {		
-	std::vector<std::pair<int, int> > resolutions[2];
-	{
-		std::list<std::pair<int, int> > r = Ecran::resolutionsDisponibles(false);
-		resolutions[0].assign(r.begin(), r.end());
-		
-		r = Ecran::resolutionsDisponibles(true);
-		resolutions[1].assign(r.begin(), r.end());
-	}
-	
-	bool pleinEcran = Ecran::pleinEcran();
-	int resolutionActuelle = std::find(resolutions[pleinEcran].begin(), resolutions[pleinEcran].end(), std::make_pair(Ecran::largeur(), Ecran::hauteur())) - resolutions[pleinEcran].begin();
-	bool ips = Parametres::ips();
-	bool limiteIPS = Parametres::limiteIPS();
-	bool synchroVerticale = Parametres::synchroVerticale();
-	
-	Unichar txt[2] = {TRAD("reg Désactivé"), TRAD("reg Activé")};
-	
-	std::vector<etiquetteTexte_t> enTetes, champs;
-
-	enTetes.push_back(Unichar(TRAD("reg Plein écran :")));
-	champs.push_back(Unichar());
-	
-	enTetes.push_back(Unichar(TRAD("reg Résolution :")));
-	champs.push_back(Unichar());
-
-	enTetes.push_back(Unichar(TRAD("reg Synchronisation verticale :")));
-	champs.push_back(Unichar());
-
-	enTetes.push_back(Unichar(TRAD("reg Limiter la fréquence d'affichage :")));
-	champs.push_back(Unichar());
-
-	enTetes.push_back(Unichar(TRAD("reg Afficher les images par seconde :")));
-	champs.push_back(Unichar());
-	
-	Texte valider(TRAD("reg Valider"),  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
-	Texte annuler(TRAD("reg Annuler"),  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
-	
-	Rectangle cadreAnnuler, cadreValider;
-	
-	bool continuer = true;
-	index_t selection = 0, premier = 0;
-	size_t nbAffiches = std::min<size_t>(enTetes.size(), 8);
-	horloge_t ancienDefilement = horloge();
-	
-	Session::reinitialiserEvenements();
-	while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, continuer)) {
-		champs[0]._texte.definir(Unichar(txt[pleinEcran]));
-		champs[1]._texte.definir(Unichar(Parametres::transcriptionResolution(resolutions[pleinEcran][resolutionActuelle])));
-		champs[2]._texte.definir(Unichar(txt[synchroVerticale]));
-		champs[3]._texte.definir(Unichar(txt[limiteIPS]));
-		champs[4]._texte.definir(Unichar(txt[ips]));
-
-		fond.redimensionner(Coordonnees(Ecran::largeur() / fond.dimensionsReelles().x, Ecran::hauteur() / fond.dimensionsReelles().y));
-		
-		Ecran::definirPointeurAffiche(true);
-		Ecran::effacer();
-		
-		s.activer();
-		s.definirParametre(Shader::temps, horloge());
-		s.definirParametre(Shader::tempsAbsolu, horloge());
-		fond.afficher(Coordonnees());
-		Shader::desactiver();
-				
-		Rectangle cadre = Parametres::afficherColonnes(TRAD("reg Vidéo"), premier, nbAffiches, false, enTetes, -1, champs, selection, true);
-		
-		valider.definir(POLICE_DECO, 26 * Ecran::echelleMin());
-		annuler.definir(POLICE_DECO, 26 * Ecran::echelleMin());
-		
-		cadreValider.definirDimensions(valider.dimensions()); 
-		cadreAnnuler.definirDimensions(annuler.dimensions()); 
-		cadreValider.definirOrigine(cadre.origine() + Coordonnees(20 * Ecran::echelleMin(), 20 * Ecran::echelleMin() + cadre.hauteur)); 
-		cadreAnnuler.definirOrigine(cadreValider.origine() + Coordonnees(80 * Ecran::echelleMin() + cadreValider.largeur, 0)); 
-
-		valider.afficher(cadreValider.origine());
-		annuler.afficher(cadreAnnuler.origine());
-
-		Ecran::finaliser();
-		
-		int dep;
-		Parametres::gestionEvenementsAfficheur(ancienDefilement, continuer, dep, premier, nbAffiches, selection, enTetes, champs);
-		if(Session::evenement(Session::B_GAUCHE)) {
-			if(Session::souris() < cadreValider) {
-				_largeurEcran = resolutions[pleinEcran][resolutionActuelle].first;
-				_hauteurEcran = resolutions[pleinEcran][resolutionActuelle].second;
-				_pleinEcran = pleinEcran;
-				_ips = ips;
-				_limiteIPS = limiteIPS;
-				_synchroVerticale = synchroVerticale;
-				
-				Ecran::modifierResolution(_largeurEcran, _hauteurEcran, _pleinEcran);
-				continuer = false;
-				break;
-			}
-			else if(Session::souris() < cadreAnnuler) {
-				continuer = false;
-				break;
-			}
-		}
-		if(dep) {
-			if(selection == 0) {
-				Session::reinitialiser(Session::T_GAUCHE);
-				Session::reinitialiser(Session::T_DROITE);
-				pleinEcran = !pleinEcran;
-				resolutionActuelle = 0;
-			}
-			else if(selection == 1) {
-				resolutionActuelle += dep;
-				if(resolutionActuelle < 0)
-					resolutionActuelle = resolutions[pleinEcran].size() - 1;
-				else if(resolutionActuelle >= resolutions[pleinEcran].size())
-					resolutionActuelle = 0;
-				
-				Session::reinitialiser(Session::T_GAUCHE);
-				Session::reinitialiser(Session::T_DROITE);
-			}
-			else if(selection == 2) {
-				Session::reinitialiser(Session::T_GAUCHE);
-				Session::reinitialiser(Session::T_DROITE);
-				synchroVerticale = !synchroVerticale;
-			}
-			else if(selection == 3) {
-				Session::reinitialiser(Session::T_GAUCHE);
-				Session::reinitialiser(Session::T_DROITE);
-				limiteIPS = !limiteIPS;
-			}
-			else if(selection == 4) {
-				Session::reinitialiser(Session::T_GAUCHE);
-				Session::reinitialiser(Session::T_DROITE);
-				ips = !ips;
-			}
-		}
-		
-		Ecran::maj();
-	}
-}
-
-void Parametres::audio(Image const &fond, Shader const &s) {
-	std::vector<etiquetteTexte_t> texte, vide;
-	texte.push_back(Unichar(TRAD("reg Volume musique")));
-	texte.push_back(Unichar(TRAD("reg Volume effets")));
-	Unichar blanc("                                       ");
-	vide.push_back(blanc);
-	vide.push_back(blanc);
-	
-	float vMusique = Parametres::volumeMusique(), vEffets = Parametres::volumeEffets();
-	
-	Shader shader(Session::cheminRessources() + "aucun.vert", Session::cheminRessources() + "volume.frag");
-	
-	bool continuer = true;
-	index_t premier = 0;
-	size_t nbAffiches = 2;
-	
-	index_t selection = -1;
-	
-	horloge_t ancienSon = 0;
-	
-	Texte valider(TRAD("reg Valider"),  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
-	Texte annuler(TRAD("reg Annuler"),  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
-	
-	Rectangle cadreAnnuler, cadreValider;
-
-	Session::reinitialiserEvenements();
-	while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, continuer)) {
-		fond.redimensionner(Coordonnees(Ecran::largeur() / fond.dimensionsReelles().x, Ecran::hauteur() / fond.dimensionsReelles().y));
-
-		Ecran::definirPointeurAffiche(true);
-		Ecran::effacer();
-		
-		s.activer();
-		s.definirParametre(Shader::temps, horloge());
-		s.definirParametre(Shader::tempsAbsolu, horloge());
-		fond.afficher(Coordonnees());
-		Shader::desactiver();
-				
-		Rectangle cadre = Parametres::afficherColonnes(TRAD("reg Audio"), premier, nbAffiches, false, texte, -1, vide, -1, false);
-		
-		float *valeur[2] = {&vMusique, &vEffets};
-		shader.activer();
-		for(int i = 0; i < 2; ++i) {
-			Rectangle const &r = vide[i]._cadre;
-			shader.definirParametre(_shadVolume, *(valeur[i]));
-			Rectangle s = Shader::versShader(r);
-			shader.definirParametre(_shadCadre, s.gauche, s.haut, s.largeur, s.hauteur);
-
-			Ecran::afficherTriangle(r.origine() + Coordonnees(0, r.hauteur), r.origine() + r.dimensions(), r.origine() + Coordonnees(r.largeur, 0), Couleur::blanc);
-		}
-		Shader::desactiver();
-		
-		valider.definir(POLICE_DECO, 26 * Ecran::echelleMin());
-		annuler.definir(POLICE_DECO, 26 * Ecran::echelleMin());
-		
-		cadreValider.definirDimensions(valider.dimensions()); 
-		cadreAnnuler.definirDimensions(annuler.dimensions()); 
-		cadreValider.definirOrigine(cadre.origine() + Coordonnees(20 * Ecran::echelleMin(), 20 * Ecran::echelleMin() + cadre.hauteur)); 
-		cadreAnnuler.definirOrigine(cadreValider.origine() + Coordonnees(80 * Ecran::echelleMin() + cadreValider.largeur, 0)); 
-		
-		valider.afficher(cadreValider.origine());
-		annuler.afficher(cadreAnnuler.origine());
-
-		Ecran::finaliser();
-		
-		if(!Session::evenement(Session::B_GAUCHE)) {
-			selection = -1;
-		}
-
-		if(selection == -1) {
-			if(Session::evenement(Session::B_GAUCHE)) {
-				std::vector<etiquetteTexte_t>::iterator i = std::find_if(vide.begin(), vide.end(), trouveSouris_t());
-				if(i != vide.end())
-					selection = std::distance(vide.begin(), i);
-			}
-		}
-		else {
-			*(valeur[selection]) = std::min(1.0f, std::max<float>(0.0f, (Session::souris().x - vide[selection]._cadre.gauche) / vide[selection]._cadre.largeur));
-			Audio::definirVolumeMusique(vMusique);
-			Audio::definirVolumeEffets(vEffets);
-			if(selection == 1 && horloge() - ancienSon > 0.2) {
-				ancienSon = horloge();
-				Audio::jouerSon(_sonEffets);
-			}
-		}
-		if(Session::evenement(Session::B_GAUCHE)) {
-			if(Session::souris() < cadreValider) {
-				_volumeMusique = vMusique;
-				_volumeEffets = vEffets;
-				continuer = false;
-			}
-			else if(Session::souris() < cadreAnnuler) {
-				continuer = false;
-				break;
-			}
-		}
-		if(Session::evenement(Session::T_ESC))
-			continuer = false;
-		
-		Ecran::maj();
-	}
-	
-	Audio::definirVolumeMusique(_volumeMusique);
-	Audio::definirVolumeEffets(_volumeEffets);
-}
-
-void Parametres::controles(Image const &fond, Shader const &s) {
-	std::vector<etiquetteTexte_t> actions, etiquetteEvenements;
-
-	Session::evenement_t evenements[nbActions];
-	
-	for(action_t i = premiereAction; i != nbActions; ++i) {
-		actions.push_back(Unichar(Parametres::transcriptionAction(i)));
-		etiquetteEvenements.push_back(Session::transcriptionEvenement(Parametres::evenementAction(i), false));
-		evenements[i] = _evenementsAction[i];
-	}
-	
-	bool continuer = true, modification = false;
-	index_t selection = 0, premier = 0;
-	size_t nbAffiches = std::min<size_t>(actions.size(), 8);
-	horloge_t ancienDefilement = horloge();
-	
-	Texte valider(TRAD("reg Valider"),  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
-	Texte annuler(TRAD("reg Annuler"),  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
-	
-	Rectangle cadreAnnuler, cadreValider;
-
-	Session::reinitialiserEvenements();
-	while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, continuer)) {
-		fond.redimensionner(Coordonnees(Ecran::largeur() / fond.dimensionsReelles().x, Ecran::hauteur() / fond.dimensionsReelles().y));
-
-		Ecran::definirPointeurAffiche(true);
-		Ecran::effacer();
-		
-		s.activer();
-		s.definirParametre(Shader::temps, horloge());
-		s.definirParametre(Shader::tempsAbsolu, horloge());
-		fond.afficher(Coordonnees());
-		Shader::desactiver();
-				
-		Rectangle cadre = Parametres::afficherColonnes(TRAD("reg Contrôles"), premier, nbAffiches, modification, actions, -1, etiquetteEvenements, selection, false);
-
-		valider.definir(POLICE_DECO, 26 * Ecran::echelleMin());
-		annuler.definir(POLICE_DECO, 26 * Ecran::echelleMin());
-		
-		cadreValider.definirDimensions(valider.dimensions()); 
-		cadreAnnuler.definirDimensions(annuler.dimensions()); 
-		cadreValider.definirOrigine(cadre.origine() + Coordonnees(20 * Ecran::echelleMin(), 20 * Ecran::echelleMin() + cadre.hauteur)); 
-		cadreAnnuler.definirOrigine(cadreValider.origine() + Coordonnees(80 * Ecran::echelleMin() + cadreValider.largeur, 0)); 
-		
-		valider.afficher(cadreValider.origine());
-		annuler.afficher(cadreAnnuler.origine());
-		
-		Ecran::finaliser();
-		
-		for(action_t i = premiereAction; i != nbActions; ++i) {
-			etiquetteEvenements[i]._texte.definir(Session::transcriptionEvenement(evenements[i], false));
-		}
-
-		if(!modification) {
-			int dep;
-			Parametres::gestionEvenementsAfficheur(ancienDefilement, continuer, dep, premier, nbAffiches, selection, actions, etiquetteEvenements);
-			if(Session::evenement(Session::T_ENTREE)) {
-				modification = true;
-				Session::reinitialiser(Session::T_ENTREE);
-			}
+	int dep = Parametres::gestionEvenementsAfficheur(_ancienDefilement, continuer, _premier, _nbAffiches,  _selection, _enTetes, _champs);
+	if(Session::evenement(Session::B_GAUCHE)) {
+		if(_cadreValider.contientPoint(Session::souris())) {
+			_rechercherMaj = _maj;
 			
-			if(Session::evenement(Session::B_GAUCHE)) {
-				if(Session::souris() < cadreValider) {
-					for(action_t i = premiereAction; i != nbActions; ++i) {
-						Parametres::definirEvenementAction(i, evenements[i]);
-					}
-					continuer = false;
-				}
-				else if(Session::souris() < cadreAnnuler) {
-					continuer = false;
-					break;
-				}
-				else {
-					std::vector<etiquetteTexte_t>::const_iterator souris = std::find_if(etiquetteEvenements.begin(), etiquetteEvenements.end(), trouveSouris_t());
-					if(souris != etiquetteEvenements.end()) {
-						modification = true;
-					}
-				}
-			}
+			continuer = false;
 		}
-		else {
-			if(Session::evenement(Session::T_ESC) || Session::evenement(Session::T_ENTREE)) {
-				Session::reinitialiser(Session::T_ESC);
-				Session::reinitialiser(Session::T_ENTREE);
-				modification = false;
+		else if(_cadreAnnuler.contientPoint(Session::souris())) {
+			continuer = false;
+		}
+	}
+	if(dep) {
+		if(_selection == 0) {
+			Session::reinitialiser(Session::T_GAUCHE);
+			Session::reinitialiser(Session::T_DROITE);
+			_maj = !_maj;
+			_champs[0]._texte.definir(_txt[_maj]);
+		}
+	}
+	
+	if(!continuer) {
+		Session::supprimerVueFenetre();
+	}
+}
+
+void Parametres::VueVideo::gestionClavier() {
+	bool continuer = true;
+	int dep = Parametres::gestionEvenementsAfficheur(_ancienDefilement, continuer, _premier, _nbAffiches, _selection, _enTetes, _champs);
+	if(Session::evenement(Session::B_GAUCHE)) {
+		if(_cadreValider.contientPoint(Session::souris())) {
+			Parametres::_largeurEcran = _resolutions[_pleinEcran][_resolutionActuelle].x;
+			Parametres::_hauteurEcran = _resolutions[_pleinEcran][_resolutionActuelle].y;
+			Parametres::_pleinEcran = _pleinEcran;
+			Parametres::_ips = _ips;
+			Parametres::_limiteIPS = _limiteIPS;
+			Parametres::_synchroVerticale = _synchroVerticale;
+			
+			Ecran::modifierResolution(_largeurEcran, _hauteurEcran, _pleinEcran);
+			continuer = false;
+		}
+		else if(_cadreAnnuler.contientPoint(Session::souris())) {
+			continuer = false;
+		}
+	}
+	if(dep) {
+		if(_selection == 0) {
+			Session::reinitialiser(Session::T_GAUCHE);
+			Session::reinitialiser(Session::T_DROITE);
+			
+			_pleinEcran = !_pleinEcran;
+			_resolutionActuelle = 0;
+			
+			_champs[0]._texte.definir(Unichar(_txt[_pleinEcran]));
+			_champs[1]._texte.definir(Unichar(Parametres::transcriptionResolution(_resolutions[_pleinEcran][_resolutionActuelle])));
+		}
+		else if(_selection == 1) {
+			Session::reinitialiser(Session::T_GAUCHE);
+			Session::reinitialiser(Session::T_DROITE);
+
+			_resolutionActuelle += dep;
+			if(_resolutionActuelle < 0)
+				_resolutionActuelle = _resolutions[_pleinEcran].size() - 1;
+			else if(_resolutionActuelle >= _resolutions[_pleinEcran].size())
+				_resolutionActuelle = 0;
+			
+			_champs[1]._texte.definir(Unichar(Parametres::transcriptionResolution(_resolutions[_pleinEcran][_resolutionActuelle])));
+			
+		}
+		else if(_selection == 2) {
+			Session::reinitialiser(Session::T_GAUCHE);
+			Session::reinitialiser(Session::T_DROITE);
+			
+			_synchroVerticale = !_synchroVerticale;
+
+			_champs[2]._texte.definir(Unichar(_txt[_synchroVerticale]));
+		}
+		else if(_selection == 3) {
+			Session::reinitialiser(Session::T_GAUCHE);
+			Session::reinitialiser(Session::T_DROITE);
+			
+			_limiteIPS = !_limiteIPS;
+
+			_champs[3]._texte.definir(Unichar(_txt[_limiteIPS]));
+		}
+		else if(_selection == 4) {
+			Session::reinitialiser(Session::T_GAUCHE);
+			Session::reinitialiser(Session::T_DROITE);
+			
+			_ips = !_ips;
+
+			_champs[4]._texte.definir(Unichar(_txt[_ips]));
+		}
+	}
+
+	if(!continuer) {
+		Session::supprimerVueFenetre();
+	}
+}
+
+void Parametres::VueAudio::dessiner() {
+	this->VueReglages::dessiner();
+	
+	float *valeur[2] = {&_vMusique, &_vEffets};
+	_shader.activer();
+	for(int i = 0; i < 2; ++i) {
+		Rectangle const &r = _champs[i]._cadre;
+		_shader.definirParametre(_shadVolume, *(valeur[i]));
+		Rectangle s = Shader::versShader(r);
+		_shader.definirParametre(_shadCadre, glm::vec4(s.gauche, s.haut, s.largeur, s.hauteur));
+		
+		Affichage::afficherTriangle(r.origine() + glm::vec2(0, r.hauteur), r.origine() + r.dimensions(), r.origine() + glm::vec2(r.largeur, 0), Couleur::blanc);
+	}
+	Shader::desactiver();
+}
+
+void Parametres::VueAudio::gestionClavier() {
+	bool continuer = true;
+	
+	float *valeur[2] = {&_vMusique, &_vEffets};
+
+	if(!Session::evenement(Session::B_GAUCHE)) {
+		_selection = -1;
+	}
+	
+	if(_selection == -1) {
+		if(Session::evenement(Session::B_GAUCHE)) {
+			std::vector<etiquetteTexte_t>::iterator i = std::find_if(_champs.begin(), _champs.end(), trouveSouris_t());
+			if(i != _champs.end())
+				_selection = std::distance(_champs.begin(), i);
+		}
+	}
+	else {
+		*(valeur[_selection]) = std::min(1.0f, std::max<float>(0.0f, (Session::souris().x - _champs[_selection]._cadre.gauche) / _champs[_selection]._cadre.largeur));
+		Audio::definirVolumeMusique(_vMusique);
+		Audio::definirVolumeEffets(_vEffets);
+		if(_selection == 1 && horloge() - _ancienSon > 0.2) {
+			_ancienSon = horloge();
+			Audio::jouerSon(_sonEffets);
+		}
+	}
+	if(Session::evenement(Session::B_GAUCHE)) {
+		if(_cadreValider.contientPoint(Session::souris())) {
+			_volumeEffets = _vEffets;
+			_volumeMusique = _vMusique;
+			continuer = false;
+		}
+		else if(_cadreAnnuler.contientPoint(Session::souris())) {
+			Audio::definirVolumeMusique(_volumeMusique);
+			Audio::definirVolumeEffets(_volumeEffets);
+			continuer = false;
+		}
+	}
+	if(Session::evenement(Session::T_ESC))
+		continuer = false;
+
+
+	if(!continuer) {
+		Session::supprimerVueFenetre();
+	}
+}
+
+void Parametres::VueControles::gestionClavier() {
+	bool continuer = true;
+	_cligno = _modification;
+	if(!_modification) {
+		Parametres::gestionEvenementsAfficheur(_ancienDefilement, continuer, _premier, _nbAffiches, _selection, _enTetes, _champs);
+		if(Session::evenement(Session::T_ENTREE)) {
+			_modification = true;
+			Session::reinitialiser(Session::T_ENTREE);
+		}
+		if(Session::evenement(Session::B_GAUCHE)) {
+			if(_cadreValider.contientPoint(Session::souris())) {
+				for(action_t i = premiereAction; i != nbActions; ++i) {
+					Parametres::definirEvenementAction(i, _evenements[i]);
+				}
+				continuer = false;
+			}
+			else if(_cadreAnnuler.contientPoint(Session::souris())) {
+				continuer = false;
 			}
 			else {
-				for(Session::evenement_t e = Session::PREMIER_EVENEMENT_CLAVIER; e <= Session::DERNIER_EVENEMENT_CLAVIER; ++e) {
-					if(Session::evenement(e)) {
-						evenements[static_cast<action_t>(selection)] = e;
-						modification = false;
-						break;
-					}
+				std::vector<etiquetteTexte_t>::const_iterator souris = std::find_if(_champs.begin(), _champs.end(), trouveSouris_t());
+				if(souris != _champs.end()) {
+					_modification = true;
 				}
 			}
 		}
-				
-		Ecran::maj();
+	}
+	else {
+		if(Session::evenement(Session::T_ESC) || Session::evenement(Session::T_ENTREE)) {
+			Session::reinitialiser(Session::T_ESC);
+			Session::reinitialiser(Session::T_ENTREE);
+			_modification = false;
+		}
+		else {
+			for(Session::evenement_t e = Session::PREMIER_EVENEMENT_CLAVIER; e <= Session::DERNIER_EVENEMENT_CLAVIER; ++e) {
+				if(Session::evenement(e)) {
+					_evenements[static_cast<action_t>(_selection)] = e;
+					_champs[static_cast<action_t>(_selection)]._texte.definir(Session::transcriptionEvenement(_evenements[static_cast<action_t>(_selection)], true));
+					_modification = false;
+					Session::reinitialiser(e);
+					break;
+				}
+			}
+		}
+	}
+
+	if(!continuer) {
+		Session::supprimerVueFenetre();
 	}
 }
 
@@ -958,7 +939,7 @@ Rectangle Parametres::afficherColonnes(Unichar const &titre, index_t premier, si
 		_flecheD->redimensionner(0.5 * colonne1[0]._texte.dimensions().y / _flecheD->dimensionsReelles().y);
 	}
 	
-	Rectangle cadre(Coordonnees(abscisse, 80) * Ecran::echelleMin(), tt.dimensions());
+	Rectangle cadre(glm::vec2(abscisse, 80) * Ecran::echelleMin(), tt.dimensions());
 	tt.afficher(cadre.origine());
 	
 	cadre.haut += cadre.hauteur + 20 * Ecran::echelleMin();
@@ -979,15 +960,15 @@ Rectangle Parametres::afficherColonnes(Unichar const &titre, index_t premier, si
 		hauteur += points.dimensions().y + 10 * Ecran::echelleMin();
 	
 	Rectangle total = Rectangle(cadre.gauche, cadre.haut, largeur1 + largeur2 + 20 * Ecran::echelleMin() + 40 * Ecran::echelleMin(), hauteur + 20 * Ecran::echelleMin());
-	Ecran::afficherRectangle(total, Couleur(200, 205, 220, 128));
+	Affichage::afficherRectangle(total, Couleur(200, 205, 220, 128));
 	
-	cadre += Coordonnees(10, 10) * Ecran::echelleMin();
-
+	cadre.decaler(glm::vec2(10, 10) * Ecran::echelleMin());
+	
 	if(!premierAffiche) {
-		points.afficher(cadre.origine() + Coordonnees((largeur1 + largeur2 + 40 * Ecran::echelleMin() - points.dimensions().x) / 2, 0));
+		points.afficher(cadre.origine() + glm::vec2((largeur1 + largeur2 + 40 * Ecran::echelleMin() - points.dimensions().x) / 2, 0));
 		cadre.haut += points.dimensions().y + 10 * Ecran::echelleMin();
 	}
-
+	
 	coordonnee_t sauveHaut = cadre.haut;
 	afficheurTexte_t afficheur(cadre, 10 * Ecran::echelleMin());
 	for_each(colonne1.begin() + premier, colonne1.begin() + premier + nb, afficheur);
@@ -1012,23 +993,23 @@ Rectangle Parametres::afficherColonnes(Unichar const &titre, index_t premier, si
 	cadre.haut = sauveHaut;
 	cadre.gauche += largeur1 + 40 * Ecran::echelleMin();
 	if(colonne2.size()) {
-		initCadres.definirFleches(true);
+		initCadres.definirFleches(fleches);
 		for_each(colonne2.begin() + premier, colonne2.begin() + premier + nb, initCadres);
 	}
 	
 	cadre.gauche -= largeur1 + 40 * Ecran::echelleMin();
 	if(!dernierAffiche) {
-		cadre += Coordonnees(10, 10) * Ecran::echelleMin();
-		points.afficher(cadre.origine() + Coordonnees((largeur1 + largeur2 + 40 * Ecran::echelleMin() - points.dimensions().x) / 2, 0));
+		cadre.decaler(glm::vec2(10, 10) * Ecran::echelleMin());
+		points.afficher(cadre.origine() + glm::vec2((largeur1 + largeur2 + 40 * Ecran::echelleMin() - points.dimensions().x) / 2, 0));
 		cadre.haut += points.dimensions().y + 10 * Ecran::echelleMin();
 	}
-	cadre -= Coordonnees(10, -10) * Ecran::echelleMin();
+	cadre.decaler(-glm::vec2(10, -10) * Ecran::echelleMin());
 	
 	return total;
 }
 
-void Parametres::gestionEvenementsAfficheur(horloge_t &ancienDefilement, bool &continuer, int &dep, index_t &premier, index_t nbAffiches, index_t &selection, std::vector<etiquetteTexte_t> const &colonne1, std::vector<etiquetteTexte_t> const &colonne2) {
-	dep = 0;
+int Parametres::gestionEvenementsAfficheur(horloge_t &ancienDefilement, bool &continuer, index_t &premier, index_t nbAffiches, index_t &selection, std::vector<etiquetteTexte_t> const &colonne1, std::vector<etiquetteTexte_t> const &colonne2) {
+	int dep = 0;
 	
 	bool premierAffiche = premier == 0;
 	if(!premierAffiche)
@@ -1036,31 +1017,19 @@ void Parametres::gestionEvenementsAfficheur(horloge_t &ancienDefilement, bool &c
 	bool dernierAffiche = premier + nbAffiches == colonne1.size();
 	if(!dernierAffiche)
 		--nbAffiches;
-
+	
 	if(Session::evenement(Session::T_ESC)) {
 		continuer = false;
 		Session::reinitialiser(Session::T_ESC);
 	}
-	else if(Session::evenement(Session::B_GAUCHE)) {
-		std::vector<etiquetteTexte_t>::const_iterator souris = std::find_if(colonne1.begin(), colonne1.end(), trouveSouris_t());
-		if(souris != colonne1.end()) {
-			selection = std::distance(colonne1.begin(), souris);
+	else if(Session::evenement(Session::B_GAUCHE)) {			
+		if(colonne2[selection]._flecheG.contientPoint(Session::souris())) {
+			dep = -1;
+			Session::reinitialiser(Session::B_GAUCHE);
 		}
-		else  {
-			souris = std::find_if(colonne2.begin(), colonne2.end(), trouveSouris_t());
-			if(souris != colonne2.end()) {
-				selection = std::distance(colonne2.begin(), souris);
-				Session::reinitialiser(Session::B_GAUCHE);
-			}
-
-			if(Session::souris() < colonne2[selection]._flecheG) {
-				dep = -1;
-				Session::reinitialiser(Session::B_GAUCHE);
-			}
-			else if(Session::souris() < colonne2[selection]._flecheD) {
-				dep = 1;
-				Session::reinitialiser(Session::B_GAUCHE);
-			}
+		else if(colonne2[selection]._flecheD.contientPoint(Session::souris())) {
+			dep = 1;
+			Session::reinitialiser(Session::B_GAUCHE);
 		}
 	}
 	else if(Session::evenement(Session::T_GAUCHE)) {
@@ -1111,12 +1080,14 @@ void Parametres::gestionEvenementsAfficheur(horloge_t &ancienDefilement, bool &c
 			}
 		}
 	}
+	
+	return dep;
 }
 
 Unichar Parametres::transcriptionAction(action_t a) {
 	switch(a) {
 		case depBas:
-			return TRAD("reg ta Bas");			
+			return TRAD("reg ta Bas");
 		case depHaut:
 			return TRAD("reg ta Haut");
 		case depDroite:
@@ -1137,7 +1108,7 @@ Unichar Parametres::transcriptionAction(action_t a) {
 char const *Parametres::nomBalise(action_t a) {
 	switch(a) {
 		case depBas:
-			return "Bas";			
+			return "Bas";
 		case depHaut:
 			return "Haut";
 		case depDroite:
@@ -1155,65 +1126,34 @@ char const *Parametres::nomBalise(action_t a) {
 	}
 }
 
-void Parametres::afficherCredits(Image const &fond, Shader const &s) {
-	std::vector<etiquetteTexte_t> noms, roles;
-	
-	noms.push_back(Unichar("Marc Promé"));
-	roles.push_back(Unichar(TRAD("cred Level design, graphismes, programmation")));
+void Parametres::afficherCredits(Image const &fond, Shader const &s) {	
+	VueCredits vue(fond, s);
+	Session::ajouterVueFenetre(&vue);
+}
 
-	noms.push_back(Unichar("Rémi Saurel"));
-	roles.push_back(Unichar(TRAD("cred Level design, graphismes, programmation")));
-	
-	noms.push_back(Unichar("OpenGameArt.org"));
-	roles.push_back(Unichar(TRAD("cred Graphismes")));
-	
-	noms.push_back(Unichar("Semaphore (Newgrounds)"));
-	roles.push_back(Unichar(TRAD("cred Musique %1", "Dream of Water and Land")));
-	
-	noms.push_back(Unichar("Sexual-Lobster (Newgrounds)"));
-	roles.push_back(Unichar(TRAD("cred Musique %1", "Man vs. Walrus-Man")));
-
-	noms.push_back(Unichar("Xerferic (Newgrounds)"));
-	roles.push_back(Unichar(TRAD("cred Musique %1", "Laid-Back")));
-	
-	for(int i = 0; i < noms.size(); ++i) {
-		noms[i]._texte.definir(POLICE_DECO, 16 * Ecran::echelleMin());
-		roles[i]._texte.definir(POLICE_DECO, 16 * Ecran::echelleMin());
-	}
-	
-	bool continuer = true;
-	Texte ok(TRAD("cred Retour"),  POLICE_DECO, 26 * Ecran::echelleMin(), Couleur::blanc);
-	Rectangle cadreOk;
-	
-	Session::reinitialiserEvenements();
-	while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, continuer)) {
-		fond.redimensionner(Coordonnees(Ecran::largeur() / fond.dimensionsReelles().x, Ecran::hauteur() / fond.dimensionsReelles().y));
-		
-		Ecran::definirPointeurAffiche(true);
-		Ecran::effacer();
-		
-		s.activer();
-		s.definirParametre(Shader::temps, horloge());
-		s.definirParametre(Shader::tempsAbsolu, horloge());
-		fond.afficher(Coordonnees());
-		Shader::desactiver();
-				
-		Rectangle cadre = Parametres::afficherColonnes(TRAD("cred Crédits"), 0, noms.size(), false, noms, -1, roles, -1, false, 40);
-		
-		cadreOk.definirDimensions(ok.dimensions()); 
-		cadreOk.definirOrigine(cadre.origine() + Coordonnees(20 * Ecran::echelleMin(), 20 * Ecran::echelleMin() + cadre.hauteur)); 
-		
-		ok.afficher(cadreOk.origine());
-
-		Ecran::finaliser();
-		
-		if(Session::evenement(Session::T_ESC) || (Session::evenement(Session::B_GAUCHE) && Session::souris() < cadreOk)) {
-			continuer = false;
-			Session::reinitialiser(Session::T_ESC);
-			Session::reinitialiser(Session::B_GAUCHE);
-		}
-		
-		Ecran::maj();
+void Parametres::VueCredits::gestionClavier() {
+	if(Session::evenement(Session::T_ESC) || (Session::evenement(Session::B_GAUCHE) && _cadreOk.contientPoint(Session::souris()))) {
+		Session::supprimerVueFenetre();
+		Session::reinitialiser(Session::T_ESC);
+		Session::reinitialiser(Session::B_GAUCHE);
 	}
 }
 
+void Parametres::VueCredits::dessiner() {
+	_fond.redimensionner(glm::vec2(Ecran::largeur() / _fond.dimensionsReelles().x, Ecran::hauteur() / _fond.dimensionsReelles().y));
+	
+	Ecran::definirPointeurAffiche(true);
+	
+	_s.activer();
+	_s.definirParametre(Shader::temps, horloge());
+	_s.definirParametre(Shader::tempsAbsolu, horloge());
+	_fond.afficher(glm::vec2(0));
+	Shader::desactiver();
+	
+	Rectangle cadre = Parametres::afficherColonnes(TRAD("cred Crédits"), 0, _noms.size(), false, _noms, -1, _roles, -1, false, 40);
+	
+	_cadreOk.definirDimensions(_ok.dimensions());
+	_cadreOk.definirOrigine(cadre.origine() + glm::vec2(20 * Ecran::echelleMin(), 20 * Ecran::echelleMin() + cadre.hauteur));
+	
+	_ok.afficher(_cadreOk.origine());
+}

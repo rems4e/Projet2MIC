@@ -57,7 +57,7 @@ ObjetInventaire::~ObjetInventaire() {
 
 }
 
-void ObjetInventaire::afficher(index_t deltaY, Coordonnees const &decalage) const {
+void ObjetInventaire::afficher(index_t deltaY, glm::vec2 const &decalage) const {
 	this->image().redimensionner(Ecran::echelle());
 	this->image().afficher(this->positionAffichage() - decalage);
 }
@@ -66,11 +66,11 @@ void ObjetInventaire::animer() {
 
 }
 
-Coordonnees ObjetInventaire::dimensions() const {
-	return Coordonnees(1, 1);
+glm::vec2 ObjetInventaire::dimensions() const {
+	return glm::vec2(1, 1);
 }
 
-Coordonnees ObjetInventaire::dimensionsInventaire() const {
+glm::ivec2 ObjetInventaire::dimensionsInventaire() const {
 	return _dimInventaire;
 }
 
@@ -181,7 +181,6 @@ void ObjetInventaire::equilibrerAvecJoueur() {
 	}
 }
 
-// FIXME: vérif trad
 Unichar ObjetInventaire::nomCategorieObjet() const {
 	switch(_categorie) {
 		case arme:

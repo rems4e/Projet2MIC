@@ -1,18 +1,25 @@
-uniform vec2 _dim;
+#version 120
+
 uniform vec2 _ecran;
 
+uniform mat4 _matProjection;
+uniform mat4 _matModeleVue;
+
 attribute vec2 texCoord;
-attribute vec2 vertCoord;
+attribute vec3 vertCoord;
 attribute vec4 color;
-uniform vec2 _ecran;
+attribute vec3 norm;
 
 varying vec2 _texCoord;
 varying vec4 _color;
+varying vec3 _normale;
+varying vec3 _positionModele;
 
-void main(void) {
-	gl_Position = /*gl_ModelViewProjectionMatrix * */vec4(vertCoord.x, vertCoord.y , 0.1, 1.0);
-	gl_Position.z = 0.1;
-	
-	_color = color;
+void main() {
+	gl_Position = _matProjection * (_matModeleVue * vec4(vertCoord, 1.0));
+
 	_texCoord = texCoord;
+	_color = color;
+	_normale = norm;
+	_positionModele = vertCoord;
 }

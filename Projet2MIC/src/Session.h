@@ -17,9 +17,15 @@
 #include "Unichar.h"
 #include "Traducteur.h"
 
+// FIXME: améliorer le cloisonnement (Session::boucle, Ecran::maj)
+
+class VueInterface;
+
 #define TRAD(...) Session::traducteur().traduction(__VA_ARGS__)
 
 namespace Session {
+	class HorlogeLocale;
+	
 	// Le chemin vers le répertoire où sont contenues les ressources (image, son, xml…) du programme.
 	// Il est obligatoire pour charger une ressource d'utiliser cette fonction : 'std::string chemin = Session::cheminRessources + "monFichier.xml";'
 	std::string const &cheminRessources();
@@ -73,8 +79,10 @@ namespace Session {
 	
 	// Retourne si l'événement demandé est actif
 	bool evenement(evenement_t const &e);
+	bool evenementDiscret(evenement_t const &e);
+
 	// Position souris
-	Coordonnees const &souris();
+	glm::vec2 const &souris();
 
 	// Définit l'événément à faux, même si la touche est encore enfoncée. L'utilisateur devra la relâcher puis la re-enfoncer pour réactiver l'événement.
 	void reinitialiser(evenement_t const &e);
@@ -87,11 +95,17 @@ namespace Session {
 	// que la gestion des événements est effectuée, elle doit donc être appelée à intervalle régulier.
 	// L'intervalle de temps entre 2 itérations de la boucle est défini par 1 / 'freq'.
 	bool boucle(horloge_t const freq, bool continuer);
+
+	void supprimerVueProchaineIteration(VueInterface *vue, bool sup);
 	
 	// À n'appeller qu'une seule fois en début de programme
 	void initialiser();
 	// À n'appeller qu'une seule fois en fin de programme
 	void nettoyer();
+	
+	VueInterface *vueFenetre();
+	void ajouterVueFenetre(VueInterface *v);
+	void supprimerVueFenetre();
 	
 	// Retourne une chaîne de caractères associée à l'événement ou au modificateur demandé
 	Unichar transcriptionEvenement(evenement_t const &, bool trad);
@@ -99,18 +113,31 @@ namespace Session {
 	
 	Traducteur const &traducteur();
 			
-	struct EtatInterface {
-		EtatInterface();
-		virtual ~EtatInterface();
+	HorlogeLocale * const obtenirHorlogeLocale(VueInterface *vue);
+	void libererHorlogeLocale(HorlogeLocale * const h);
+
+	class HorlogeLocale {
+	public:
+		inline horloge_t &operator*() { return _h; }
+		inline horloge_t const &operator*() const { return _h; }
 		
-		bool operator==(EtatInterface const &e);
-		bool operator!=(EtatInterface const &e);
+		inline HorlogeLocale &operator=(HorlogeLocale const &h) { _h = *h; return *this; }
+		inline HorlogeLocale &operator=(horloge_t const &h) { _h = h; return *this; }
 		
 	private:
-		int _largeurEcran, _hauteurEcran;
-		std::string _langue;
+		horloge_t _h;
+		VueInterface *_v;
+		std::list<HorlogeLocale *>::iterator _it;
+		
+		inline HorlogeLocale(VueInterface *v) : _h(0.0f), _v(v), _it() {}
+		
+		inline ~HorlogeLocale() { }
+		HorlogeLocale(HorlogeLocale const &);
+		
+		friend HorlogeLocale * const Session::obtenirHorlogeLocale(VueInterface *vue);
+		friend void Session::libererHorlogeLocale(HorlogeLocale * const h);
+		friend bool Session::boucle(horloge_t const freq, bool continuer);
 	};
-
 }
 
 inline Session::evenement_t &operator++(Session::evenement_t &e) { return e = static_cast<Session::evenement_t>(static_cast<int>(e) + 1); }

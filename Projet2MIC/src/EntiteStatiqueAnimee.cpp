@@ -40,7 +40,7 @@ EntiteStatiqueAnimee::~EntiteStatiqueAnimee() {
 	delete[] _cadres;
 }
 
-void EntiteStatiqueAnimee::afficher(index_t deltaY, Coordonnees const &decalage) const {
+void EntiteStatiqueAnimee::afficher(index_t deltaY, glm::vec2 const &decalage) const {
 	Rectangle const &cadre = this->cadre();
 	this->image().afficher(this->positionAffichage() - decalage, cadre);
 }

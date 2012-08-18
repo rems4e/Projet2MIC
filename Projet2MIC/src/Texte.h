@@ -22,13 +22,13 @@ police_t &operator++(police_t &);
 class Texte {
 	friend void Session::nettoyer();
 public:
-	Texte(Unichar const &txt = Unichar(), police_t police = POLICE_NORMALE, taillePolice_t taille = 12, Couleur const &coul = Couleur::noir);
+	Texte(Unichar const &txt = Unichar::uninull, police_t police = POLICE_NORMALE, taillePolice_t taille = 12, Couleur const &coul = Couleur::noir);
 	Texte(Texte const &);
 	Texte &operator=(Texte const &);
 	
 	virtual ~Texte();
 	
-	static Coordonnees dimensions(Unichar const &texte, police_t police, taillePolice_t taille);
+	static glm::vec2 dimensions(Unichar const &texte, police_t police, taillePolice_t taille);
 	static dimension_t hauteur(police_t police, taillePolice_t taille);
 	
 	Unichar const &texte() const { return _texte; }
@@ -36,7 +36,7 @@ public:
 	taillePolice_t taille() const { return _taille; }
 	Couleur couleur() const { return _couleur; }
 
-	inline Coordonnees dimensions() const { return Texte::dimensions(_texte, _police, _taille); }
+	inline glm::vec2 dimensions() const { return Texte::dimensions(_texte, _police, _taille); }
 	
 	Texte &definir(Unichar const &txt);
 	Texte &definir(police_t police, taillePolice_t taille);
@@ -44,8 +44,8 @@ public:
 	Texte &definir(Unichar const &txt, police_t police, taillePolice_t taille);
 	Texte &definir(Couleur const &coul);
 	
-	void afficher(Coordonnees const &pos) const;
-	static void afficher(Unichar const &texte, police_t police, taillePolice_t taille, Couleur const &couleur, Coordonnees pos);
+	void afficher(glm::vec2 const &pos) const;
+	static void afficher(Unichar const &texte, police_t police, taillePolice_t taille, Couleur const &couleur, glm::vec2 pos);
 	
 private:
 	Unichar _texte;
@@ -53,7 +53,7 @@ private:
 	taillePolice_t _taille;
 	Couleur _couleur;
 	
-	Coordonnees _dimensions;
+	glm::vec2 _dimensions;
 
 	static bool _init;
 	static void nettoyer();

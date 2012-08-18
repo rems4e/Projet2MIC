@@ -1,8 +1,10 @@
-uniform vec2 _dim;
+/*uniform vec2 _dim;
 uniform vec2 _ecran;
+uniform mat4 _matProjection;
+uniform mat4 _matModele;
 
 attribute vec2 texCoord;
-attribute vec2 vertCoord;
+attribute vec3 vertCoord;
 attribute vec4 color;
 
 varying vec2 _texCoord;
@@ -31,4 +33,4 @@ void main(void) {
 
 	_color = color;
 	_texCoord = texCoord;
-}
+}*/

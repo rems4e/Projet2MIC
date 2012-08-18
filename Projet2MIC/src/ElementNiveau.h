@@ -73,15 +73,15 @@ public:
 	virtual ~ElementNiveau();
 
 	// Affichage de l'entité dans ses caractéristiques actuelles
-	virtual void afficher(index_t deltaY, Coordonnees const &decalage) const = 0;
+	virtual void afficher(index_t deltaY, glm::vec2 const &decalage) const = 0;
 	// L'entité entre-t-elle en collision avec les autres, dans sa case (x, y) ?
 	virtual bool collision(index_t x, index_t y) const;
 	// Évolution de l'état de l'entité au fil du temps
 	virtual void animer() = 0;
 	
 	// Position de l'entité sur l'écran en pixels.
-	Coordonnees position() const;
-	void definirPosition(Coordonnees const &p);
+	glm::vec2 position() const;
+	void definirPosition(glm::vec2 const &p);
 	virtual index_t pX() const;
 	virtual index_t pY() const;
 	
@@ -92,10 +92,10 @@ public:
 	Niveau *niveau();
 	virtual void definirNiveau(Niveau *n);
 	// Position en pixels, après changement de repère depuis celui du niveau vers celui de l'écran.
-	Coordonnees positionAffichage() const;
+	glm::vec2 positionAffichage() const;
 	
 	// Origine de l'image en pixels dans le repère du niveau depuis le coin supérieur gauche de l'image.
-	virtual Coordonnees origine() const;
+	virtual glm::vec2 origine() const;
 	// L'image est-elle centrée sur la case où elle se trouve ?
 	virtual bool centrage() const;
 	bool decoupagePerspective() const;
@@ -119,8 +119,8 @@ protected:
 		
 private:
 	Niveau *_niveau;
-	Coordonnees _position;
-	Coordonnees _origine;
+	glm::vec2 _position;
+	glm::vec2 _origine;
 	bool _centrage;
 	elementNiveau_t _categorie;
 	uindex_t _index;

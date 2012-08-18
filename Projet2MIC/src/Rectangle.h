@@ -17,34 +17,49 @@ struct Rectangle {
 	dimension_t largeur, hauteur;
 	
 	static Rectangle const aucun;
+	static Rectangle const zero;
 	
 	inline Rectangle() : gauche(0), haut(0), largeur(0), hauteur(0) { }
 	inline Rectangle(coordonnee_t const &g, coordonnee_t const &h, dimension_t const &la, dimension_t const &ha) : gauche(g), haut(h), largeur(la), hauteur(ha) { }
-	inline Rectangle(Coordonnees const &origine, Coordonnees const &taille) : gauche(origine.x), haut(origine.y), largeur(taille.x), hauteur(taille.y) { }
+	inline Rectangle(glm::vec2 const &origine, glm::vec2 const &taille) : gauche(origine.x), haut(origine.y), largeur(taille.x), hauteur(taille.y) { }
 	inline Rectangle(Rectangle const &r, int) : gauche(0), haut(0), largeur(r.largeur), hauteur(r.hauteur) { }
 	
-	inline Rectangle &definirOrigine(Coordonnees const &c) { gauche = c.x, haut = c.y; return *this; }
-	inline Rectangle &definirDimensions(Coordonnees const &c) { largeur = c.x, hauteur = c.y; return *this; }
+	inline Rectangle &definirOrigine(glm::vec2 const &c) { gauche = c.x, haut = c.y; return *this; }
+	inline Rectangle &definirDimensions(glm::vec2 const &c) { largeur = c.x, hauteur = c.y; return *this; }
 	
-	inline Coordonnees origine() const { return Coordonnees(gauche, haut); }
-	inline Coordonnees dimensions() const { return Coordonnees(largeur, hauteur); }
+	inline glm::vec2 origine() const { return glm::vec2(gauche, haut); }
+	inline glm::vec2 dimensions() const { return glm::vec2(largeur, hauteur); }
 	
-	inline Rectangle etirer(Coordonnees const &c) const { return Rectangle(gauche * c.x, haut * c.y, largeur * c.x, hauteur * c.y); }
+	inline Rectangle etirer(glm::vec2 const &c) const { return Rectangle(gauche * c.x, haut * c.y, largeur * c.x, hauteur * c.y); }
 
-	inline Rectangle operator+(Coordonnees const &c) const { return Rectangle(gauche + c.x, haut + c.y, largeur, hauteur); }
-	inline Rectangle operator+=(Coordonnees const &c) {
+	inline Rectangle cadreDecale(glm::vec2 const &vec) const {
+		return Rectangle(gauche + vec.x, haut + vec.y, largeur, hauteur);
+	}
+	inline Rectangle &decaler(glm::vec2 const &vec) {
+		gauche += vec.x;
+		haut += vec.y;
+		
+		return *this;
+	}
+	
+	/*inline Rectangle operator+(glm::vec2 const &c) const { return Rectangle(gauche + c.x, haut + c.y, largeur, hauteur); }
+	inline Rectangle operator+=(glm::vec2 const &c) {
 		gauche += c.x;
 		haut += c.y;
 		return *this;
 	}
-	inline Rectangle operator-(Coordonnees const &c) const { return Rectangle(gauche - c.x, haut - c.y, largeur, hauteur); }
-	inline Rectangle operator-=(Coordonnees const &c) {
+	inline Rectangle operator-(glm::vec2 const &c) const { return Rectangle(gauche - c.x, haut - c.y, largeur, hauteur); }
+	inline Rectangle operator-=(glm::vec2 const &c) {
 		gauche -= c.x;
 		haut -= c.y;
 		return *this;
 	}
-	inline Coordonnees operator-(Rectangle const &r) const {
-		return Coordonnees(gauche - r.gauche, haut - r.haut);
+	inline glm::vec2 operator-(Rectangle const &r) const {
+		return glm::vec2(gauche - r.gauche, haut - r.haut);
+	}*/
+	
+	inline bool contientPoint(glm::vec2 const &p) const {
+		return Rectangle(p, glm::vec2(0.0)) < *this;
 	}
 	
 	inline bool operator==(Rectangle const &r) const {
@@ -61,7 +76,7 @@ struct Rectangle {
 		return *this < r || *this == r;
 	}
 
-	inline bool estVide() const { return Coordonnees::valeurNulle(largeur * hauteur); }
+	inline bool estVide() const { return valeurNulle(largeur * hauteur); }
 	
 	inline Rectangle intersection(Rectangle const &r2) const {
 		Rectangle retour;

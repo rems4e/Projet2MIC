@@ -18,7 +18,7 @@ class EntiteStatiqueAnimee : public EntiteStatique {
 public:
 	virtual ~EntiteStatiqueAnimee();
 	
-	virtual void afficher(index_t deltaY, Coordonnees const &decalage) const;
+	virtual void afficher(index_t deltaY, glm::vec2 const &decalage) const;
 	virtual void animer();
 	
 	Rectangle const &cadre() const;

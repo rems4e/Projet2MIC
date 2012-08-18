@@ -978,6 +978,7 @@ public:
 		the double value will be put in the return 'd', if 'd'
 		is non-null.
 	*/
+	const char* Attribute( const char* name, float* d ) const;
 	const char* Attribute( const char* name, double* d ) const;
 
 	/** QueryIntAttribute examines the attribute - it is an alternative to the
@@ -1053,6 +1054,7 @@ public:
 	const std::string* Attribute( const std::string& name, int* i ) const;
 	const std::string* Attribute( const std::string& name, long* i ) const;
 	const std::string* Attribute( const std::string& name, unsigned long* i ) const;
+	const std::string* Attribute( const std::string& name, float* d ) const;
 	const std::string* Attribute( const std::string& name, double* d ) const;
 	int QueryIntAttribute( const std::string& name, int* _value ) const;
 	int QueryDoubleAttribute( const std::string& name, double* _value ) const;

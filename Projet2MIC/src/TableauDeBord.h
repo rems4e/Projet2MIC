@@ -4,21 +4,24 @@
 
 #include "Image.h"
 #include "Texte.h"
+#include "VueInterface.h"
 
 class Joueur;
 
-class TableauDeBord {
+class TableauDeBord : public VueInterface {
 public:
 	TableauDeBord(Joueur *j);
 	virtual ~TableauDeBord();
-	
-	void afficher();
-	
+		
 	dimension_t hauteur() const;
 	
 protected: 
 	TableauDeBord(TableauDeBord const &);
 	TableauDeBord &operator=(TableauDeBord const &);
+	
+	void dessiner() override;
+	void gestionClavier() override;
+	void preparationDessin() override;
 private:
 	Joueur *_joueur;
 	Image _fond;

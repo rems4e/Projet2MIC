@@ -1,7 +1,6 @@
 #version 120
 
 uniform sampler2D _tex;
-uniform vec2 _dim;
 uniform vec2 _ecran;
 
 varying vec2 _texCoord;

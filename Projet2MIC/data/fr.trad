@@ -242,3 +242,8 @@
 "ed Dernière entité utilisée" = "Dernière entité utilisée";
 "ed L'entité est définie par :" = "L'entité est définie par :";
 "ed Les entités sont définies par :" = "Les entités sont définies par :";
+
+"nivCouche coucheObjet" = "Couche objet";
+"nivCouche coucheSol" = "Couche sol";
+"nivCouche coucheSol2" = "Couche sol 2";
+"nivCouche coucheObjetsInventaire" = "Couche objets inventaire";

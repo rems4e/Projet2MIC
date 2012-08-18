@@ -17,7 +17,7 @@ class EntiteStatique : public ElementNiveau {
 public:
 	virtual ~EntiteStatique();
 	
-	virtual void afficher(index_t deltaY, Coordonnees const &decalage) const;
+	virtual void afficher(index_t deltaY, glm::vec2 const &decalage) const;
 	virtual void animer();
 
 	Image const &image() const;

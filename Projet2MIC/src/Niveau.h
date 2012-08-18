@@ -104,16 +104,17 @@ public:
 	void animer();
 	void afficher();
 	
-	static char const *nomCouche(couche_t couche);
+	static Unichar nomCouche(couche_t couche);
+	static char const *nomBaliseCouche(couche_t couche);
 		
 protected:
 	Niveau(Joueur *p, Niveau const &niveau);
 	Niveau &operator=(Niveau const &);
 	
-	void afficherObjetsInventaire(Coordonnees const &cam);
-	void afficherCouche(couche_t couche, Coordonnees const &cam);
-	void afficherTransitionsSol(Coordonnees const &cam);
-	void afficherBordure(int cote, Coordonnees const &cam);
+	void afficherObjetsInventaire(glm::vec2 const &cam);
+	void afficherCouche(couche_t couche, glm::vec2 const &cam);
+	void afficherTransitionsSol(glm::vec2 const &cam);
+	void afficherBordure(int cote, glm::vec2 const &cam);
 	
 	void definirContenuCase(index_t x, index_t y, couche_t couche, ElementNiveau *e);
 	
@@ -180,7 +181,7 @@ private:
 	Audio::audio_t _attaque;
 	Audio::audio_t _sonPluie;
 	
-	Coordonnees _persoInit;
+	glm::vec2 _persoInit;
 	Shader _pluie;
 	Shader _transitionSol;
 	

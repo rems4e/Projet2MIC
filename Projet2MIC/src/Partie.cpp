@@ -20,6 +20,16 @@
 #include <cmath>
 #include "tinyxml.h"
 
+class VueMarchand : public VueInterface {
+public:
+	VueMarchand() : VueInterface(Rectangle(0, 0, Ecran::largeur(), Ecran::hauteur())) {
+		
+	}
+protected:
+	void dessiner() override;
+	void gestionClavier() override;
+};
+
 Partie *Partie::_partie = 0;
 
 Partie *Partie::partie() {
@@ -28,9 +38,10 @@ Partie *Partie::partie() {
 	return _partie;
 }
 
-Partie::Partie() : _niveau(0), _joueur(0), _tableauDeBord(0), _marchand(0), _numeroNiveau(1), _niveauTermine(false), _derniereSauvegarde(0) {
+Partie::Partie() : VueInterface(Rectangle(0, 0, Ecran::largeur(), Ecran::hauteur())), _niveau(0), _joueur(0), _tableauDeBord(0), _marchand(0), _numeroNiveau(1), _niveauTermine(false), _derniereSauvegarde(0) {
 	_joueur = ElementNiveau::elementNiveau<Joueur>(false, 0, 0);
 	_tableauDeBord = new TableauDeBord(_joueur);
+	this->ajouterEnfant(*_tableauDeBord);
 }
 
 void Partie::restaurer(TiXmlElement *sauve) {
@@ -56,6 +67,7 @@ void Partie::restaurer(TiXmlElement *sauve) {
 
 Partie::~Partie() {
 	delete _niveau;
+	this->supprimerEnfant(*_tableauDeBord);
 	delete _tableauDeBord;
 	delete _joueur;
 	delete _derniereSauvegarde;
@@ -186,150 +198,145 @@ struct triPotions_t {
 };
 
 TiXmlElement *Partie::commencer() {	
-	TiXmlElement *charge = 0;
-	Image *apercu = 0;
+	_charge = 0;
+	_apercu = 0;
 	
+	Session::ajouterVueFenetre(this);
+
+	delete _apercu;
+
+	return _charge;
+}
+
+void Partie::gestionClavier() {		
+	Audio::audio_t musique = _niveau->musique();
+	Audio::definirMusique(musique);
+	Audio::jouerMusique();
+	
+	delete _apercu;
+	_apercu = 0;
+
 	bool continuer = true;
-	while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, continuer)) {
-		delete apercu;
-		apercu = 0;
-		
-		Ecran::definirPointeurAffiche(_joueur->inventaireAffiche());
-		Ecran::definirPointeur(0);
-		
-		Audio::audio_t musique = _niveau->musique();
-		Audio::definirMusique(musique);
-		Audio::jouerMusique();
-		
-		Ecran::effacer();
-		_niveau->animer();
-		this->afficher();
-		Ecran::finaliser();
-		
-		if(_joueur->mortTerminee()) {
-			charge = this->mortJoueur(continuer);
-			if(!continuer) {
+	_tableauDeBord->definirMasque(_joueur->mortTerminee());
+	if(_joueur->mortTerminee()) {
+		_charge = this->mortJoueur(continuer);
+		if(!continuer) {
+			Session::supprimerVueFenetre();
+		}
+		return;
+	}
+	else if(_niveauTermine) {
+		++_numeroNiveau;
+		_niveauTermine = false;
+		for(InventaireJoueur::iterator i = static_cast<InventaireJoueur *>(_joueur->inventaire())->debut(); i != static_cast<InventaireJoueur *>(_joueur->inventaire())->fin(); ++i) {
+			if(*i && (*i)->index() == 666) {
+				_joueur->inventaire()->supprimerObjet(*i);
 				break;
 			}
-			else {
-				continue;
-			}
 		}
-		else if(_niveauTermine) {
-			++_numeroNiveau;
-			_niveauTermine = false;
-			for(InventaireJoueur::iterator i = static_cast<InventaireJoueur *>(_joueur->inventaire())->debut(); i != static_cast<InventaireJoueur *>(_joueur->inventaire())->fin(); ++i) {
-				if(*i && (*i)->index() == 666) {
-					_joueur->inventaire()->supprimerObjet(*i);
-					break;
-				}
-			}
-			this->restaurer(this->sauvegarde());
+		this->restaurer(this->sauvegarde());
+	}
+	
+	if(Session::evenement(Parametres::evenementAction(Parametres::afficherInventaire))) {
+		if(_joueur->inventaireAffiche()) {
+			_joueur->inventaire()->masquer();
 		}
-		
-		if(Session::evenement(Parametres::evenementAction(Parametres::afficherInventaire))) {
-			if(_joueur->inventaireAffiche()) {
-				_joueur->inventaire()->masquer();
-			}
-			else {
-				_joueur->inventaire()->preparationAffichage();
-			}
-			_joueur->definirInventaireAffiche(!_joueur->inventaireAffiche());
-			Session::reinitialiser(Parametres::evenementAction(Parametres::afficherInventaire));
+		else {
+			_joueur->inventaire()->preparationAffichage();
 		}
-		if(Session::evenement(Session::T_ENTREE)) {
-			_joueur->definirInvicible(!_joueur->invincible());
-			Session::reinitialiser(Session::T_ENTREE);
-		}
-		if(Session::evenement(Session::T_ESC)) {
-			if(!apercu)
-				apercu = Ecran::apercu();
-			index_t selection = 0;
-			do {
-				std::vector<Unichar> elem;
-				elem.push_back(TRAD("gen Réglages"));
-				elem.push_back(TRAD("partie Sauvegarder la partie"));
-				elem.push_back(TRAD("partie Charger une partie"));
-				elem.push_back(TRAD("partie Menu principal"));
-					
-				Menu menu(TRAD("partie Pause"), elem);
-				selection = menu.afficher(0, *apercu);
-				if(selection == REGLAGES) {
-					Parametres::editerParametres(*apercu);
-				}
-				else if(selection == SAUVE) {
-					this->sauvegarder(*apercu);
-				}
-				else if(selection == CHARG) {
-					charge = this->charger(*apercu, Shader::flou(1.0), 0);
-					if(charge) {
-						continuer = false;
-					}
-				}
-				else if(selection == -1) {
-					this->reinitialiser();
-				}
-				else if(selection == QUIT) {
+		_joueur->definirInventaireAffiche(!_joueur->inventaireAffiche());
+		Session::reinitialiser(Parametres::evenementAction(Parametres::afficherInventaire));
+	}
+	if(Session::evenement(Session::T_ENTREE)) {
+		_joueur->definirInvicible(!_joueur->invincible());
+		Session::reinitialiser(Session::T_ENTREE);
+	}
+	if(Session::evenement(Session::T_ESC)) {
+		if(!_apercu)
+			_apercu = Ecran::apercu();
+		index_t selection = 0;
+		do {
+			std::vector<Unichar> elem;
+			elem.push_back(TRAD("gen Réglages"));
+			elem.push_back(TRAD("partie Sauvegarder la partie"));
+			elem.push_back(TRAD("partie Charger une partie"));
+			elem.push_back(TRAD("partie Menu principal"));
+			
+			Menu menu(TRAD("partie Pause"), elem);
+			selection = menu.afficher(0, *_apercu);
+			if(selection == REGLAGES) {
+				Parametres::editerParametres(*_apercu);
+			}
+			else if(selection == SAUVE) {
+				this->sauvegarder(*_apercu);
+			}
+			else if(selection == CHARG) {
+				_charge = this->charger(*_apercu, Shader::flou(1.0), 0);
+				if(_charge) {
 					continuer = false;
 				}
-			} while(selection == 0);
-		}
-		else if(Session::evenement(Parametres::evenementAction(Parametres::remplirVie))) {
-			InventaireJoueur *j = static_cast<InventaireJoueur *>(_joueur->inventaire());
-			std::list<ObjetInventaire *> potionsVie;
-			for(InventaireJoueur::iterator i = j->debut(); i != j->fin(); ++i) {
-				if(*i && (*i)->categorieObjet() == ObjetInventaire::potion) {
-					potionsVie.push_back(*i);
-				}
 			}
-			
-			potionsVie.sort(triPotions_t());
-
-			while(_joueur->vieActuelle() < _joueur->vieTotale() && potionsVie.size()) {
-				int diff = _joueur->vieTotale() - _joueur->vieActuelle();
-				int v = std::min(potionsVie.front()->vie(), diff);
-				_joueur->modifierVieActuelle(v);
-				potionsVie.front()->supprimerVie(v);
-				if(potionsVie.front()->vie() == 0) {
-					j->supprimerObjet(potionsVie.front());
-					delete potionsVie.front();
-					
-					potionsVie.pop_front();
-				}
+			else if(selection == -1) {
+				this->reinitialiser();
 			}
-				
-			Session::reinitialiser(Parametres::evenementAction(Parametres::remplirVie));
-		}
-		if(_joueur->inventaireAffiche()) {
-			if(!_joueur->inventaire()->gestionEvenements()) {
-				_joueur->definirInventaireAffiche(false);
+			else if(selection == QUIT) {
+				continuer = false;
+			}
+		} while(selection == 0);
+	}
+	else if(Session::evenement(Parametres::evenementAction(Parametres::remplirVie))) {
+		InventaireJoueur *j = static_cast<InventaireJoueur *>(_joueur->inventaire());
+		std::list<ObjetInventaire *> potionsVie;
+		for(InventaireJoueur::iterator i = j->debut(); i != j->fin(); ++i) {
+			if(*i && (*i)->categorieObjet() == ObjetInventaire::potion) {
+				potionsVie.push_back(*i);
 			}
 		}
 		
-		if(Session::evenement(Session::QUITTER)) {
-			continuer = false;
+		potionsVie.sort(triPotions_t());
+		
+		while(_joueur->vieActuelle() < _joueur->vieTotale() && potionsVie.size()) {
+			int diff = _joueur->vieTotale() - _joueur->vieActuelle();
+			int v = std::min(potionsVie.front()->vie(), diff);
+			_joueur->modifierVieActuelle(v);
+			potionsVie.front()->supprimerVie(v);
+			if(potionsVie.front()->vie() == 0) {
+				j->supprimerObjet(potionsVie.front());
+				delete potionsVie.front();
+				
+				potionsVie.pop_front();
+			}
+		}
+		
+		Session::reinitialiser(Parametres::evenementAction(Parametres::remplirVie));
+	}
+	if(_joueur->inventaireAffiche()) {
+		if(!_joueur->inventaire()->gestionEvenements()) {
+			_joueur->definirInventaireAffiche(false);
+		}
+	}
+	
+	if(Session::evenement(Session::QUITTER)) {
+		continuer = false;
+	}
+	
+	if(!continuer) {
+		if(!_apercu)
+			_apercu = Ecran::apercu();
+		
+		std::vector<Unichar> e;
+		e.push_back(TRAD("partie Quitter"));
+		Menu m(TRAD("partie Quitter sans sauvegarder ?"), e, TRAD("partie Retour"));
+		if(m.afficher(0, *_apercu) == 1) {
+			continuer = true;
+			delete _charge;
+			_charge = 0;
 		}
 		
 		if(!continuer) {
-			if(!apercu)
-				apercu = Ecran::apercu();
-
-			std::vector<Unichar> e;
-			e.push_back(TRAD("partie Quitter"));
-			Menu m(TRAD("partie Quitter sans sauvegarder ?"), e, TRAD("partie Retour"));
-			if(m.afficher(0, *apercu) == 1) {
-				continuer = true;
-				delete charge;
-				charge = 0;
-			}
+			Session::supprimerVueFenetre();
 		}
-
-		Ecran::maj();
 	}
-
-	delete apercu;
-
-	return charge;
 }
 
 void Partie::terminerNiveau() {
@@ -340,15 +347,16 @@ bool Partie::niveauTermine() const {
 	return _niveauTermine;
 }
 
-void Partie::afficher() {
+void Partie::dessiner() {
+	Ecran::definirPointeurAffiche(_joueur->inventaireAffiche());
+	Ecran::definirPointeur(0);
+
+	_niveau->animer();
 	_niveau->afficher();
 	
 	if(_joueur->inventaireAffiche()) {
 		_joueur->inventaire()->afficher();
 	}
-	
-	if(!_joueur->mortTerminee())
-		_tableauDeBord->afficher();
 }
 
 void Partie::reinitialiser() {
@@ -362,10 +370,10 @@ Rectangle Partie::zoneJeu() const {
 		return r;
 	}
 	else if(!(_joueur->inventaireAffiche())) {
-		return Rectangle(Coordonnees(), Coordonnees(Ecran::largeur(), Ecran::hauteur() - _tableauDeBord->hauteur()));
+		return Rectangle(glm::vec2(0), glm::vec2(Ecran::largeur(), Ecran::hauteur() - _tableauDeBord->hauteur()));
 	}
 	else {
-		return Rectangle(Coordonnees(Ecran::largeur() / 2, 0), Coordonnees(Ecran::largeur(), Ecran::hauteur() - _tableauDeBord->hauteur()));
+		return Rectangle(glm::vec2(Ecran::largeur() / 2, 0), glm::vec2(Ecran::largeur(), Ecran::hauteur() - _tableauDeBord->hauteur()));
 	}
 }
 
@@ -382,29 +390,37 @@ void Partie::definirMarchand(Marchand *m) {
 	if(_marchand) {
 		_marchand->inventaire()->preparationAffichage();
 		_joueur->inventaire()->preparationAffichage();
-		bool continuer = true;
-		while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, continuer)) {
-			Ecran::definirPointeurAffiche(true);
-			Ecran::definirPointeur(0);
-			Ecran::effacer();
-			
-			_joueur->inventaire()->afficher();
-			_marchand->inventaire()->afficher();
-			_tableauDeBord->afficher();
-			
-			Ecran::finaliser();
-			
-			continuer &= _joueur->inventaire()->gestionEvenements();
-			continuer &= _marchand->inventaire()->gestionEvenements();
-			if(Session::evenement(Session::T_ESC)) {
-				continuer = false;
-			}
-			
-			Ecran::maj();
-		}
+
+		VueMarchand vue;
+		Session::ajouterVueFenetre(&vue);
+		
 		_marchand->inventaire()->masquer();
 		_joueur->inventaire()->masquer();
 		_marchand = 0;
+	}
+}
+
+void VueMarchand::dessiner() {
+	Ecran::definirPointeurAffiche(true);
+	Ecran::definirPointeur(0);
+	
+	Partie *partie = Partie::partie();
+	partie->joueur()->inventaire()->afficher();
+	partie->marchand()->inventaire()->afficher();
+}
+
+void VueMarchand::gestionClavier() {
+	bool continuer = true;
+	Partie *partie = Partie::partie();
+	
+	continuer &= partie->joueur()->inventaire()->gestionEvenements();
+	continuer &= partie->marchand()->inventaire()->gestionEvenements();
+	if(Session::evenement(Session::T_ESC)) {
+		continuer = false;
+	}
+	
+	if(!continuer) {
+		Session::supprimerVueFenetre();
 	}
 }
 

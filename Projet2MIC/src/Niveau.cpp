@@ -12,6 +12,7 @@
 #include "EntiteMobile.h"
 #include "EntiteStatique.h"
 #include "Session.h"
+#include "Affichage.h"
 #include "nombre.h"
 #include "Personnage.h"
 #include "Joueur.h"
@@ -19,6 +20,11 @@
 #include <cstring>
 #include "tinyxml.h"
 #include "UtilitaireNiveau.h"
+
+#define GAUCHE 0
+ #define DROITE 1
+ #define HAUT 2
+ #define BAS 3
 
 class GenerateurElementAleatoire {
 public:
@@ -86,8 +92,8 @@ Niveau::Case::Case() : _entites(), _monnaie(0), _transitions() {
 
 Niveau::Niveau(Joueur *j, std::string const &nomFichier) : _elements(0), _dimX(0), _dimY(0), _entitesMobiles(), _perso(), _bordures(), _persoInit(), _pluie(Session::cheminRessources() + "aucun.vert", Session::cheminRessources() + "pluie.frag"), _transitionSol(Session::cheminRessources() + "aucun.vert", Session::cheminRessources() + "transitionSol.frag"), _tonnerre(0), _transitionsBordures(), _musique(0) {	
 	Texte txt(TRAD("niv Chargement…"), POLICE_DECO, TAILLE_TEXTE_CHARGEMENT, Couleur::blanc);
-	Ecran::afficherRectangle(Ecran::ecran(), Couleur::noir);
-	txt.afficher(Coordonnees((Ecran::dimensions().x - txt.dimensions().x) / 2, (Ecran::dimensions().y - txt.dimensions().y) / 2 - 50));
+	Affichage::afficherRectangle(Ecran::ecran(), Couleur::noir);
+	txt.afficher(glm::vec2((Ecran::dimensions().x - txt.dimensions().x) / 2, (Ecran::dimensions().y - txt.dimensions().y) / 2 - 50));
 	Ecran::maj();
 
 	TiXmlDocument niveau(Session::cheminRessources() + nomFichier);
@@ -126,14 +132,14 @@ Niveau::Niveau(Joueur *j, std::string const &nomFichier) : _elements(0), _dimX(0
 	}
 	
 	for(couche_t couche = premiereCouche; couche < nbCouches; ++couche) {
-		TiXmlElement *cc = n->FirstChildElement(Niveau::nomCouche(couche));
+		TiXmlElement *cc = n->FirstChildElement(Niveau::nomBaliseCouche(couche));
 		if(!cc)
 			continue;
 
 		char const *texte = cc->GetText();
 		size_t tailleAttendue = _dimY * (_dimX * 4 + 1) - 1; // chaque ligne contient 4 chiffres hexa par colonne et un saut de ligne, sauf pour la dernière ligne.
 		if(!texte || std::strlen(texte) != tailleAttendue) {
-			std::string err((std::string() + "Erreur : dimensions de la couche " + nombreVersTexte(couche) + " invalides (" + nombreVersTexte(std::strlen(texte)) + " au lieu de " + nombreVersTexte(tailleAttendue) +  " attendus) !"));
+			std::string err((std::string() + "Erreur : dimensions de la couche " + nombreVersTexte(couche) + " invalides (" + nombreVersTexte(tailleAttendue) +  " attendus) !"));
 			std::cerr << err << std::endl;
 			throw Exc_CreationNiveau(err);
 		}
@@ -151,7 +157,7 @@ Niveau::Niveau(Joueur *j, std::string const &nomFichier) : _elements(0), _dimX(0
 				ElementNiveau *e = 0;
 				if(!proba) { // Valeur déterminée de la case
 					if(couche == cn_sol && categorie == ElementNiveau::teleporteur && index == 0) {
-						_persoInit = Coordonnees(x + 1.5, y + 1.5) * LARGEUR_CASE;
+						_persoInit = glm::vec2(x + 1.5, y + 1.5) * static_cast<coordonnee_t>(LARGEUR_CASE);
 					}
 					try {
 						e = ElementNiveau::elementNiveau(true, this, index, categorie);
@@ -175,7 +181,7 @@ Niveau::Niveau(Joueur *j, std::string const &nomFichier) : _elements(0), _dimX(0
 				}
 
 				if(e) {
-					e->definirPosition(Coordonnees(x, y) * LARGEUR_CASE);
+					e->definirPosition(glm::vec2(x, y) * static_cast<coordonnee_t>(LARGEUR_CASE));
 					this->definirContenuCase(e->pX(), e->pY(), couche, e);
 				}
 			}
@@ -239,16 +245,16 @@ void Niveau::remplissageBordures() {
 			ElementNiveau *e = geneArbres(this);
 			_bordures[i][x] = e;
 			if(i == GAUCHE) {
-				e->definirPosition(Coordonnees(-1, x - 1) * LARGEUR_CASE);
+				e->definirPosition(glm::vec2(-1, x - 1) * static_cast<coordonnee_t>(LARGEUR_CASE));
 			}
 			else if(i == DROITE) {
-				e->definirPosition(Coordonnees(_dimX, x - 1) * LARGEUR_CASE);
+				e->definirPosition(glm::vec2(_dimX, x - 1) * static_cast<coordonnee_t>(LARGEUR_CASE));
 			}
 			else if(i == HAUT) {
-				e->definirPosition(Coordonnees(dim - x - 1, -1) * LARGEUR_CASE);
+				e->definirPosition(glm::vec2(dim - x - 1, -1) * static_cast<coordonnee_t>(LARGEUR_CASE));
 			}
 			else if(i == BAS) {
-				e->definirPosition(Coordonnees(dim - x - 1, _dimY) * LARGEUR_CASE);
+				e->definirPosition(glm::vec2(dim - x - 1, _dimY) * static_cast<coordonnee_t>(LARGEUR_CASE));
 			}
 		}
 	}
@@ -313,7 +319,7 @@ void Niveau::transitionSol(index_t x, index_t y, int position) {
 		}
 	}
 
-	caseTransition._element->definirPosition(Coordonnees(x, y) * LARGEUR_CASE);
+	caseTransition._element->definirPosition(glm::vec2(x, y) * static_cast<coordonnee_t>(LARGEUR_CASE));
 }
 
 void Niveau::remplissageTransitionsSol() {
@@ -341,7 +347,7 @@ void Niveau::remplissageTransitionsSol() {
 				_elements[y][x]._transitions[TRANSITION_ANGLE]._element = ElementNiveau::elementNiveau(false, this, angle->index(), angle->categorie());
 				_elements[y][x]._transitions[TRANSITION_ANGLE]._dim = 1;
 				_elements[y][x]._transitions[TRANSITION_ANGLE]._exterieure = false;
-				_elements[y][x]._transitions[TRANSITION_ANGLE]._element->definirPosition(Coordonnees(x + 0*el->dimX(), y) * LARGEUR_CASE);
+				_elements[y][x]._transitions[TRANSITION_ANGLE]._element->definirPosition(glm::vec2(x + 0*el->dimX(), y) * static_cast<coordonnee_t>(LARGEUR_CASE));
 			}
 		}
 	}
@@ -351,7 +357,7 @@ void Niveau::remplissageTransitionsSol() {
 		if(!_transitionsBordures[TRANSITION_GAUCHE][y]._element) {
 			ElementNiveau *transition = ElementNiveau::elementNiveau(false, this, el->index(), el->categorie());
 			_transitionsBordures[TRANSITION_GAUCHE][y]._exterieure = false;
-			transition->definirPosition(Coordonnees(_dimX, y) * LARGEUR_CASE);
+			transition->definirPosition(glm::vec2(_dimX, y) * static_cast<coordonnee_t>(LARGEUR_CASE));
 			for(int yy = 0; yy < el->dimY(); ++yy) {
 				_transitionsBordures[TRANSITION_GAUCHE][y + yy]._element = transition;
 				_transitionsBordures[TRANSITION_GAUCHE][y + yy]._dim = el->dimY();
@@ -361,7 +367,7 @@ void Niveau::remplissageTransitionsSol() {
 				_anglesTransitionsBordures[TRANSITION_GAUCHE][y + el->dimY()]._element = transition;
 				_anglesTransitionsBordures[TRANSITION_GAUCHE][y + el->dimY()]._exterieure = false;
 				_anglesTransitionsBordures[TRANSITION_GAUCHE][y + el->dimY()]._dim = 1;
-				_anglesTransitionsBordures[TRANSITION_GAUCHE][y + el->dimY()]._element->definirPosition(Coordonnees(_dimX, y + el->dimY()) * LARGEUR_CASE);
+				_anglesTransitionsBordures[TRANSITION_GAUCHE][y + el->dimY()]._element->definirPosition(glm::vec2(_dimX, y + el->dimY()) * static_cast<coordonnee_t>(LARGEUR_CASE));
 			}
 		}
 	}
@@ -371,7 +377,7 @@ void Niveau::remplissageTransitionsSol() {
 		if(!_transitionsBordures[TRANSITION_BAS][x]._element) {
 			ElementNiveau *transition = ElementNiveau::elementNiveau(false, this, el->index(), el->categorie());
 			_transitionsBordures[TRANSITION_BAS][x]._exterieure = false;
-			transition->definirPosition(Coordonnees(x, _dimY) * LARGEUR_CASE);
+			transition->definirPosition(glm::vec2(x, _dimY) * static_cast<coordonnee_t>(LARGEUR_CASE));
 			for(int xx = 0; xx < el->dimX(); ++xx) {
 				_transitionsBordures[TRANSITION_BAS][x + xx]._element = transition;
 				_transitionsBordures[TRANSITION_BAS][x + xx]._dim = el->dimX();
@@ -380,7 +386,7 @@ void Niveau::remplissageTransitionsSol() {
 			_anglesTransitionsBordures[TRANSITION_BAS][x + el->dimX()]._element = transition;
 			_anglesTransitionsBordures[TRANSITION_BAS][x + el->dimX()]._exterieure = false;
 			_anglesTransitionsBordures[TRANSITION_BAS][x + el->dimX()]._dim = 1;
-			_anglesTransitionsBordures[TRANSITION_BAS][x + el->dimX()]._element->definirPosition(Coordonnees(x + el->dimX(), _dimY) * LARGEUR_CASE);
+			_anglesTransitionsBordures[TRANSITION_BAS][x + el->dimX()]._element->definirPosition(glm::vec2(x + el->dimX(), _dimY) * static_cast<coordonnee_t>(LARGEUR_CASE));
 		}
 	}
 }
@@ -604,10 +610,10 @@ void Niveau::animer() {
 }
 
 void Niveau::afficher() {
-	Coordonnees cam = _perso->positionAffichage();
+	glm::vec2 cam = _perso->positionAffichage();
 	if(_perso->inventaireAffiche())
-		cam = _perso->positionAffichage() - Coordonnees(Ecran::largeur() / 4, 0);
-	cam -= (Ecran::dimensions() - _perso->dimensions() * LARGEUR_CASE) / 2 - Coordonnees(0, 80);
+		cam = _perso->positionAffichage() - glm::vec2(Ecran::largeur() / 4, 0);
+	cam -= (glm::vec2(Ecran::dimensions()) - _perso->dimensions() * static_cast<coordonnee_t>(LARGEUR_CASE)) / 2.0f - glm::vec2(0, 80);
 	cam.x = std::floor(cam.x);
 	cam.y = std::floor(cam.y);
 	
@@ -620,10 +626,10 @@ void Niveau::afficher() {
 	
 	// Sert à afficher la grille de case, inutile sauf en cas de test
 	/*for(index_t y = 0; y <= _dimY; ++y) {
-		Ecran::afficherLigne(referentielNiveauVersEcran(Coordonnees(0, y) * LARGEUR_CASE) - cam, referentielNiveauVersEcran(Coordonnees(_dimX, y) * LARGEUR_CASE) - cam, Couleur::rouge, 1.0);
+		Ecran::afficherLigne(referentielNiveauVersEcran(Coordonnees(0, y) * static_cast<coordonnee_t>(LARGEUR_CASE)) - cam, referentielNiveauVersEcran(Coordonnees(_dimX, y) * static_cast<coordonnee_t>(LARGEUR_CASE)) - cam, Couleur::rouge, 1.0);
 	}
 	for(index_t x = 0; x <= _dimX; ++x) {
-		Ecran::afficherLigne(referentielNiveauVersEcran(Coordonnees(x, 0) * LARGEUR_CASE) - cam, referentielNiveauVersEcran(Coordonnees(x, _dimY) * LARGEUR_CASE) - cam, Couleur::rouge, 1.0);
+		Ecran::afficherLigne(referentielNiveauVersEcran(Coordonnees(x, 0) * static_cast<coordonnee_t>(LARGEUR_CASE)) - cam, referentielNiveauVersEcran(Coordonnees(x, _dimY) * static_cast<coordonnee_t>(LARGEUR_CASE)) - cam, Couleur::rouge, 1.0);
 	}*/
 	
 	for(Niveau::couche_t c = premiereCouche + 1; c != nbCouches; ++c) {
@@ -645,15 +651,15 @@ void Niveau::afficher() {
 	
 	_pluie.activer();
 	_pluie.definirParametre("temps", horloge());
-	_pluie.definirParametre("cam", cam.x, cam.y);
+	_pluie.definirParametre("cam", glm::vec2(cam.x, cam.y));
 	_pluie.definirParametre("tonnerre", tonnerre);
 	
 	_pluie.activer();
-	Ecran::afficherRectangle(Ecran::ecran(), Couleur::blanc);
+	Affichage::afficherRectangle(Ecran::ecran(), Couleur::blanc);
 	Shader::desactiver();
 }
 
-void Niveau::afficherObjetsInventaire(Coordonnees const &cam) {
+void Niveau::afficherObjetsInventaire(glm::vec2 const &cam) {
 	for(size_t y = 0; y < _dimY; ++y) {
 		for(ssize_t x = _dimX - 1; x >= 0; --x) {
 			size_t nb = _elements[y][x]._entites[cn_objetsInventaire].size();
@@ -664,12 +670,12 @@ void Niveau::afficherObjetsInventaire(Coordonnees const &cam) {
 				img = &_objets;
 			
 			if(img) {
-				Coordonnees pos = referentielNiveauVersEcran(Coordonnees(x, y) * LARGEUR_CASE) - Coordonnees(11, 18) + Coordonnees(LARGEUR_CASE, 0);
+				glm::vec2 pos = referentielNiveauVersEcran(glm::vec2(x, y) * static_cast<coordonnee_t>(LARGEUR_CASE)) - glm::vec2(11, 18) + glm::vec2(LARGEUR_CASE, 0);
 				img->afficher(pos - cam);
 			}
 			
 			if(_elements[y][x]._monnaie) {
-				Coordonnees pos = referentielNiveauVersEcran(Coordonnees(x, y) * LARGEUR_CASE) - Coordonnees(20, 15) * 0.7 + Coordonnees(LARGEUR_CASE, 0);
+				glm::vec2 pos = referentielNiveauVersEcran(glm::vec2(x, y) * static_cast<coordonnee_t>(LARGEUR_CASE)) - glm::vec2(20, 15) * 0.7f + glm::vec2(LARGEUR_CASE, 0);
 				_monnaie.redimensionner(0.7);
 				_monnaie.afficher(pos - cam);
 			}
@@ -677,7 +683,7 @@ void Niveau::afficherObjetsInventaire(Coordonnees const &cam) {
 	}
 }
 
-void Niveau::afficherCouche(couche_t c, Coordonnees const &cam) {
+void Niveau::afficherCouche(couche_t c, glm::vec2 const &cam) {
 	for(size_t y = 0; y < _dimY; ++y) {
 		for(ssize_t x = _dimX - 1; x >= 0; --x) {
 			elements_t::iterator const fin = _elements[y][x]._entites[c].end();
@@ -703,7 +709,7 @@ void Niveau::afficherCouche(couche_t c, Coordonnees const &cam) {
 	}
 }
 
-void Niveau::afficherTransitionsSol(Coordonnees const &cam) {
+void Niveau::afficherTransitionsSol(glm::vec2 const &cam) {
 	_transitionSol.activer();
 	
 	for(int i = 0; i < 3; ++i) {
@@ -713,6 +719,10 @@ void Niveau::afficherTransitionsSol(Coordonnees const &cam) {
 				TransitionSol *t = _elements[y][x]._transitions;
 				if(!t[i]._exterieure) {
 					_transitionSol.definirParametre("dimTrans", t[i]._dim);
+					_transitionSol.definirParametre("dimY", t[i]._dim * static_cast<coordonnee_t>(LARGEUR_CASE) / 2);
+					glm::vec2 pos = t[i]._element->positionAffichage() - cam;
+					_transitionSol.definirParametre("_pos", glm::vec2(pos.x, pos.y));
+
 					t[i]._element->afficher(0, cam);
 				}
 			}
@@ -722,7 +732,7 @@ void Niveau::afficherTransitionsSol(Coordonnees const &cam) {
 	Shader::desactiver();
 }
 
-void Niveau::afficherBordure(int cote, Coordonnees const &cam) {
+void Niveau::afficherBordure(int cote, glm::vec2 const &cam) {
 	ssize_t dim = this->longueurBordure(cote);
 
 	size_t dimI = _solBordures->dimY(), dimJ = _solBordures->dimX();
@@ -737,13 +747,13 @@ void Niveau::afficherBordure(int cote, Coordonnees const &cam) {
 	for(index_t i = 0; i < Niveau::epaisseurBordure(); i += dimI) {
 		for(index_t j = premier; j < dim; j += dimJ) {
 			if(cote == GAUCHE)
-				_solBordures->definirPosition(Coordonnees(-Niveau::epaisseurBordure() + i, j) * LARGEUR_CASE);
+				_solBordures->definirPosition(glm::vec2(-Niveau::epaisseurBordure() + i, j) * static_cast<coordonnee_t>(LARGEUR_CASE));
 			else if(cote == DROITE)
-				_solBordures->definirPosition(Coordonnees(_dimX + i, j) * LARGEUR_CASE);
+				_solBordures->definirPosition(glm::vec2(_dimX + i, j) * static_cast<coordonnee_t>(LARGEUR_CASE));
 			else if(cote == HAUT)
-				_solBordures->definirPosition(Coordonnees(j, -Niveau::epaisseurBordure() + i) * LARGEUR_CASE);
+				_solBordures->definirPosition(glm::vec2(j, -Niveau::epaisseurBordure() + i) * static_cast<coordonnee_t>(LARGEUR_CASE));
 			else if(cote == BAS)
-				_solBordures->definirPosition(Coordonnees(j, _dimY + i) * LARGEUR_CASE);
+				_solBordures->definirPosition(glm::vec2(j, _dimY + i) * static_cast<coordonnee_t>(LARGEUR_CASE));
 			
 			_solBordures->afficher(0, cam);
 		}
@@ -756,13 +766,19 @@ void Niveau::afficherBordure(int cote, Coordonnees const &cam) {
 		TransitionSol *a = _anglesTransitionsBordures[TRANSITION_GAUCHE];
 		for(size_t y = 0; y < _dimY; ++y) {
 			if(!t[y]._exterieure) {
-				_transitionSol.definirParametre("pos", TRANSITION_GAUCHE);
+				_transitionSol.definirParametre("pos", static_cast<float>(TRANSITION_GAUCHE));
 				_transitionSol.definirParametre("dimTrans", t[y]._dim);
+				_transitionSol.definirParametre("dimY", t[y]._dim * static_cast<coordonnee_t>(LARGEUR_CASE));
+				glm::vec2 pos = t[y]._element->positionAffichage() - cam;
+				_transitionSol.definirParametre("_pos", glm::vec2(pos.x, pos.y));
 				t[y]._element->afficher(0, cam);
 			}
 			if(!a[y]._exterieure) {
 				_transitionSol.definirParametre("pos", TRANSITION_ANGLE);
 				_transitionSol.definirParametre("dimTrans", a[y]._dim);
+				_transitionSol.definirParametre("dimY", a[y]._dim * static_cast<coordonnee_t>(LARGEUR_CASE));
+				glm::vec2 pos = a[y]._element->positionAffichage() - cam;
+				_transitionSol.definirParametre("_pos", glm::vec2(pos.x, pos.y));
 				a[y]._element->afficher(0, cam);
 			}
 		}
@@ -778,11 +794,17 @@ void Niveau::afficherBordure(int cote, Coordonnees const &cam) {
 			if(!t[x]._exterieure) {
 				_transitionSol.definirParametre("pos", TRANSITION_BAS);
 				_transitionSol.definirParametre("dimTrans", t[x]._dim);
+				_transitionSol.definirParametre("dimY", t[x]._dim * static_cast<coordonnee_t>(LARGEUR_CASE));
+				glm::vec2 pos = t[x]._element->positionAffichage() - cam;
+				_transitionSol.definirParametre("_pos", glm::vec2(pos.x, pos.y));
 				t[x]._element->afficher(0, cam);
 			}
 			if(!a[x]._exterieure) {
 				_transitionSol.definirParametre("pos", TRANSITION_ANGLE);
 				_transitionSol.definirParametre("dimTrans", a[x]._dim);
+				_transitionSol.definirParametre("dimY", a[x]._dim * static_cast<coordonnee_t>(LARGEUR_CASE));
+				glm::vec2 pos = a[x]._element->positionAffichage() - cam;
+				_transitionSol.definirParametre("_pos", glm::vec2(pos.x, pos.y));
 				a[x]._element->afficher(0, cam);
 			}
 		}
@@ -825,7 +847,22 @@ void Niveau::definirJoueur(Joueur *j) {
 }
 
 // FIXME: traduction (éditeur…)
-char const *Niveau::nomCouche(couche_t couche) {
+Unichar Niveau::nomCouche(couche_t couche) {
+	switch(couche) {
+		case cn_objet:
+			return TRAD("nivCouche coucheObjet");
+		case cn_sol:
+			return TRAD("nivCouche coucheSol");
+		case cn_sol2:
+			return TRAD("nivCouche coucheSol2");
+		case cn_objetsInventaire:
+			return TRAD("nivCouche coucheObjetsInventaire");
+		case nbCouches:
+			return 0;
+	}
+}
+
+char const *Niveau::nomBaliseCouche(couche_t couche) {
 	switch(couche) {
 		case cn_objet:
 			return "coucheObjet";
@@ -839,3 +876,4 @@ char const *Niveau::nomCouche(couche_t couche) {
 			return 0;
 	}
 }
+

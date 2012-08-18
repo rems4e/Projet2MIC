@@ -136,26 +136,26 @@ bool Personnage::centrage() const {
 	return true;
 }
 
-Coordonnees Personnage::origine() const {
-	return Coordonnees(this->cadre().largeur / 2, 3 * this->cadre().hauteur / 4);
+glm::vec2 Personnage::origine() const {
+	return glm::vec2(this->cadre().largeur / 2, 3 * this->cadre().hauteur / 4);
 }
 
 double Personnage::vitesse() const {
 	return _vitesse;
 }
 
-ssize_t Personnage::vieActuelle() const {
+int Personnage::vieActuelle() const {
 	return _vieActuelle;
 }
 
 void Personnage::modifierVieActuelle(int delta) {
-	_vieActuelle = std::min<ssize_t>(this->vieTotale(), std::max<ssize_t>(0, _vieActuelle + delta));
+	_vieActuelle = std::min<int>(this->vieTotale(), std::max<int>(0, _vieActuelle + delta));
 	if(_vieActuelle == 0) {
 		this->EntiteMobile::preparerMort();
 	}
 }
 
-ssize_t Personnage::vieTotale() const {
+int Personnage::vieTotale() const {
 	return this->competences()[endurance] * 10;
 }
 
@@ -261,7 +261,7 @@ void Personnage::mourir() {
 }
 
 bool Personnage::attaquer(Personnage *p) {
-	if(_cibleAttaque && !p && (this->position() - _cibleAttaque->position()).norme() < 2 * LARGEUR_CASE) {
+	if(_cibleAttaque && !p && glm::length(this->position() - _cibleAttaque->position()) < 2 * LARGEUR_CASE) {
 		int degats = this->competences()[force];
 		int defense = _cibleAttaque->competences()[agilite];
 		for(positionTenue_t p = premierePositionTenue; p != nbPositionsTenue; ++p) {

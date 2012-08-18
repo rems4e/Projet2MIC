@@ -25,7 +25,7 @@ public:
 	virtual void animer();
 	virtual bool interagir(Personnage *p, bool test);
 	
-	void afficher(index_t deltaY, Coordonnees const &d) const;
+	void afficher(index_t deltaY, glm::vec2 const &d) const;
 	
 	virtual bool joueur() const;
 	virtual categorie_t categorieMobile() const;

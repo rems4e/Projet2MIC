@@ -7,7 +7,7 @@
 //
 
 #include "Session.h"
-#include "Ecran.h"
+#include "Affichage.h"
 #include "Texte.h"
 #include "SDL/SDL.h"
 #include "Image.h"
@@ -17,17 +17,38 @@
 #include "Menu.h"
 #include "tinyxml.h"
 #include "Audio.h"
+#include "VueInterface.h"
+#include <stack>
+
+#define FREQUENCE_RAFRAICHISSEMENT (Parametres::limiteIPS() ? 100 : 10000)
+
+// Répétition événements
+#define DELAI_AVANT_REPETITION 500
+#define DELAI_REPETITION 80
+#define DELAI_REPETITION_CLIC 0.3f
 
 namespace Ecran {
+	// Met à jour l'affichage en fonction des éléments affichés depuis le dernier appel à la fonction
+	void maj();
+	void finaliser();
+	// Remplis l'écran avec une couleur unie
+	void effacer();
 	void init(unsigned int largeur, unsigned int hauteur, bool pleinEcran);
 	void nettoyagePreliminaire();
 	void nettoyageFinal();
+	void majVue(int largeur, int hauteur);
+	void ajouterVerrouTransformations();
+	// On ne doit pas supprimer la première case de la pile.
+	void supprimerVerrouTransformations() throw(int);
+	void retourVerrouTransformations();
 }
 
-namespace ImagesBase {
-	void initialiser();
+namespace TexturePrive {
 	void nettoyer();
-	void changerTexture(GLint tex);
+}
+
+namespace Affichage {
+	void initialiser();
 }
 
 namespace Parametres {
@@ -42,15 +63,26 @@ namespace Audio {
 }
 
 namespace Session {
-	horloge_t _horlogeBoucle = 0.0f;
+	horloge_t _horlogeBoucle = 0.0f, _horlogeSurvol = 0.0f, _horlogeClic = 0.0f;
 	std::string _chemin;
 	bool _init = false;
 	
+	int _nbClic[2] = {0};
+	glm::vec2 _sourisClic = vec2Aucun;
 	bool _evenements[nombreEvenements] = {false};
 	modificateur_touche_t _modificateurTouches = M_AUCUN;
-	Coordonnees _souris;
+	glm::vec2 _souris, _sourisSurvol;
 	Traducteur *_traducteur = nullptr;
 	
+	VueInterface *_vueFenetre = nullptr, *_vueTemp = nullptr;
+	bool _retourHierarchie, _continuer;
+	bool _horlogesAjoutees;
+
+	std::list<HorlogeLocale *> _horloges;
+	std::map<VueInterface *, horloge_t> _derniersTemps;
+	std::stack<VueInterface *> _vues;
+	std::list<std::pair<VueInterface *, bool> > _vuesASupprimer;
+
 	Traducteur const &traducteur() {
 		return *_traducteur;
 	}
@@ -62,7 +94,13 @@ namespace Session {
 			return false;
 		return _evenements[e];
 	}
-	Coordonnees const &souris() { return _souris; }
+	
+	bool evenementDiscret(evenement_t const &e) {
+		return _evenements[e] >= 2000.0f;
+	}
+	void traiterEvenementDiscret(evenement_t const &e, bool actif);
+	
+	glm::vec2 const &souris() { return _souris; }
 	
 	void reinitialiser(evenement_t const &e) {
 		if(e == aucunEvenement)
@@ -75,23 +113,6 @@ namespace Session {
 	void reinitialiserEvenementsClavier();
 	
 	void rechargerLangue();
-	
-	EtatInterface::EtatInterface() : _largeurEcran(Ecran::largeur()), _hauteurEcran(Ecran::hauteur()), _langue(Parametres::langue()) {
-		
-	}
-	
-	EtatInterface::~EtatInterface() {
-		
-	}
-	
-	bool EtatInterface::operator==(EtatInterface const &e) {
-		return _largeurEcran == e._largeurEcran && _hauteurEcran == e._hauteurEcran && _langue == e._langue;
-	}
-	
-	bool EtatInterface::operator!=(EtatInterface const &e) {
-		return !(*this == e);
-	}
-
 }
 
 #if defined(__MACOSX__) && !defined(DEVELOPPEMENT)
@@ -153,16 +174,20 @@ void Session::initialiser() {
 	_chemin += "data/";
 		
 	Audio::initialiser();
-	ImagesBase::initialiser();
+	Affichage::initialiser();
 	Parametres::charger();
 		
 	Ecran::init(Parametres::largeurEcran(), Parametres::hauteurEcran(), Parametres::pleinEcran());
 	
 	Texte txt(TRAD("gen Chargement…"), POLICE_DECO, TAILLE_TEXTE_CHARGEMENT, Couleur::blanc);
-	Ecran::afficherRectangle(Ecran::ecran(), Couleur::noir);
-	txt.afficher(Coordonnees((Ecran::dimensions().x - txt.dimensions().x) / 2, (Ecran::dimensions().y - txt.dimensions().y) / 2 - 50));
+	Affichage::afficherRectangle(Ecran::ecran(), Couleur::noir);
+	txt.afficher(glm::vec2((Ecran::dimensions().x - txt.dimensions().x) / 2, (Ecran::dimensions().y - txt.dimensions().y) / 2 - 50));
 	Ecran::maj();
 		
+	_vues.push(0);
+	_retourHierarchie = false;
+	_horlogesAjoutees = false;
+
 	Session::reinitialiserEvenements();
 }
 
@@ -173,7 +198,7 @@ void Session::nettoyer() {
 	
 	Ecran::nettoyagePreliminaire();
 	Texte::nettoyer();
-	ImagesBase::nettoyer();
+	TexturePrive::nettoyer();
 	Shader::nettoyer();
 	Ecran::nettoyageFinal();
 	
@@ -190,11 +215,21 @@ bool Session::gestionEvenements() {
 	static Uint16 correspondances[1 << (sizeof(static_cast<SDL_Event *>(0)->key.keysym.scancode) * 8)] = {0};
 	static bool premierSouris = false;
 	
+	
 	if(!SDL_PollEvent(&evenement)) {
+		for(evenement_t ee = PREMIER_EVENEMENT_CLAVIER; ee <= PREMIER_EVENEMENT_CLAVIER; ++ee) {
+			if(_evenements[ee]) {
+				Session::traiterEvenementDiscret(ee, true);
+			}
+		}
+
 		return false;
 	}
 	
 	switch(evenement.type) {
+		case SDL_VIDEORESIZE:
+			//Ecran::majVue(evenement.resize.w, evenement.resize.h);
+			break;
 		case SDL_MOUSEMOTION:
 			_souris.x = evenement.motion.x;
 			_souris.y = evenement.motion.y;
@@ -255,98 +290,98 @@ bool Session::gestionEvenements() {
 			
 			/* Lettres, chiffres */
 			if(temp >= 'a' && temp <= 'z') {
-				_evenements[evenement_t(T_a + temp - 'a')] = evenement.type == SDL_KEYDOWN;
+				Session::traiterEvenementDiscret(evenement_t(T_a + temp - 'a'), evenement.type == SDL_KEYDOWN);
 			}
 			else if(temp >= 'A' && temp <= 'Z') {
-				_evenements[evenement_t(T_a + temp - 'A')] = evenement.type == SDL_KEYDOWN;
+				Session::traiterEvenementDiscret(evenement_t(T_a + temp - 'A'), evenement.type == SDL_KEYDOWN);
 			}
 			else if(temp >= '0' && temp <= '9') {
-				_evenements[evenement_t(T_0 + temp - '0')] = evenement.type == SDL_KEYDOWN;
+				Session::traiterEvenementDiscret(evenement_t(T_0 + temp - '0'), evenement.type == SDL_KEYDOWN);
 			}
 			
 			/* Opérations, comparaisons */
 			else if(temp == '+')
-				_evenements[T_PLUS] = evenement.type == SDL_KEYDOWN;
+				Session::traiterEvenementDiscret(T_PLUS, evenement.type == SDL_KEYDOWN);
 			else if(temp == '-')
-				_evenements[T_MOINS] = evenement.type == SDL_KEYDOWN;
+				Session::traiterEvenementDiscret(T_MOINS, evenement.type == SDL_KEYDOWN);
 			else if(temp == '/')
-				_evenements[T_SLASH] = evenement.type == SDL_KEYDOWN;
+				Session::traiterEvenementDiscret(T_SLASH, evenement.type == SDL_KEYDOWN);
 			else if(temp == '*')
-				_evenements[T_ASTERISQUE] = evenement.type == SDL_KEYDOWN;
+				Session::traiterEvenementDiscret(T_ASTERISQUE, evenement.type == SDL_KEYDOWN);
 			else if(temp == '<')
-				_evenements[T_INFERIEUR] = evenement.type == SDL_KEYDOWN;
+				Session::traiterEvenementDiscret(T_INFERIEUR, evenement.type == SDL_KEYDOWN);
 			else if(temp == '>')
-				_evenements[T_SUPERIEUR] = evenement.type == SDL_KEYDOWN;
+				Session::traiterEvenementDiscret(T_SUPERIEUR, evenement.type == SDL_KEYDOWN);
 			else if(temp == '=')
-				_evenements[T_EGAL] = evenement.type == SDL_KEYDOWN;
+				Session::traiterEvenementDiscret(T_EGAL, evenement.type == SDL_KEYDOWN);
 			
 			/* Ponctuation */
 			else if(temp == '_')
-				_evenements[T_TIRET_BAS] = evenement.type == SDL_KEYDOWN;
+				Session::traiterEvenementDiscret(T_TIRET_BAS, evenement.type == SDL_KEYDOWN);
 			else if(temp == '.')
-				_evenements[T_POINT] = evenement.type == SDL_KEYDOWN;
+				Session::traiterEvenementDiscret(T_POINT, evenement.type == SDL_KEYDOWN);
 			else if(temp == ',')
-				_evenements[T_VIRGULE] = evenement.type == SDL_KEYDOWN;
+				Session::traiterEvenementDiscret(T_VIRGULE, evenement.type == SDL_KEYDOWN);
 			else if(temp == ':')
-				_evenements[T_DEUX_POINTS] = evenement.type == SDL_KEYDOWN;
+				Session::traiterEvenementDiscret(T_DEUX_POINTS, evenement.type == SDL_KEYDOWN);
 			else if(temp == ';')
-				_evenements[T_POINT_VIRGULE] = evenement.type == SDL_KEYDOWN;
+				Session::traiterEvenementDiscret(T_POINT_VIRGULE, evenement.type == SDL_KEYDOWN);
 			else if(temp == '!')
-				_evenements[T_POINT_EXCLAMATION] = evenement.type == SDL_KEYDOWN;
+				Session::traiterEvenementDiscret(T_POINT_EXCLAMATION, evenement.type == SDL_KEYDOWN);
 			else if(temp == '?')
-				_evenements[T_POINT_INTERROGATION] = evenement.type == SDL_KEYDOWN;
+				Session::traiterEvenementDiscret(T_POINT_INTERROGATION, evenement.type == SDL_KEYDOWN);
 			else if(temp == '&')
-				_evenements[T_ESPERLUETTE] = evenement.type == SDL_KEYDOWN;
+				Session::traiterEvenementDiscret(T_ESPERLUETTE, evenement.type == SDL_KEYDOWN);
 			else if(temp == '"')
-				_evenements[T_GUILLEMETS] = evenement.type == SDL_KEYDOWN;
+				Session::traiterEvenementDiscret(T_GUILLEMETS, evenement.type == SDL_KEYDOWN);
 			else if(temp == '\'')
-				_evenements[T_APOSTROPHE] = evenement.type == SDL_KEYDOWN;
+				Session::traiterEvenementDiscret(T_APOSTROPHE, evenement.type == SDL_KEYDOWN);
 			else if(temp == '$')
-				_evenements[T_DOLLAR] = evenement.type == SDL_KEYDOWN;
+				Session::traiterEvenementDiscret(T_DOLLAR, evenement.type == SDL_KEYDOWN);
 			else if(temp == '#')
-				_evenements[T_HASH] = evenement.type == SDL_KEYDOWN;
+				Session::traiterEvenementDiscret(T_HASH, evenement.type == SDL_KEYDOWN);
 			else if(temp == '\\')
-				_evenements[T_BACKSLASH] = evenement.type == SDL_KEYDOWN;
+				Session::traiterEvenementDiscret(T_BACKSLASH, evenement.type == SDL_KEYDOWN);
 			
 			/* Parenthèses */
 			else if(temp == '(')
-				_evenements[T_PARENTHESE_G] = evenement.type == SDL_KEYDOWN;
+				Session::traiterEvenementDiscret(T_PARENTHESE_G, evenement.type == SDL_KEYDOWN);
 			else if(temp == ')')
-				_evenements[T_PARENTHESE_D] = evenement.type == SDL_KEYDOWN;
+				Session::traiterEvenementDiscret(T_PARENTHESE_D, evenement.type == SDL_KEYDOWN);
 			else if(temp == '[')
-				_evenements[T_CROCHET_G] = evenement.type == SDL_KEYDOWN;
+				Session::traiterEvenementDiscret(T_CROCHET_G, evenement.type == SDL_KEYDOWN);
 			else if(temp == ']')
-				_evenements[T_CROCHET_D] = evenement.type == SDL_KEYDOWN;
+				Session::traiterEvenementDiscret(T_CROCHET_D, evenement.type == SDL_KEYDOWN);
 			
 			else {
 				switch(temp2) {
 					case SDLK_ESCAPE:
-						_evenements[T_ESC] = evenement.type == SDL_KEYDOWN;
+						Session::traiterEvenementDiscret(T_ESC, evenement.type == SDL_KEYDOWN);
 						break;
 					case SDLK_BACKSPACE:
-						_evenements[T_EFFACER] = evenement.type == SDL_KEYDOWN;
+						Session::traiterEvenementDiscret(T_EFFACER, evenement.type == SDL_KEYDOWN);
 						break;
 					case SDLK_UP:
-						_evenements[T_HAUT] = evenement.type == SDL_KEYDOWN;
+						Session::traiterEvenementDiscret(T_HAUT, evenement.type == SDL_KEYDOWN);
 						break;
 					case SDLK_DOWN:
-						_evenements[T_BAS] = evenement.type == SDL_KEYDOWN;
+						Session::traiterEvenementDiscret(T_BAS, evenement.type == SDL_KEYDOWN);
 						break;
 					case SDLK_LEFT:
-						_evenements[T_GAUCHE] = evenement.type == SDL_KEYDOWN;
+						Session::traiterEvenementDiscret(T_GAUCHE, evenement.type == SDL_KEYDOWN);
 						break;
 					case SDLK_RIGHT:
-						_evenements[T_DROITE] = evenement.type == SDL_KEYDOWN;
+						Session::traiterEvenementDiscret(T_DROITE, evenement.type == SDL_KEYDOWN);
 						break;
 					case SDLK_KP_ENTER:
 					case SDLK_RETURN:
-						_evenements[T_ENTREE] = evenement.type == SDL_KEYDOWN;
+						Session::traiterEvenementDiscret(T_ENTREE, evenement.type == SDL_KEYDOWN);
 						break;
 					case SDLK_SPACE:
-						_evenements[T_ESPACE] = evenement.type == SDL_KEYDOWN;
+						Session::traiterEvenementDiscret(T_ESPACE, evenement.type == SDL_KEYDOWN);
 						break;
 					case SDLK_TAB:
-						_evenements[T_TAB] = evenement.type == SDL_KEYDOWN;
+						Session::traiterEvenementDiscret(T_TAB, evenement.type == SDL_KEYDOWN);
 						break;
 					case SDLK_LSHIFT:
 					case SDLK_RSHIFT:
@@ -378,7 +413,33 @@ bool Session::gestionEvenements() {
 	return true;
 }
 
-bool Session::boucle(float freq, bool continuer) {
+void Session::traiterEvenementDiscret(evenement_t const &e, bool actif) {
+	if(!actif) {
+		_evenements[e] = 0;
+	}
+	else {
+		if(_evenements[e] == 0) {
+			_evenements[e] = 3000.0f;
+			return;
+		}
+		
+		if(_evenements[e] == 3000.0f) {
+			_evenements[e] = 0.0f;
+		}
+		else if(_evenements[e] == 2000.0f)
+			_evenements[e] = DELAI_AVANT_REPETITION;
+		else if(_evenements[e] >= DELAI_AVANT_REPETITION) {
+			_evenements[e] = 2000.0f;
+			return;
+		}
+		_evenements[e] = _evenements[e] + 1000.0f / Ecran::frequenceInstantanee();
+		if(_evenements[e] >= DELAI_AVANT_REPETITION + DELAI_REPETITION) {
+			_evenements[e] = 2000.0f;
+		}
+	}
+}
+
+/*bool Session::boucle(float freq, bool continuer) {
 	if(!continuer) {
 		Session::reinitialiserEvenements();
 		return false;
@@ -393,6 +454,168 @@ bool Session::boucle(float freq, bool continuer) {
 	Session::_horlogeBoucle = horloge();
 	
 	return continuer;
+}*/
+
+VueInterface *Session::vueFenetre() {
+	return _vueFenetre;
+}
+
+void Session::ajouterVueFenetre(VueInterface *vue) {
+	assert(vue);
+	
+	_vueTemp = vue;
+	_continuer = true;
+	while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, _continuer));
+}
+
+void Session::supprimerVueFenetre() {
+	_continuer = false;
+}
+
+bool Session::boucle(float freq, bool continuer) {
+	Audio::maj();
+	
+	for(std::list<std::pair<VueInterface *, bool> >::iterator i = _vuesASupprimer.begin(); i != _vuesASupprimer.end(); ++i) {
+		i->first->parent()->supprimerEnfant(*i->first);
+		if(i->second)
+			delete i->first;
+	}
+	_vuesASupprimer.clear();
+	
+	if(!continuer) {
+		Session::reinitialiserEvenements();
+		Session::_vueFenetre = 0;
+		_horlogeSurvol = horloge();
+		
+		VueInterface::definirVueActuelle(0);
+		
+		_vues.pop();
+		_vueFenetre = _vues.top();
+		_vueTemp = _vueFenetre;
+		_retourHierarchie = true;
+		_continuer = true;
+		
+		return false;
+	}
+	if(_horlogesAjoutees) {
+		for(std::list<Session::HorlogeLocale *>::iterator i = Session::_horloges.begin(); i != Session::_horloges.end(); ++i) {
+			if((*i)->_v == 0) {
+				(*i)->_v = _vueTemp;
+			}
+		}
+		_horlogesAjoutees = false;
+	}
+	if(Session::_vueFenetre != _vueTemp || _retourHierarchie) {
+		if(!_retourHierarchie || _vues.top() != _vueTemp) {
+			_vues.push(_vueTemp);
+		}
+		
+		_retourHierarchie = false;
+		Session::reinitialiserEvenements();
+		_horlogeSurvol = horloge();
+		
+		horloge_t tpsV = _derniersTemps[_vueTemp];
+		horloge_t tps = horloge();
+		for(std::list<Session::HorlogeLocale *>::iterator i = Session::_horloges.begin(); i != Session::_horloges.end(); ++i) {
+			if((*i)->_v == _vueTemp && ***i != 0.0) {
+				***i += tps - tpsV;
+			}
+		}
+		
+		_vueFenetre = _vueTemp;
+		VueInterface::definirVueActuelle(_vueFenetre);
+	}
+	
+	Ecran::effacer();
+	int couche = 0, ancien;
+	do {
+		ancien = couche;
+		_vueFenetre->preparationDessin();
+		Ecran::ajouterCadreAffichage(_vueFenetre->cadre());
+		Ecran::ajouterVerrouTransformations();
+
+		_vueFenetre->afficher(glm::vec2(0), ancien, couche);
+		glDisable(GL_DEPTH_TEST);
+
+		Ecran::retourVerrouTransformations();
+		Ecran::supprimerVerrouTransformations();
+		Ecran::supprimerCadreAffichage();
+	} while(ancien != couche);
+	
+	Ecran::finaliser();
+
+	bool const aClic[2] = {_evenements[B_GAUCHE], _evenements[B_DROIT]};
+
+	_evenements[SOURIS] = false;
+
+	while(Session::gestionEvenements());
+	
+	if(_souris != _sourisClic) {
+		_nbClic[0] = _nbClic[1] = 0;
+	}
+	if(horloge() - _horlogeClic > DELAI_REPETITION_CLIC) {
+		_nbClic[0] = _nbClic[1] = 0;
+	}
+	
+	if(_evenements[B_GAUCHE] && !aClic[0]) {
+		_nbClic[1] = 0;
+		_sourisClic = _souris;
+		_horlogeClic = horloge();
+	}
+	else if(!_evenements[B_GAUCHE] && aClic[0]) {
+		++_nbClic[0];
+	}
+	
+	if(_souris != _sourisSurvol && horloge() - _horlogeSurvol < 1.0f) {
+		_horlogeSurvol = horloge();
+		_sourisSurvol = _souris;
+	}
+	
+	if(_vueFenetre) {
+		_derniersTemps[_vueTemp] = horloge();
+		
+		if(VueInterface *a = _vueFenetre->gestionClic()) {
+			VueInterface::definirVueActuelle(a);
+		}
+		_vueFenetre->gestionGestionClavier();
+		
+		if(VueInterface *tmp = VueInterface::vueActuelle()) {
+			tmp->gestionSouris(true, Session::souris() - tmp->positionAbsolue(), _evenements[B_GAUCHE], _evenements[B_DROIT]);
+		}
+		if(!_evenements[B_GAUCHE] && !_evenements[B_DROIT]) {
+			if(VueInterface *tmp = _vueFenetre->gestionSurvol()) {
+				tmp->gestionSouris(false, Session::souris() - tmp->positionAbsolue(), _evenements[B_GAUCHE], _evenements[B_DROIT]);
+				if(tmp->description().empty())
+					_horlogeSurvol = horloge();
+				else if(horloge() - _horlogeSurvol >= 1.0f) {
+					Ecran::definirBulleAide(tmp->description());
+				}
+			}
+			else {
+				_horlogeSurvol = horloge();
+			}
+		}
+		else {
+			_horlogeSurvol = horloge();
+		}
+		
+		Ecran::maj();
+	}
+	
+	_vueTemp = _vueFenetre;
+	
+	attendre(1.0f / freq - (horloge() - Session::_horlogeBoucle));
+	Session::_horlogeBoucle = horloge();
+	
+	return continuer;
+}
+
+void Session::supprimerVueProchaineIteration(VueInterface *vue, bool sup) {
+	if(vue) {
+		_vuesASupprimer.push_back(std::make_pair(vue, sup));
+		if(vue == VueInterface::vueActuelle())
+			VueInterface::definirVueActuelle(0);
+	}
 }
 
 Unichar Session::transcriptionEvenement(Session::evenement_t const &e, bool trad) {

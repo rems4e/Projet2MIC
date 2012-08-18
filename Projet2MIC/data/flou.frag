@@ -15,7 +15,7 @@ void main(void) {
 	float i, j, nb = 0;
 	for(i = -rayon; i <= rayon; i += 1.0) {
 		for(j = -rayon; j <= rayon; j += 1.0, ++nb) {
-			vec2 pTex = _texCoord.st + vec2(i / _dim.x, j / _dim.y);
+			vec2 pTex = _texCoord.st + vec2(i / _ecran.x, j / _ecran.y);
 			pTex.x = clamp(pTex.x, 0.0, 1.0);
 			pTex.y = clamp(pTex.y, 0.0, 1.0);
 			couleur += texture2D(_tex, pTex);

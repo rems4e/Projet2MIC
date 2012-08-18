@@ -9,3 +9,4 @@
 #include "Rectangle.h"
 
 Rectangle const Rectangle::aucun = Rectangle(0, 0, -1, -1);
+Rectangle const Rectangle::zero = Rectangle();

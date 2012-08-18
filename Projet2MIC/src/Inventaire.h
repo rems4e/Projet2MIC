@@ -241,7 +241,7 @@ protected:
 	ObjetInventaire *objetDansCase(index_t position);
 	ObjetInventaire *objetDansCase(index_t pX, index_t pY);
 	bool peutPlacerObjetDansCase(index_t pX, index_t pY, ObjetInventaire *objet, ObjetInventaire *&objetARemplacer);
-	Coordonnees positionObjet(ObjetInventaire *o) const;
+	glm::ivec2 positionObjet(ObjetInventaire *o) const;
 
 	index_t largeur() const;
 	index_t hauteur() const;

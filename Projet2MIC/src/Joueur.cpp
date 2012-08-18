@@ -14,6 +14,7 @@
 #include "UtilitaireNiveau.h"
 #include "tinyxml.h"
 #include <cmath>
+#include "Affichage.h"
 
 Joueur::Joueur(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : Personnage(decoupagePerspective, n, index, cat, new InventaireJoueur(*this)), _inventaireAffiche(false), _xp(0), _niveauXp(1) {
 
@@ -23,7 +24,7 @@ Joueur::~Joueur() {
 	
 }
 
-void Joueur::afficher(index_t deltaY, Coordonnees const &decalage) const {
+void Joueur::afficher(index_t deltaY, glm::vec2 const &decalage) const {
 	if(_invincible) {
 		static int v = 128;
 		static int sens = -1;
@@ -37,35 +38,35 @@ void Joueur::afficher(index_t deltaY, Coordonnees const &decalage) const {
 			sens = -1;
 		}
 
-		Image::definirTeinte(Couleur(v, (v + 128) % 255, (v + 200) % 255));
+		Affichage::definirTeinte(Couleur(v, (v + 128) % 255, (v + 200) % 255));
 	}
 	this->Personnage::afficher(deltaY, decalage);
-	Image::definirTeinte(Couleur::blanc);
+	Affichage::definirTeinte(Couleur::blanc);
 }
 
 void Joueur::animer() {
 	this->Personnage::animer();
 	
-	Coordonnees dep;
+	glm::vec2 dep;
 	if(Session::evenement(Parametres::evenementAction(Parametres::depDroite)))
-		dep += Coordonnees(1, 1);
+		dep += glm::vec2(1, 1);
 	else if(Session::evenement(Parametres::evenementAction(Parametres::depGauche)))
-		dep += Coordonnees(-1, -1);
+		dep += glm::vec2(-1, -1);
 	if(Session::evenement(Parametres::evenementAction(Parametres::depBas)))
-		dep += Coordonnees(-1, 1);
+		dep += glm::vec2(-1, 1);
 	else if(Session::evenement(Parametres::evenementAction(Parametres::depHaut)))
-		dep += Coordonnees(1, -1);
+		dep += glm::vec2(1, -1);
 		
-	if(!dep.vecteurNul()) {
+	if(!vecteurNul(dep)) {
 		_interaction = ij_aucune;
 
-		dep.normaliser();
+		dep = glm::normalize(dep);
 		dep *= this->vitesse() * 60.0 / Ecran::frequenceInstantanee();
 		if(this->definirAction(EntiteMobile::a_deplacer)) {
 			this->deplacerPosition(dep);
 		}
 	}
-	if(dep.vecteurNul()) {
+	if(vecteurNul(dep)) {
 		Personnage *interaction = this->Personnage::interagir(true);
 		Niveau::listeElements_t listeObjets = this->niveau()->elements(this->pX(), this->pY(), Niveau::cn_objetsInventaire);
 		_nombreObjets.first = _nombreObjets.second = 0;

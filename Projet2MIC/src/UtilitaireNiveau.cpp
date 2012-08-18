@@ -41,10 +41,10 @@ void obtenirInfosEntites(uint16_t valeur, bool &proba, index_t &indexProba, Elem
 	}
 }
 
-Coordonnees referentielNiveauVersEcran(Coordonnees const &pos) {
-	return Coordonnees(pos.x + pos.y, (pos.y - pos.x) / 2) / 2;
+glm::vec2 referentielNiveauVersEcran(glm::vec2 const &pos) {
+	return glm::vec2(pos.x + pos.y, (pos.y - pos.x) / 2.0f) / 2.0f;
 }
 
-Coordonnees referentielEcranVersNiveau(Coordonnees const &pos) {
-	return Coordonnees(pos.x - 2 * pos.y, pos.x + 2 * pos.y);
+glm::vec2 referentielEcranVersNiveau(glm::vec2 const &pos) {
+	return glm::vec2(pos.x - 2 * pos.y, pos.x + 2 * pos.y);
 }

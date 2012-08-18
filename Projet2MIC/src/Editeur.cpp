@@ -8,7 +8,7 @@
 
 #include "Editeur.h"
 #include "Session.h"
-#include "Ecran.h"
+#include "Affichage.h"
 #include "ElementNiveau.h"
 #include "tinyxml.h"
 #include "UtilitaireNiveau.h"
@@ -21,19 +21,196 @@
 #include <numeric>
 #include "NavigateurFichiers.h"
 #include "EntiteMobile.h"
+#include "ObjetInterface.h"
 
 #define TAILLE_MAX_NIVEAU 1000
 
-static void afficheRien(Rectangle const &dejaAffiche, index_t selection, Image &apercu);
+static void afficheRien(Rectangle const &dejaAffiche, index_t selection, Image const &apercu);
 
 template<class Afficheur>
-static index_t choisirElement(std::vector<Unichar> const &elements, index_t selection, Unichar const &titre, Image &apercu, Afficheur afficheurSup);
+static index_t choisirElement(std::vector<Unichar> const &elements, index_t selection, Unichar const &titre, Image const &apercu, Afficheur afficheurSup);
 
 Editeur *Editeur::_editeur = 0;
 Rectangle Editeur::_cadreControles;
 Rectangle Editeur::_cadreEditeur;
 Rectangle Editeur::_cadreInventaire;
 Rectangle Editeur::_cadreCarte;
+
+class VueEditeur : public VueInterface {
+public:
+	VueEditeur(Editeur &e) : VueInterface(Rectangle(0, 0, Ecran::largeur(), Ecran::hauteur())), _e(e) {
+		
+	}
+	
+protected:
+	void preparationDessin() override;
+	void dessiner() override;
+	void gestionClavier() override;
+	
+private:
+	Editeur &_e;
+};
+
+class EditeurLoiProba : public VueInterface {
+public:
+	EditeurLoiProba(Editeur &e, index_t loi, Image &fond) : VueInterface(Rectangle(0, 0, Ecran::largeur(), Ecran::hauteur())), _e(e), _loi(loi), _fond(fond), _nouvelleLoi(_e._niveau->_probas[loi]) {
+		_titre = Texte(TRAD("ed Édition de la loi %1 (%2) :", _loi + 1, _e._niveau->_probas[_loi]._nom), POLICE_NORMALE, 20);
+		_sup = Texte(TRAD("ed Supprimer la loi"), POLICE_NORMALE, 16);
+		_cadreSup = Rectangle(glm::vec2(0), _sup.dimensions());
+		_categories.reserve(ElementNiveau::nbTypesElement);
+		for(ElementNiveau::elementNiveau_t i = ElementNiveau::premierTypeElement; i != ElementNiveau::nbTypesElement; ++i) {
+			Unichar cat = ElementNiveau::nomCategorie(i);
+			if(cat == Unichar::uninull)
+				break;
+			_categories.push_back(Texte(cat + std::string(" : "), POLICE_NORMALE, 16));
+		}
+		_probas.reserve(_categories.size());
+		for(ElementNiveau::elementNiveau_t i = ElementNiveau::premierTypeElement; i != _categories.size(); ++i) {
+			int proba = _e._niveau->_probas[loi][i];
+			_probas.push_back(Texte(nombreVersTexte(proba), POLICE_NORMALE, 16));
+		}
+		_cadres.reserve(_categories.size());
+
+		_nbAffiches = std::min(size_t(10), _categories.size());
+	}
+	
+	bool &supprimer() {
+		return _supprimer;
+	}
+	bool &modif() {
+		return _modif;
+	}
+	Editeur::LoiProba &nouvelleLoi() {
+		return _nouvelleLoi;
+	}
+	
+protected:
+	void preparationDessin() override;
+	void dessiner() override;
+	void gestionClavier() override;
+	
+private:
+	Editeur &_e;
+	Image &_fond;
+	
+	index_t _loi;
+	bool _continuer = true, _supprimer = false;
+	
+	horloge_t _ancienDefilement = 0;
+	
+	Texte _titre;
+	Texte _sup;
+	Rectangle _cadreSup;
+	
+	std::vector<Texte> _categories;
+	
+	std::vector<Texte> _probas;
+	
+	std::vector<Rectangle> _cadres;
+	
+	ElementNiveau::elementNiveau_t _selection = ElementNiveau::premierTypeElement;
+	index_t _premierAffiche = 0;
+	size_t _nbAffiches;
+	
+	float _teinteSelection = 0;
+	int _sensTeinte = 1;
+	
+	Editeur::LoiProba _nouvelleLoi;
+	bool _modif = false;
+};
+
+class EditeurDimensions : public VueInterface {
+public:
+	EditeurDimensions(Editeur &e, Image const &ap) : VueInterface(Ecran::ecran()), _e(e), _titre(TRAD("ed Redimensionnement du niveau"), POLICE_NORMALE, 20), _ok(TRAD("ed redimNiveau OK"), POLICE_NORMALE, 16), _dimX(e._niveau->_dimX), _dimY(e._niveau->_dimY), _ap(ap) {
+		_enTetes.push_back(Texte(TRAD("ed Largeur (X) : "), POLICE_NORMALE, 16));
+		_enTetes.push_back(Texte(TRAD("ed Hauteur (Y) : "), POLICE_NORMALE, 16));
+		_valeurs.push_back(Texte(nombreVersTexte(_e._niveau->_dimX), POLICE_NORMALE, 16));
+		_valeurs.push_back(Texte(nombreVersTexte(_e._niveau->_dimY), POLICE_NORMALE, 16));
+		
+		_cadreOk = Rectangle(glm::vec2(0), _ok.dimensions());
+	}
+	
+	size_t dimX() const {
+		return _dimX;
+	}
+	
+	size_t dimY() const {
+		return _dimY;
+	}
+	
+protected:
+	void preparationDessin() override;
+	void dessiner() override;
+	void gestionClavier() override;
+	
+private:
+	Editeur &_e;
+
+	bool _continuer = true;
+	
+	Texte _titre;
+	Texte _ok;
+	std::vector<Texte> _enTetes;
+	std::vector<Texte> _valeurs;
+	
+	std::vector<Rectangle> _cadres;
+	
+	index_t _selection = 0;
+	
+	Image const &_ap;
+	
+	float _teinteSelection = 0;
+	int _sensTeinte = 1;
+	
+	size_t _dimX, _dimY;
+	Rectangle _cadreOk;
+};
+
+template<typename Afficheur>
+class SelecteurElement : public VueInterface {
+public:
+	SelecteurElement(Afficheur aff, index_t sel, Unichar const &titre, std::vector<Unichar> el, Image const &apercu) : VueInterface(Ecran::ecran()), _afficheur(aff), _selection(sel), _titre(titre, POLICE_NORMALE, 20), _valider(TRAD("ed Valider"),  POLICE_GRANDE, 20 * Ecran::echelleMin(), Couleur::noir), _annuler(TRAD("ed Annuler"),  POLICE_GRANDE, 20 * Ecran::echelleMin(), Couleur::noir), _apercu(apercu) {
+		_elements.reserve(el.size());
+		for(index_t i = 0; i != el.size(); ++i) {
+			_elements.push_back(Texte(el[i], POLICE_NORMALE, 16));
+		}
+		_cadres.reserve(_elements.size());
+		_nbAffiches = std::min(size_t(15), _elements.size());
+	}
+	
+	index_t selection() const {
+		return _selection;
+	}
+	
+protected:
+	void dessiner() override;
+	void gestionClavier() override;
+
+private:
+	Afficheur _afficheur;
+	Image const &_apercu;
+
+	bool _continuer = true;
+	
+	horloge_t _ancienDefilement = 0;
+	
+	index_t _selection;
+	
+	Texte _titre;
+	std::vector<Texte> _elements;
+	std::vector<Rectangle> _cadres;
+	
+	index_t _premierAffiche = 0;
+	size_t _nbAffiches;
+	
+	float _teinteSelection = 0;
+	int _sensTeinte = 1;
+	
+	Texte _valider;
+	Texte _annuler;
+	
+	Rectangle _cadreAnnuler, _cadreValider;
+};
 
 Editeur *Editeur::editeur() {
 	if(_editeur == 0) {
@@ -111,7 +288,7 @@ void Editeur::ouvrirEditeur(Image &fond, Shader &s) {
 void Editeur::editerNiveau(std::string const &fichier) {
 	_niveau = new NiveauEditeur(fichier);
 	_continuer = true;
-	_origine = -Coordonnees(0, Ecran::hauteur() / 2);
+	_origine = -glm::vec2(0, Ecran::hauteur() / 2);
 	_coucheEdition = static_cast<Niveau::couche_t>(Niveau::nbCouches - 1);
 	_ancienRectangle = 0;
 	_affichageSelection = Rectangle::aucun;
@@ -120,112 +297,10 @@ void Editeur::editerNiveau(std::string const &fichier) {
 	_outil = o_selection;
 	
 	_aIndex = -1;
-		
-	while(Session::boucle(FREQUENCE_RAFRAICHISSEMENT, _continuer)) {
-		Editeur::initCadres();
-
-		Ecran::definirPointeurAffiche(true);
-		Ecran::effacer();
-		this->afficher();
-		Ecran::finaliser();
-		
-		if(Session::evenement(Session::T_ESC)) {
-			Image *fond = Ecran::apercu();
-
-			std::vector<Unichar> elemMenus;
-			elemMenus.push_back(TRAD("ed Enregistrer le niveau"));
-			elemMenus.push_back(TRAD("ed Revenir à la version enregistrée"));
-			elemMenus.push_back(TRAD("ed Réglages"));
-			elemMenus.push_back(TRAD("ed Quitter l'éditeur"));
-			
-			Menu menuEditeur(TRAD("ed Menu éditeur"), elemMenus);
-
-			index_t retour = menuEditeur.afficher(0, *fond);
-			if(retour < elemMenus.size()) {
-				if(retour == 3) {
-					if(_modifie)
-						this->demandeEnregistrement(*fond);
-					_continuer = false;
-				}
-				else if(retour == 0) {
-					this->enregistrer();
-				}
-				else if(retour == 1) {
-					this->recharger();
-				}
-				else if(retour == 2) {
-					Parametres::editerParametres(*fond);
-				}
-			}
-		}
-		if(!Session::evenement(Session::B_GAUCHE)) {
-			if(_ancienRectangle == &Editeur::cadreEditeur()) {
-				for(selection_t::iterator i = _selection.begin(); i != _selection.end();) {
-					if(i->_etat == es_sup)
-						i = _selection.erase(i);
-					else {
-						i->_etat = es_ok;
-						++i;
-					}
-				}
-			}
-			_ancienRectangle = 0;
-			_affichageSelection = Rectangle::aucun;
-		}
-		else if(_ancienRectangle == 0) {
-			if(Session::souris() < Editeur::cadreEditeur())
-				_ancienRectangle = &Editeur::cadreEditeur();
-			else if(Session::souris() < Editeur::cadreControles())
-				_ancienRectangle = &Editeur::cadreControles();
-			else if(Session::souris() < Editeur::cadreInventaire())
-				_ancienRectangle = &Editeur::cadreInventaire();
-			else if(Session::souris() < Editeur::cadreCarte())
-				_ancienRectangle = &Editeur::cadreCarte();
-		}
-		
-		if(_ancienRectangle == &Editeur::cadreInventaire())
-			this->sourisInventaire();
-		else if(_ancienRectangle == &Editeur::cadreControles())
-			this->sourisControles();
-		else if(_ancienRectangle == &Editeur::cadreEditeur())
-			this->sourisEditeur();
-		else if(_ancienRectangle == &Editeur::cadreCarte())
-			this->sourisCarte();
-		
-		if(Session::evenement(Session::QUITTER)) {
-			_continuer = false;
-			if(_modifie) {
-				Image *f = Ecran::apercu();
-				this->demandeEnregistrement(*f);
-				delete f;
-			}
-		}
-		else {
-			if(Session::evenement(Session::T_GAUCHE))
-				_origine.x -= 10;
-			else if(Session::evenement(Session::T_DROITE))
-				_origine.x += 10;
-			if(Session::evenement(Session::T_HAUT))
-				_origine.y -= 10;
-			else if(Session::evenement(Session::T_BAS))
-				_origine.y += 10;
-			
-			if(Session::evenement(Session::T_EFFACER)) {
-				std::list<ActionEditeur *> l;
-				for(selection_t::iterator i = _selection.begin(); i != _selection.end(); ++i) {
-					ActionEditeur *a = new RemplacerEntite(0, i->_e, i->_posX, i->_posY, _coucheEdition);
-					l.push_back(a);
-				}
-				ActionEditeur *a = new ActionsEditeur(l);
-				this->posterAction(a);
-				
-				_selection.clear();
-				_cadreSelection = Rectangle::aucun;
-			}
-		}
-				
-		Ecran::maj();
-	}
+	
+	VueEditeur vueEditeur(*this);
+	
+	Session::ajouterVueFenetre(&vueEditeur);
 	
 	for(std::vector<std::vector<ElementEditeur *> >::iterator i = _pressePapier.begin(); i != _pressePapier.end(); ++i) {
 		for(std::vector<ElementEditeur *>::iterator j = i->begin(); j != i->end(); ++j) {
@@ -259,22 +334,129 @@ void Editeur::demandeEnregistrement(Image const &fond) {
 	}
 }
 
-void Editeur::afficher() {
-	Ecran::afficherRectangle(Ecran::ecran(), Couleur::grisClair);
+void VueEditeur::preparationDessin() {
+	Editeur::initCadres();
+	this->definirCadre(Ecran::ecran());
+}
+
+void VueEditeur::dessiner() {
+	Ecran::definirPointeurAffiche(true);
+	Affichage::afficherRectangle(Ecran::ecran(), Couleur::grisClair);
 	for(Niveau::couche_t c = Niveau::premiereCouche; c != Niveau::nbCouches; ++c) {
-		if(c == _coucheEdition)
+		if(c == _e._coucheEdition)
 			continue;
-		this->afficherCouche(c);
+		_e.afficherCouche(c);
 	}
 	
-	Ecran::afficherRectangle(Editeur::cadreEditeur(), Couleur(0, 0, 0, 128));
+	Affichage::afficherRectangle(Editeur::cadreEditeur(), Couleur(0, 0, 0, 128));
 	
-	this->afficherGrille(255);
-	this->afficherCouche(_coucheEdition);
-	this->afficherGrille(128);
+	_e.afficherGrille(255);
+	_e.afficherCouche(_e._coucheEdition);
+	_e.afficherGrille(128);
+	
+	
+	_e.afficherInterface();
+}
 
+void VueEditeur::gestionClavier() {
+	if(Session::evenement(Session::T_ESC)) {
+		Image *fond = Ecran::apercu();
+		
+		std::vector<Unichar> elemMenus;
+		elemMenus.push_back(TRAD("ed Enregistrer le niveau"));
+		elemMenus.push_back(TRAD("ed Revenir à la version enregistrée"));
+		elemMenus.push_back(TRAD("ed Réglages"));
+		elemMenus.push_back(TRAD("ed Quitter l'éditeur"));
+		
+		Menu menuEditeur(TRAD("ed Menu éditeur"), elemMenus);
+		
+		index_t retour = menuEditeur.afficher(0, *fond);
+		if(retour < elemMenus.size()) {
+			if(retour == 3) {
+				if(_e._modifie)
+					_e.demandeEnregistrement(*fond);
+				_e._continuer = false;
+			}
+			else if(retour == 0) {
+				_e.enregistrer();
+			}
+			else if(retour == 1) {
+				_e.recharger();
+			}
+			else if(retour == 2) {
+				Parametres::editerParametres(*fond);
+			}
+		}
+	}
+	if(!Session::evenement(Session::B_GAUCHE)) {
+		if(_e._ancienRectangle == &Editeur::cadreEditeur()) {
+			for(Editeur::selection_t::iterator i = _e._selection.begin(); i != _e._selection.end();) {
+				if(i->_etat == Editeur::es_sup)
+					i = _e._selection.erase(i);
+				else {
+					i->_etat = Editeur::es_ok;
+					++i;
+				}
+			}
+		}
+		_e._ancienRectangle = 0;
+		_e._affichageSelection = Rectangle::aucun;
+	}
+	else {
+		if(Editeur::cadreEditeur().contientPoint(Session::souris()))
+			_e._ancienRectangle = &Editeur::cadreEditeur();
+		else if(Editeur::cadreControles().contientPoint(Session::souris()))
+			_e._ancienRectangle = &Editeur::cadreControles();
+		else if(Editeur::cadreInventaire().contientPoint(Session::souris()))
+			_e._ancienRectangle = &Editeur::cadreInventaire();
+		else if(Editeur::cadreCarte().contientPoint(Session::souris()))
+			_e._ancienRectangle = &Editeur::cadreCarte();
+	}
 	
-	this->afficherInterface();
+	if(_e._ancienRectangle == &Editeur::cadreInventaire())
+		_e.sourisInventaire();
+	else if(_e._ancienRectangle == &Editeur::cadreControles())
+		_e.sourisControles();
+	else if(_e._ancienRectangle == &Editeur::cadreEditeur())
+		_e.sourisEditeur();
+	else if(_e._ancienRectangle == &Editeur::cadreCarte())
+		_e.sourisCarte();
+	
+	if(Session::evenement(Session::QUITTER)) {
+		_e._continuer = false;
+		if(_e._modifie) {
+			Image *f = Ecran::apercu();
+			_e.demandeEnregistrement(*f);
+			delete f;
+		}
+	}
+	else {
+		if(Session::evenement(Session::T_GAUCHE))
+			_e._origine.x -= 10;
+		else if(Session::evenement(Session::T_DROITE))
+			_e._origine.x += 10;
+		if(Session::evenement(Session::T_HAUT))
+			_e._origine.y -= 10;
+		else if(Session::evenement(Session::T_BAS))
+			_e._origine.y += 10;
+		
+		if(Session::evenement(Session::T_EFFACER)) {
+			std::list<Editeur::ActionEditeur *> l;
+			for(Editeur::selection_t::iterator i = _e._selection.begin(); i != _e._selection.end(); ++i) {
+				Editeur::ActionEditeur *a = new Editeur::RemplacerEntite(0, i->_e, i->_posX, i->_posY, _e._coucheEdition);
+				l.push_back(a);
+			}
+			Editeur::ActionEditeur *a = new Editeur::ActionsEditeur(l);
+			_e.posterAction(a);
+			
+			_e._selection.clear();
+			_e._cadreSelection = Rectangle::aucun;
+		}
+	}
+	
+	if(!_e._continuer) {
+		Session::supprimerVueFenetre();
+	}
 }
 
 void Editeur::afficherCouche(Niveau::couche_t couche) {
@@ -290,21 +472,21 @@ void Editeur::afficherCouche(Niveau::couche_t couche) {
 		sensTeinte = 1;
 	}
 
-	Coordonnees pos;
+	glm::vec2 pos;
 	for(Ligne::iterator i = _niveau->_elements.begin(); i != _niveau->_elements.end(); ++i) {
 		pos.x = (_niveau->_dimX - 1) * LARGEUR_CASE;
 		for(Colonne::reverse_iterator j = i->rbegin(); j != i->rend(); ++j) {
 			ElementEditeur const *elem = (*j)[couche];
 			if(elem) {
-				Coordonnees posAffichage = referentielNiveauVersEcran(pos) - elem->origine() - _origine + Editeur::cadreEditeur().origine();
-				Image::definirTeinte(elem->teinte());
+				glm::vec2 posAffichage = referentielNiveauVersEcran(pos) - elem->origine() - _origine + Editeur::cadreEditeur().origine();
+				Affichage::definirTeinte(elem->teinte());
 				elem->image().afficher(posAffichage, elem->cadre());
 			}
 			pos.x -= LARGEUR_CASE;
 		}
 		pos.y += LARGEUR_CASE;
 	}
-	Image::definirTeinte(Couleur::blanc);
+	Affichage::definirTeinte(Couleur::blanc);
 	
 	if(couche == _coucheEdition) {
 		for(selection_t::iterator i = _selection.begin(); i != _selection.end(); ++i) {
@@ -315,42 +497,42 @@ void Editeur::afficherCouche(Niveau::couche_t couche) {
 				dimX = i->_e->dimensions().x;
 				dimY = i->_e->dimensions().y;
 			}
-			Coordonnees pos(i->_posX * LARGEUR_CASE, i->_posY * LARGEUR_CASE);
-			Coordonnees p1 = referentielNiveauVersEcran(pos) - _origine + Editeur::cadreEditeur().origine();
-			Coordonnees p2 = referentielNiveauVersEcran(pos + Coordonnees(dimX, 0)) - _origine + Editeur::cadreEditeur().origine();
-			Coordonnees p3 = referentielNiveauVersEcran(pos + Coordonnees(dimX, dimY)) - _origine + Editeur::cadreEditeur().origine();
-			Coordonnees p4 = referentielNiveauVersEcran(pos + Coordonnees(0, dimY)) - _origine + Editeur::cadreEditeur().origine();
-			Ecran::afficherQuadrilatere(p1, p2, p3, p4, Couleur(teinteSelection * 255, teinteSelection * 255, teinteSelection * 255, 128));
+			glm::vec2 pos(i->_posX * LARGEUR_CASE, i->_posY * LARGEUR_CASE);
+			glm::vec2 p1 = referentielNiveauVersEcran(pos) - _origine + Editeur::cadreEditeur().origine();
+			glm::vec2 p2 = referentielNiveauVersEcran(pos + glm::vec2(dimX, 0)) - _origine + Editeur::cadreEditeur().origine();
+			glm::vec2 p3 = referentielNiveauVersEcran(pos + glm::vec2(dimX, dimY)) - _origine + Editeur::cadreEditeur().origine();
+			glm::vec2 p4 = referentielNiveauVersEcran(pos + glm::vec2(0, dimY)) - _origine + Editeur::cadreEditeur().origine();
+			Affichage::afficherQuadrilatere(p1, p2, p3, p4, Couleur(teinteSelection * 255, teinteSelection * 255, teinteSelection * 255, 128));
 		}
 		
 		if(_outil == o_coller) {
-			Coordonnees point(Session::souris() - Editeur::cadreEditeur().origine() + _origine);
-			Coordonnees pointNiveau(referentielEcranVersNiveau(point));
+			glm::vec2 point(Session::souris() - Editeur::cadreEditeur().origine() + _origine);
+			glm::vec2 pointNiveau(referentielEcranVersNiveau(point));
 			index_t pX = std::floor(pointNiveau.x / LARGEUR_CASE), pY = std::floor(pointNiveau.y / LARGEUR_CASE);
 			
-			Image::definirOpacite(128);
+			Affichage::ajouterOpacite(128);
 			for(std::vector<std::vector<ElementEditeur *> >::iterator i = _pressePapier.begin(); i != _pressePapier.end(); ++i) {
 				for(std::vector<ElementEditeur *>::iterator j = i->begin(); j != i->end(); ++j) {
 					if(*j) {
-						Coordonnees p = referentielNiveauVersEcran(Coordonnees(pX + std::distance(i->begin(), j), pY + std::distance(_pressePapier.begin(), i)) * LARGEUR_CASE) - (*j)->origine() - _origine + Editeur::cadreEditeur().origine();
-						Image::definirTeinte((*j)->teinte());
+						glm::vec2 p = referentielNiveauVersEcran(glm::vec2(pX + std::distance(i->begin(), j), pY + std::distance(_pressePapier.begin(), i)) * static_cast<coordonnee_t>(LARGEUR_CASE)) - (*j)->origine() - _origine + Editeur::cadreEditeur().origine();
+						Affichage::definirTeinte((*j)->teinte());
 						(*j)->image().afficher(p);
 					}
 				}
 			}
-			Image::definirOpacite(255);
-			Image::definirTeinte(Couleur::blanc);
+			Affichage::supprimerOpacite();
+			Affichage::definirTeinte(Couleur::blanc);
 		}
 	}
 }
 
-void Editeur::afficherGrille(unsigned char opacite) {
+void Editeur::afficherGrille(Couleur::composante_t opacite) {
 	Couleur c(Couleur::rouge, opacite);
 	for(index_t y = 0; y <= _niveau->_dimY; ++y) {
-		Ecran::afficherLigne(referentielNiveauVersEcran(Coordonnees(0, y) * LARGEUR_CASE) - _origine + Editeur::cadreEditeur().origine(), referentielNiveauVersEcran(Coordonnees(_niveau->_dimX, y) * LARGEUR_CASE) - _origine + Editeur::cadreEditeur().origine(), c, 1.0);
+		Affichage::afficherLigne(referentielNiveauVersEcran(glm::vec2(0, y) * static_cast<coordonnee_t>(LARGEUR_CASE)) - _origine + Editeur::cadreEditeur().origine(), referentielNiveauVersEcran(glm::vec2(_niveau->_dimX, y) * static_cast<coordonnee_t>(LARGEUR_CASE)) - _origine + Editeur::cadreEditeur().origine(), c, 1.0);
 	}
 	for(index_t x = 0; x <= _niveau->_dimX; ++x) {
-		Ecran::afficherLigne(referentielNiveauVersEcran(Coordonnees(x, 0) * LARGEUR_CASE) - _origine + Editeur::cadreEditeur().origine(), referentielNiveauVersEcran(Coordonnees(x, _niveau->_dimY) * LARGEUR_CASE) - _origine + Editeur::cadreEditeur().origine(), c, 1.0);
+		Affichage::afficherLigne(referentielNiveauVersEcran(glm::vec2(x, 0) * static_cast<coordonnee_t>(LARGEUR_CASE)) - _origine + Editeur::cadreEditeur().origine(), referentielNiveauVersEcran(glm::vec2(x, _niveau->_dimY) * static_cast<coordonnee_t>(LARGEUR_CASE)) - _origine + Editeur::cadreEditeur().origine(), c, 1.0);
 	}
 }
 
@@ -366,14 +548,14 @@ void Editeur::afficherInterface() {
 			r.hauteur *= -1;
 		}
 		
-		Coordonnees dec = cadreEditeur().origine() - _origine;
+		glm::vec2 dec = cadreEditeur().origine() - _origine;
 
-		Coordonnees p1 = dec + referentielNiveauVersEcran(Coordonnees(r.gauche, r.haut));
-		Coordonnees p2 = dec + referentielNiveauVersEcran(Coordonnees(r.gauche + r.largeur, r.haut));
-		Coordonnees p3 = dec + referentielNiveauVersEcran(Coordonnees(r.gauche + r.largeur, r.haut + r.hauteur));
-		Coordonnees p4 = dec + referentielNiveauVersEcran(Coordonnees(r.gauche, r.haut + r.hauteur));
+		glm::vec2 p1 = dec + referentielNiveauVersEcran(glm::vec2(r.gauche, r.haut));
+		glm::vec2 p2 = dec + referentielNiveauVersEcran(glm::vec2(r.gauche + r.largeur, r.haut));
+		glm::vec2 p3 = dec + referentielNiveauVersEcran(glm::vec2(r.gauche + r.largeur, r.haut + r.hauteur));
+		glm::vec2 p4 = dec + referentielNiveauVersEcran(glm::vec2(r.gauche, r.haut + r.hauteur));
 		
-		Ecran::afficherQuadrilatere(p1, p2, p3, p4, Couleur(200, 205, 220, 128));
+		Affichage::afficherQuadrilatere(p1, p2, p3, p4, Couleur(200, 205, 220, 128));
 	}
 	
 	this->afficherControles();
@@ -385,10 +567,10 @@ void Editeur::afficherInventaire() {
 	_fonctionsInventaire.clear();
 
 	Rectangle const &cadre = Editeur::cadreInventaire();
-	Ecran::afficherRectangle(cadre, Couleur::noir);
-	Ecran::afficherRectangle(Rectangle(cadre.gauche + 1, cadre.haut + 1, cadre.largeur - 2, cadre.hauteur - 2), Couleur(220, 225, 240));
+	Affichage::afficherRectangle(cadre, Couleur::noir);
+	Affichage::afficherRectangle(Rectangle(cadre.gauche + 1, cadre.haut + 1, cadre.largeur - 2, cadre.hauteur - 2), Couleur(220, 225, 240));
 	
-	Rectangle rectCat(Editeur::cadreInventaire().origine() + Coordonnees(10, 10), Coordonnees());
+	Rectangle rectCat(Editeur::cadreInventaire().origine() + glm::vec2(10, 10), glm::vec2(0));
 	
 	Texte cc;
 	cc.definir(Couleur::noir);
@@ -577,10 +759,10 @@ void Editeur::afficherInventaire() {
 void Editeur::afficherControles() {
 	_fonctionsControles.clear();
 	Rectangle cadre = Editeur::cadreControles();
-	Ecran::afficherRectangle(cadre, Couleur::noir);
-	Ecran::afficherRectangle(Rectangle(cadre.gauche + 1, cadre.haut + 1, cadre.largeur - 2, cadre.hauteur - 2), Couleur(220, 225, 240));
+	Affichage::afficherRectangle(cadre, Couleur::noir);
+	Affichage::afficherRectangle(Rectangle(cadre.gauche + 1, cadre.haut + 1, cadre.largeur - 2, cadre.hauteur - 2), Couleur(220, 225, 240));
 	
-	Rectangle rect(Editeur::cadreControles().origine() + Coordonnees(10, 10), Coordonnees());
+	Rectangle rect(Editeur::cadreControles().origine() + glm::vec2(10, 10), glm::vec2(0));
 	
 	_sauve.afficher(rect.origine());
 	rect.definirDimensions(_sauve.dimensions());
@@ -647,46 +829,46 @@ void Editeur::afficherControles() {
 
 void Editeur::afficherCarte() {
 	Rectangle cadre = Editeur::cadreCarte();
-	Ecran::afficherRectangle(cadre, Couleur::noir);
-	Ecran::afficherRectangle(Rectangle(cadre.gauche + 1, cadre.haut + 1, cadre.largeur - 2, cadre.hauteur - 2), Couleur(220, 225, 240));
+	Affichage::afficherRectangle(cadre, Couleur::noir);
+	Affichage::afficherRectangle(Rectangle(cadre.gauche + 1, cadre.haut + 1, cadre.largeur - 2, cadre.hauteur - 2), Couleur(220, 225, 240));
 
 	dimension_t max = std::max(_niveau->_dimX, _niveau->_dimY);
 	
 	dimension_t dimX = cadre.largeur * _niveau->_dimX / max;
 	dimension_t dimY = cadre.largeur * _niveau->_dimY / max;
-	Coordonnees p1;
-	Coordonnees p2(dimX, 0);
-	Coordonnees p3(dimX, dimY);
-	Coordonnees p4(0, dimY);
-	p1 = referentielNiveauVersEcran(p1) + Coordonnees(cadre.gauche, cadre.haut + dimX / 4);
-	p2 = referentielNiveauVersEcran(p2) + Coordonnees(cadre.gauche, cadre.haut + dimX / 4);
-	p3 = referentielNiveauVersEcran(p3) + Coordonnees(cadre.gauche, cadre.haut + dimX / 4);
-	p4 = referentielNiveauVersEcran(p4) + Coordonnees(cadre.gauche, cadre.haut + dimX / 4);
+	glm::vec2 p1;
+	glm::vec2 p2(dimX, 0);
+	glm::vec2 p3(dimX, dimY);
+	glm::vec2 p4(0, dimY);
+	p1 = referentielNiveauVersEcran(p1) + glm::vec2(cadre.gauche, cadre.haut + dimX / 4);
+	p2 = referentielNiveauVersEcran(p2) + glm::vec2(cadre.gauche, cadre.haut + dimX / 4);
+	p3 = referentielNiveauVersEcran(p3) + glm::vec2(cadre.gauche, cadre.haut + dimX / 4);
+	p4 = referentielNiveauVersEcran(p4) + glm::vec2(cadre.gauche, cadre.haut + dimX / 4);
 	
-	Coordonnees dimensions(p3.x - p1.x, p4.y - p2.y);
-	Coordonnees decalage = (cadre.dimensions() - dimensions) / 2;
+	glm::vec2 dimensions(p3.x - p1.x, p4.y - p2.y);
+	glm::vec2 decalage = (cadre.dimensions() - dimensions) / 2.0f;
 	p1 += decalage;
 	p2 += decalage;
 	p3 += decalage;
 	p4 += decalage;
 	
-	Ecran::afficherQuadrilatere(p1, p2, p3, p4, Couleur::gris);
+	Affichage::afficherQuadrilatere(p1, p2, p3, p4, Couleur::gris);
 	
 	Rectangle aff;
-	aff.definirOrigine(decalage + Coordonnees(cadre.gauche, cadre.haut + dimX / 4) + Coordonnees(_origine.x / (max * LARGEUR_CASE), _origine.y / (max * LARGEUR_CASE)) * cadre.largeur);
-	aff.definirDimensions(Coordonnees(Editeur::cadreEditeur().largeur / (max * LARGEUR_CASE) * cadre.largeur, Editeur::cadreEditeur().hauteur / (max * LARGEUR_CASE) * cadre.largeur));
+	aff.definirOrigine(decalage + glm::vec2(cadre.gauche, cadre.haut + dimX / 4) + glm::vec2(_origine.x / (max * LARGEUR_CASE), _origine.y / (max * LARGEUR_CASE)) * cadre.largeur);
+	aff.definirDimensions(glm::vec2(Editeur::cadreEditeur().largeur / (max * LARGEUR_CASE) * cadre.largeur, Editeur::cadreEditeur().hauteur / (max * LARGEUR_CASE) * cadre.largeur));
 	aff = cadre.intersection(aff);
 	
-	Ecran::afficherRectangle(aff, Couleur(255, 0, 0, 128));
+	Affichage::afficherRectangle(aff, Couleur(255, 0, 0, 128));
 }
 
 void Editeur::sourisEditeur() {
-	Coordonnees point(Session::souris() - Editeur::cadreEditeur().origine() + _origine);
-	Coordonnees pointNiveau(referentielEcranVersNiveau(point));
+	glm::vec2 point(Session::souris() - Editeur::cadreEditeur().origine() + _origine);
+	glm::vec2 pointNiveau(referentielEcranVersNiveau(point));
 	
 	if(_outil == o_selection) {
 		if(_affichageSelection == Rectangle::aucun) {
-			_affichageSelection = Rectangle(pointNiveau, Coordonnees());
+			_affichageSelection = Rectangle(pointNiveau, glm::vec2(0));
 		}
 		else {
 			_affichageSelection.largeur = pointNiveau.x - _affichageSelection.gauche;
@@ -715,13 +897,13 @@ void Editeur::sourisEditeur() {
 			}
 		}
 
-		Coordonnees pos;
+		glm::vec2 pos(0);
 		for(Ligne::iterator i = _niveau->_elements.begin(); i != _niveau->_elements.end(); ++i) {
 			pos.x = 0;
 			for(Colonne::iterator j = i->begin(); j != i->end(); ++j) {
 				ElementEditeur const *elem = (*j)[_coucheEdition];
-				Coordonnees dim(elem ? elem->dimensions().x : LARGEUR_CASE, elem ? elem->dimensions().y : LARGEUR_CASE);
-				if(Rectangle(pos, (Coordonnees(dim.x, dim.y))).superposition(_cadreSelection)) {
+				glm::vec2 dim(elem ? elem->dimensions().x : LARGEUR_CASE, elem ? elem->dimensions().y : LARGEUR_CASE);
+				if(Rectangle(pos, (glm::vec2(dim.x, dim.y))).superposition(_cadreSelection)) {
 					ElementSelection elemS(elem, std::distance(i->begin(), j), std::distance(_niveau->_elements.begin(), i), es_aj);
 					selection_t::iterator fnd = std::find(_selection.begin(), _selection.end(), elemS);
 					if(fnd == _selection.end()) {
@@ -744,7 +926,7 @@ void Editeur::sourisEditeur() {
 
 void Editeur::sourisControles() {
 	for(listeFonctions_t::iterator i = _fonctionsControles.begin(); i != _fonctionsControles.end(); ++i) {
-		if(Session::souris() < i->first) {
+		if(i->first.contientPoint(Session::souris())) {
 			(this->*(i->second))();
 			Session::reinitialiser(Session::B_GAUCHE);
 			break;
@@ -754,7 +936,7 @@ void Editeur::sourisControles() {
 
 void Editeur::sourisInventaire() {
 	for(listeFonctions_t::iterator i = _fonctionsInventaire.begin(); i != _fonctionsInventaire.end(); ++i) {
-		if(Session::souris() < i->first) {
+		if(i->first.contientPoint(Session::souris())) {
 			(this->*(i->second))();
 			Session::reinitialiser(Session::B_GAUCHE);
 			break;
@@ -768,20 +950,20 @@ void Editeur::sourisCarte() {
 	
 	dimension_t dimX = cadre.largeur * _niveau->_dimX / max;
 	dimension_t dimY = cadre.largeur * _niveau->_dimY / max;
-	Coordonnees p1;
-	Coordonnees p2(dimX, 0);
-	Coordonnees p3(dimX, dimY);
-	Coordonnees p4(0, dimY);
-	p1 = referentielNiveauVersEcran(p1) + Coordonnees(cadre.gauche, cadre.haut + dimX / 4);
-	p2 = referentielNiveauVersEcran(p2) + Coordonnees(cadre.gauche, cadre.haut + dimX / 4);
-	p3 = referentielNiveauVersEcran(p3) + Coordonnees(cadre.gauche, cadre.haut + dimX / 4);
-	p4 = referentielNiveauVersEcran(p4) + Coordonnees(cadre.gauche, cadre.haut + dimX / 4);
+	glm::vec2 p1;
+	glm::vec2 p2(dimX, 0);
+	glm::vec2 p3(dimX, dimY);
+	glm::vec2 p4(0, dimY);
+	p1 = referentielNiveauVersEcran(p1) + glm::vec2(cadre.gauche, cadre.haut + dimX / 4);
+	p2 = referentielNiveauVersEcran(p2) + glm::vec2(cadre.gauche, cadre.haut + dimX / 4);
+	p3 = referentielNiveauVersEcran(p3) + glm::vec2(cadre.gauche, cadre.haut + dimX / 4);
+	p4 = referentielNiveauVersEcran(p4) + glm::vec2(cadre.gauche, cadre.haut + dimX / 4);
 	
-	Coordonnees dimensions(p3.x - p1.x, p4.y - p2.y);
-	Coordonnees decalage = (cadre.dimensions() - dimensions) / 2;
+	glm::vec2 dimensions(p3.x - p1.x, p4.y - p2.y);
+	glm::vec2 decalage = (cadre.dimensions() - dimensions) / 2.0f;
 
-	Coordonnees pos = Session::souris() - cadre.origine() - decalage - Coordonnees(0, (p1.y - p2.y));
-	_origine = pos / cadre.largeur * max * LARGEUR_CASE;
+	glm::vec2 pos = Session::souris() - cadre.origine() - decalage - glm::vec2(0, (p1.y - p2.y));
+	_origine = pos / cadre.largeur * max * static_cast<coordonnee_t>(LARGEUR_CASE);
 }
 
 void Editeur::outilAnnuler() {
@@ -936,8 +1118,9 @@ void Editeur::coller(index_t pX, index_t pY) {
 	this->posterAction(a);
 }
 
+// FIXME: au boulot
 void Editeur::reglages(Image &fond) {
-	bool continuer = true;
+	/*bool continuer = true;
 	
 	Texte titre(TRAD("ed Réglages du niveau"), POLICE_GRANDE, 20);
 	
@@ -951,7 +1134,7 @@ void Editeur::reglages(Image &fond) {
 		fond.afficher(Coordonnees());
 		Shader::desactiver();
 		
-		Ecran::afficherRectangle(Ecran::ecran(), Couleur(255, 255, 255, 200));
+		Affichage::afficherRectangle(Ecran::ecran(), Couleur(255, 255, 255, 200));
 
 		titre.definir(POLICE_GRANDE, 20 * Ecran::echelleMin());
 		valider.definir(POLICE_GRANDE, 20 * Ecran::echelleMin());
@@ -971,7 +1154,7 @@ void Editeur::reglages(Image &fond) {
 		valider.afficher(cadreValider.origine());
 		annuler.afficher(cadreAnnuler.origine());
 		
-		Ecran::finaliser();
+		//Ecran::finaliser();
 		
 		if(Session::evenement(Session::B_GAUCHE)) {
 			if(Session::souris() < cadreValider) {
@@ -982,8 +1165,8 @@ void Editeur::reglages(Image &fond) {
 			}
 		}
 		
-		Ecran::maj();
-	}
+		//Ecran::maj();
+	}*/
 }
 
 void Editeur::recharger() {
@@ -1030,7 +1213,7 @@ void Editeur::enregistrer() {
 	}
 	
 	for(Niveau::couche_t couche = Niveau::premiereCouche; couche < Niveau::nbCouches; ++couche) {
-		TiXmlElement cc(Niveau::nomCouche(couche));
+		TiXmlElement cc(Niveau::nomBaliseCouche(couche));
 		std::string texte;
 		texte.reserve(_niveau->_dimY * (_niveau->_dimX * 4 + 1) - 1);
 		for(Ligne::iterator i = _niveau->_elements.begin(); i != _niveau->_elements.end(); ++i) {
@@ -1187,190 +1370,165 @@ struct initCadres_t {
 
 struct trouveSouris_t {
 	bool operator()(Rectangle const &r) {
-		return Session::souris() < r;
+		return r.contientPoint(Session::souris());
 	}
 };
 
-void Editeur::editerLoiProba(index_t loi, Image &fond) {
-	bool continuer = true, supprimer = false;
+void EditeurLoiProba::preparationDessin() {
 	
-	horloge_t ancienDefilement = 0;
-	
-	Texte titre(TRAD("ed Édition de la loi %1 (%2) :", loi + 1, _niveau->_probas[loi]._nom), POLICE_NORMALE, 20);
-	Texte sup(TRAD("ed Supprimer la loi"), POLICE_NORMALE, 16);
-	std::vector<Texte> categories;
-	categories.reserve(ElementNiveau::nbTypesElement);
-	for(ElementNiveau::elementNiveau_t i = ElementNiveau::premierTypeElement; i != ElementNiveau::nbTypesElement; ++i) {
-		Unichar cat = ElementNiveau::nomCategorie(i);
-		if(cat == Unichar::uninull)
-			break;
-		categories.push_back(Texte(cat + std::string(" : "), POLICE_NORMALE, 16));
+}
+
+void EditeurLoiProba::dessiner() {
+	_teinteSelection += 1.0f / 50.0f * (60.0f / Ecran::frequenceInstantanee()) * _sensTeinte;
+	if(_teinteSelection > 0.7f) {
+		_teinteSelection = 0.7f;
+		_sensTeinte = -1;
+	}
+	else if(_teinteSelection < 0) {
+		_teinteSelection = 0;
+		_sensTeinte = 1;
 	}
 	
-	std::vector<Texte> probas;
-	probas.reserve(categories.size());
-	for(ElementNiveau::elementNiveau_t i = ElementNiveau::premierTypeElement; i != categories.size(); ++i) {
-		int proba = _niveau->_probas[loi][i];
-		probas.push_back(Texte(nombreVersTexte(proba), POLICE_NORMALE, 16));
+	
+	_categories[_selection].definir(Couleur(_teinteSelection * 255));
+	_probas[_selection].definir(Couleur(_teinteSelection * 255));
+	
+	
+	Shader::flou(1).activer();
+	_fond.afficher(glm::vec2(0));
+	Shader::desactiver();
+	
+	Affichage::afficherRectangle(Ecran::ecran(), Couleur(255, 255, 255, 200));
+	
+	Rectangle cadre(glm::vec2(80, 80), _titre.dimensions());
+	_titre.afficher(cadre.origine());
+	
+	cadre.haut += cadre.hauteur + 20;
+	cadre.gauche += 20;
+	
+	dimension_t largeurCat = std::max_element(_categories.begin() + _premierAffiche, _categories.begin() + _premierAffiche + _nbAffiches, largeurTexte_t())->dimensions().x;
+	dimension_t largeurProba = std::max_element(_probas.begin() + _premierAffiche, _probas.begin() + _premierAffiche + _nbAffiches, largeurTexte_t())->dimensions().x;
+	
+	dimension_t hauteur = std::accumulate(_categories.begin() + _premierAffiche, _categories.begin() + _premierAffiche + _nbAffiches, dimension_t(0), hauteurTexte_t(10)) - 10;
+	
+	Affichage::afficherRectangle(Rectangle(cadre.gauche, cadre.haut, largeurCat + largeurProba + 20, hauteur + 20), Couleur(200, 205, 220, 128));
+	
+	cadre.decaler(glm::vec2(10, 10));
+	coordonnee_t sauveHaut = cadre.haut;
+	afficheurTexte_t afficheur(cadre, 10);
+	for_each(_categories.begin() + _premierAffiche, _categories.begin() + _premierAffiche + _nbAffiches, afficheur);
+	cadre.haut = sauveHaut;
+	cadre.gauche += largeurCat;
+	for_each(_probas.begin() + _premierAffiche, _probas.begin() + _premierAffiche + _nbAffiches, afficheur);
+	_categories[_selection].definir(Couleur::noir);
+	_probas[_selection].definir(Couleur::noir);
+	
+	_cadres.clear();
+	cadre.gauche -= largeurCat;
+	cadre.largeur = largeurCat + largeurProba;
+	cadre.haut = sauveHaut;
+	initCadres_t initCadres(_cadres, cadre, 10);
+	for_each(_categories.begin() + _premierAffiche, _categories.begin() + _premierAffiche + _nbAffiches, initCadres);
+	
+	cadre.decaler(-glm::vec2(10, -10));
+	
+	_sup.afficher(cadre.origine());
+	_cadreSup.definirOrigine(cadre.origine());
+}
+
+void EditeurLoiProba::gestionClavier() {
+	if(Session::evenement(Session::T_ESC) || Session::evenement(Session::QUITTER) || Session::evenement(Session::T_ENTREE)) {
+		_continuer = false;
 	}
-	
-	std::vector<Rectangle> cadres;
-	cadres.reserve(categories.size());
-
-	ElementNiveau::elementNiveau_t selection = ElementNiveau::premierTypeElement;
-	index_t premierAffiche = 0;
-	size_t nbAffiches = std::min(size_t(10), categories.size());
-	
-	float teinteSelection = 0;
-	int sensTeinte = 1;
-	
-	LoiProba nouvelleLoi(_niveau->_probas[loi]);
-	bool modif = false;
-
-	while(Session::boucle(100.0f, continuer)) {
-		teinteSelection += 1.0f / 50.0f * (60.0f / Ecran::frequenceInstantanee()) * sensTeinte;
-		if(teinteSelection > 0.7f) {
-			teinteSelection = 0.7f;
-			sensTeinte = -1;
-		}
-		else if(teinteSelection < 0) {
-			teinteSelection = 0;
-			sensTeinte = 1;
-		}
-		
-		
-		categories[selection].definir(Couleur(teinteSelection * 255));
-		probas[selection].definir(Couleur(teinteSelection * 255));
-
-		Ecran::effacer();
-		
-		Shader::flou(1).activer();
-		fond.afficher(Coordonnees());
-		Shader::desactiver();
-
-		Ecran::afficherRectangle(Ecran::ecran(), Couleur(255, 255, 255, 200));
-		
-		Rectangle cadre(Coordonnees(80, 80), titre.dimensions()), cadreSup(Coordonnees(), sup.dimensions());
-		titre.afficher(cadre.origine());
-		
-		cadre.haut += cadre.hauteur + 20;
-		cadre.gauche += 20;
-		
-		dimension_t largeurCat = std::max_element(categories.begin() + premierAffiche, categories.begin() + premierAffiche + nbAffiches, largeurTexte_t())->dimensions().x;
-		dimension_t largeurProba = std::max_element(probas.begin() + premierAffiche, probas.begin() + premierAffiche + nbAffiches, largeurTexte_t())->dimensions().x;
-
-		dimension_t hauteur = std::accumulate(categories.begin() + premierAffiche, categories.begin() + premierAffiche + nbAffiches, dimension_t(0), hauteurTexte_t(10)) - 10;
-		
-		Ecran::afficherRectangle(Rectangle(cadre.gauche, cadre.haut, largeurCat + largeurProba + 20, hauteur + 20), Couleur(200, 205, 220, 128));
-		
-		cadre += Coordonnees(10, 10);
-		coordonnee_t sauveHaut = cadre.haut;
-		afficheurTexte_t afficheur(cadre, 10);
-		for_each(categories.begin() + premierAffiche, categories.begin() + premierAffiche + nbAffiches, afficheur);
-		cadre.haut = sauveHaut;
-		cadre.gauche += largeurCat;
-		for_each(probas.begin() + premierAffiche, probas.begin() + premierAffiche + nbAffiches, afficheur);
-		categories[selection].definir(Couleur::noir);
-		probas[selection].definir(Couleur::noir);
-	
-		cadres.clear();
-		cadre.gauche -= largeurCat;
-		cadre.largeur = largeurCat + largeurProba;
-		cadre.haut = sauveHaut;
-		initCadres_t initCadres(cadres, cadre, 10);
-		for_each(categories.begin() + premierAffiche, categories.begin() + premierAffiche + nbAffiches, initCadres);
-
-		cadre -= Coordonnees(10, -10);
-		
-		sup.afficher(cadre.origine());
-		cadreSup.definirOrigine(cadre.origine());
-		Ecran::finaliser();
-
-		if(Session::evenement(Session::T_ESC) || Session::evenement(Session::QUITTER) || Session::evenement(Session::T_ENTREE)) {
-			continuer = false;
-		}
-		else {
-			if(Session::evenement(Session::T_HAUT) && horloge() - ancienDefilement > INTERVALLE_DEFILEMENT) {
-				if(selection > 0) {
-					selection = static_cast<ElementNiveau::elementNiveau_t>(selection - 1);
-					if(selection < premierAffiche)
-						--premierAffiche;
-				}
-				else {
-					selection = static_cast<ElementNiveau::elementNiveau_t>(categories.size() - 1);
-					if(categories.size() > nbAffiches)
-						premierAffiche = categories.size() - nbAffiches;
-				}
-				
-				ancienDefilement = horloge();
-			}
-			else if(Session::evenement(Session::T_BAS) && horloge() - ancienDefilement > INTERVALLE_DEFILEMENT) {
-				if(selection < categories.size() - 1) {
-					++selection;
-					if(selection >= premierAffiche + nbAffiches)
-						++premierAffiche;
-				}
-				else {
-					selection = ElementNiveau::premierTypeElement;
-					premierAffiche = 0;
-				}
-				
-				ancienDefilement = horloge();
-			}
-			if(Session::evenement(Session::B_GAUCHE)) {
-				std::vector<Rectangle>::iterator souris = std::find_if(cadres.begin(), cadres.end(), trouveSouris_t());
-				if(souris != cadres.end()) {
-					selection = static_cast<ElementNiveau::elementNiveau_t>(std::distance(cadres.begin(), souris));
-				}
-				else if(Session::souris() < cadreSup) {
-					continuer = false;
-					supprimer = true;
-				}
-			}
-			if(Session::evenement(Session::T_EFFACER)) {
-				nouvelleLoi[selection] /= 10;
-				probas[selection].definir(nombreVersTexte(_niveau->_probas[loi][selection]));
-				Session::reinitialiser(Session::T_EFFACER);
-				modif = true;
+	else {
+		if(Session::evenement(Session::T_HAUT) && horloge() - _ancienDefilement > INTERVALLE_DEFILEMENT) {
+			if(_selection > 0) {
+				_selection = static_cast<ElementNiveau::elementNiveau_t>(_selection - 1);
+				if(_selection < _premierAffiche)
+					--_premierAffiche;
 			}
 			else {
-				int nb = -1;
-				for(Session::evenement_t e = Session::T_0; e <= Session::T_9; ++e) {
-					if(Session::evenement(e)) {
-						nb = e - Session::T_0;
-						Session::reinitialiser(e);
-						break;
-					}
+				_selection = static_cast<ElementNiveau::elementNiveau_t>(_categories.size() - 1);
+				if(_categories.size() > _nbAffiches)
+					_premierAffiche = _categories.size() - _nbAffiches;
+			}
+			
+			_ancienDefilement = horloge();
+		}
+		else if(Session::evenement(Session::T_BAS) && horloge() - _ancienDefilement > INTERVALLE_DEFILEMENT) {
+			if(_selection < _categories.size() - 1) {
+				++_selection;
+				if(_selection >= _premierAffiche + _nbAffiches)
+					++_premierAffiche;
+			}
+			else {
+				_selection = ElementNiveau::premierTypeElement;
+				_premierAffiche = 0;
+			}
+			
+			_ancienDefilement = horloge();
+		}
+		if(Session::evenement(Session::B_GAUCHE)) {
+			std::vector<Rectangle>::iterator souris = std::find_if(_cadres.begin(), _cadres.end(), trouveSouris_t());
+			if(souris != _cadres.end()) {
+				_selection = static_cast<ElementNiveau::elementNiveau_t>(std::distance(_cadres.begin(), souris));
+			}
+			else if(_cadreSup.contientPoint(Session::souris())) {
+				_continuer = false;
+				_supprimer = true;
+			}
+		}
+		if(Session::evenement(Session::T_EFFACER)) {
+			_nouvelleLoi[_selection] /= 10;
+			_probas[_selection].definir(nombreVersTexte(_e._niveau->_probas[_loi][_selection]));
+			Session::reinitialiser(Session::T_EFFACER);
+			_modif = true;
+		}
+		else {
+			int nb = -1;
+			for(Session::evenement_t e = Session::T_0; e <= Session::T_9; ++e) {
+				if(Session::evenement(e)) {
+					nb = e - Session::T_0;
+					Session::reinitialiser(e);
+					break;
 				}
-				if(nb != -1) {
-					int &p = nouvelleLoi[selection];
-					int p1 = p;
-					p1 = p1 * 10 + nb;
-					if(p1 < NB_VALEURS_PROBA_ENTITES) {
-						p = p1;
-						probas[selection].definir(nombreVersTexte(p));
-						modif = true;
-					}
+			}
+			if(nb != -1) {
+				int &p = _nouvelleLoi[_selection];
+				int p1 = p;
+				p1 = p1 * 10 + nb;
+				if(p1 < NB_VALEURS_PROBA_ENTITES) {
+					p = p1;
+					_probas[_selection].definir(nombreVersTexte(p));
+					_modif = true;
 				}
 			}
 		}
-		Ecran::maj();
 	}
 	
-	if(supprimer) {
+	if(!_continuer) {
+		Session::supprimerVueFenetre();
+	}
+}
+
+void Editeur::editerLoiProba(index_t loi, Image &fond) {
+	EditeurLoiProba e(*this, loi, fond);
+	Session::ajouterVueFenetre(&e);
+	
+	if(e.supprimer()) {
 		uint16_t idProba = entite(loi);
 		for(Niveau::couche_t c = Niveau::premiereCouche; c != Niveau::nbCouches; ++c) {
 			for(Ligne::iterator i = _niveau->_elements.begin(); i != _niveau->_elements.end(); ++i) {
 				for(Colonne::iterator j = i->begin(); j != i->end(); ++j) {
 					if(j->_contenu[c] && j->_contenu[c]->operator()() == idProba) {
-						supprimer = false;
+						e.supprimer() = false;
 						goto finRecherche;
 					}
 				}
 			}
 		}
 	finRecherche:
-		if(supprimer) {
+		if(e.supprimer()) {
 			_niveau->_probas.erase(_niveau->_probas.begin() + loi);
 			ActionEditeur *a = new SupprimerLoiProba(loi, _niveau->_probas[loi]);
 			this->posterAction(a);
@@ -1382,150 +1540,137 @@ void Editeur::editerLoiProba(index_t loi, Image &fond) {
 			m.afficher(0, fond);
 		}
 	}
-	else if(modif) {
-		ActionEditeur *a = new ModifierLoiProba(loi, _niveau->_probas[loi], nouvelleLoi);
+	else if(e.modif()) {
+		ActionEditeur *a = new ModifierLoiProba(loi, _niveau->_probas[loi], e.nouvelleLoi());
 		this->posterAction(a);
 	}
 }
 
-void Editeur::modifDimensions() {
-	bool continuer = true;
+void EditeurDimensions::preparationDessin() {
 	
-	Texte titre(TRAD("ed Redimensionnement du niveau"), POLICE_NORMALE, 20);
-	Texte ok(TRAD("ed redimNiveau OK"), POLICE_NORMALE, 16);
-	std::vector<Texte> enTetes;
-	enTetes.push_back(Texte(TRAD("ed Largeur (X) : "), POLICE_NORMALE, 16));
-	enTetes.push_back(Texte(TRAD("ed Hauteur (Y) : "), POLICE_NORMALE, 16));
-	
-	std::vector<Texte> valeurs;
-	valeurs.push_back(Texte(nombreVersTexte(_niveau->_dimX), POLICE_NORMALE, 16));
-	valeurs.push_back(Texte(nombreVersTexte(_niveau->_dimY), POLICE_NORMALE, 16));
-	
-	std::vector<Rectangle> cadres;
-	
-	index_t selection = 0;
-	
-	Image *ap = Ecran::apercu();
-	
-	float teinteSelection = 0;
-	int sensTeinte = 1;
-	
-	size_t dimX = _niveau->_dimX, dimY = _niveau->_dimY;
-	
-	while(Session::boucle(100.0f, continuer)) {
-		teinteSelection += 1.0f / 50.0f * (60.0f / Ecran::frequenceInstantanee()) * sensTeinte;
-		if(teinteSelection > 0.7f) {
-			teinteSelection = 0.7f;
-			sensTeinte = -1;
-		}
-		else if(teinteSelection < 0) {
-			teinteSelection = 0;
-			sensTeinte = 1;
-		}
-		
-		
-		enTetes[selection].definir(Couleur(teinteSelection * 255));
-		valeurs[selection].definir(Couleur(teinteSelection * 255));
-		
-		Ecran::effacer();
-		
-		Shader::flou(1).activer();
-		ap->afficher(Coordonnees());
-		Shader::desactiver();
-		
-		Ecran::afficherRectangle(Ecran::ecran(), Couleur(255, 255, 255, 200));
-		
-		Rectangle cadre(Coordonnees(80, 80), titre.dimensions()), cadreOk(Coordonnees(), ok.dimensions());
-		titre.afficher(cadre.origine());
-		
-		cadre.haut += cadre.hauteur + 20;
-		cadre.gauche += 20;
-		
-		dimension_t largeurCat = std::max_element(enTetes.begin(), enTetes.end(), largeurTexte_t())->dimensions().x;
-		dimension_t largeurProba = std::max_element(valeurs.begin(), valeurs.end(), largeurTexte_t())->dimensions().x;
-		
-		dimension_t hauteur = std::accumulate(enTetes.begin(), enTetes.end(), dimension_t(0), hauteurTexte_t(10)) - 10;
-		
-		Ecran::afficherRectangle(Rectangle(cadre.gauche, cadre.haut, largeurCat + largeurProba + 20, hauteur + 20), Couleur(200, 205, 220, 128));
-		
-		cadre += Coordonnees(10, 10);
-		coordonnee_t sauveHaut = cadre.haut;
-		afficheurTexte_t afficheur(cadre, 10);
-		for_each(enTetes.begin(), enTetes.end(), afficheur);
-		cadre.haut = sauveHaut;
-		cadre.gauche += largeurCat;
-		for_each(valeurs.begin(), valeurs.end(), afficheur);
-		
-		cadres.clear();
-		cadre.gauche -= largeurCat;
-		cadre.largeur = largeurCat + largeurProba;
-		cadre.haut = sauveHaut;
-		initCadres_t initCadres(cadres, cadre, 10);
-		for_each(enTetes.begin(), enTetes.end(), initCadres);
-		
-		cadre -= Coordonnees(10, -10);
-		
-		ok.afficher(cadre.origine());
-		cadreOk.definirOrigine(cadre.origine());
-		Ecran::finaliser();
-		
-		if(Session::evenement(Session::T_ESC) || Session::evenement(Session::QUITTER) || Session::evenement(Session::T_ENTREE)) {
-			continuer = false;
-		}
-		else {
-			if(Session::evenement(Session::B_GAUCHE)) {
-				std::vector<Rectangle>::iterator souris = std::find_if(cadres.begin(), cadres.end(), trouveSouris_t());
-				if(souris != cadres.end()) {
-					enTetes[selection].definir(Couleur::noir);
-					valeurs[selection].definir(Couleur::noir);
-					selection = static_cast<ElementNiveau::elementNiveau_t>(std::distance(cadres.begin(), souris));
-				}
-				else if(Session::souris() < cadreOk) {
-					continuer = false;
-				}
-			}
-			if(Session::evenement(Session::T_EFFACER)) {
-				switch(selection) {
-					case 0:
-						dimX /= 10;
-						valeurs[selection].definir(nombreVersTexte(dimX));
-						break;
-					case 1:
-						dimY /= 10;
-						valeurs[selection].definir(nombreVersTexte(dimY));
-						break;
-					default:
-						break;
-				}
-				Session::reinitialiser(Session::T_EFFACER);
-			}
-			else {
-				int nb = -1;
-				for(Session::evenement_t e = Session::T_0; e <= Session::T_9; ++e) {
-					if(Session::evenement(e)) {
-						nb = e - Session::T_0;
-						Session::reinitialiser(e);
-						break;
-					}
-				}
-				if(nb != -1) {
-					size_t &p = selection ? dimY : dimX;
-					size_t p1 = p;
-					p1 = p1 * 10 + nb;
-					if(p1 <= TAILLE_MAX_NIVEAU) {
-						p = p1;
-						valeurs[selection].definir(nombreVersTexte(p));
-					}
-				}
-			}
-		}
-		
-		Ecran::maj();
+}
+
+void EditeurDimensions::dessiner() {
+	_teinteSelection += 1.0f / 50.0f * (60.0f / Ecran::frequenceInstantanee()) * _sensTeinte;
+	if(_teinteSelection > 0.7f) {
+		_teinteSelection = 0.7f;
+		_sensTeinte = -1;
+	}
+	else if(_teinteSelection < 0) {
+		_teinteSelection = 0;
+		_sensTeinte = 1;
 	}
 	
-	if(dimX != _niveau->_dimX || dimY != _niveau->_dimY) {
+	
+	_enTetes[_selection].definir(Couleur(_teinteSelection * 255));
+	_valeurs[_selection].definir(Couleur(_teinteSelection * 255));
+		
+	Shader::flou(1).activer();
+	_ap.afficher(glm::vec2(0));
+	Shader::desactiver();
+	
+	Affichage::afficherRectangle(Ecran::ecran(), Couleur(255, 255, 255, 200));
+	
+	Rectangle cadre(glm::vec2(80, 80), _titre.dimensions());
+	_titre.afficher(cadre.origine());
+	
+	cadre.haut += cadre.hauteur + 20;
+	cadre.gauche += 20;
+	
+	dimension_t largeurCat = std::max_element(_enTetes.begin(), _enTetes.end(), largeurTexte_t())->dimensions().x;
+	dimension_t largeurProba = std::max_element(_valeurs.begin(), _valeurs.end(), largeurTexte_t())->dimensions().x;
+	
+	dimension_t hauteur = std::accumulate(_enTetes.begin(), _enTetes.end(), dimension_t(0), hauteurTexte_t(10)) - 10;
+	
+	Affichage::afficherRectangle(Rectangle(cadre.gauche, cadre.haut, largeurCat + largeurProba + 20, hauteur + 20), Couleur(200, 205, 220, 128));
+	
+	cadre.decaler(glm::vec2(10, 10));
+	coordonnee_t sauveHaut = cadre.haut;
+	afficheurTexte_t afficheur(cadre, 10);
+	for_each(_enTetes.begin(), _enTetes.end(), afficheur);
+	cadre.haut = sauveHaut;
+	cadre.gauche += largeurCat;
+	for_each(_valeurs.begin(), _valeurs.end(), afficheur);
+	
+	_cadres.clear();
+	cadre.gauche -= largeurCat;
+	cadre.largeur = largeurCat + largeurProba;
+	cadre.haut = sauveHaut;
+	initCadres_t initCadres(_cadres, cadre, 10);
+	for_each(_enTetes.begin(), _enTetes.end(), initCadres);
+	
+	cadre.decaler(-glm::vec2(10, -10));
+	
+	_ok.afficher(cadre.origine());
+	_cadreOk.definirOrigine(cadre.origine());
+}
+
+void EditeurDimensions::gestionClavier() {
+	if(Session::evenement(Session::T_ESC) || Session::evenement(Session::QUITTER) || Session::evenement(Session::T_ENTREE)) {
+		_continuer = false;
+	}
+	else {
+		if(Session::evenement(Session::B_GAUCHE)) {
+			std::vector<Rectangle>::iterator souris = std::find_if(_cadres.begin(), _cadres.end(), trouveSouris_t());
+			if(souris != _cadres.end()) {
+				_enTetes[_selection].definir(Couleur::noir);
+				_valeurs[_selection].definir(Couleur::noir);
+				_selection = static_cast<ElementNiveau::elementNiveau_t>(std::distance(_cadres.begin(), souris));
+			}
+			else if(_cadreOk.contientPoint(Session::souris())) {
+				_continuer = false;
+			}
+		}
+		if(Session::evenement(Session::T_EFFACER)) {
+			switch(_selection) {
+				case 0:
+					_dimX /= 10;
+					_valeurs[_selection].definir(nombreVersTexte(_dimX));
+					break;
+				case 1:
+					_dimY /= 10;
+					_valeurs[_selection].definir(nombreVersTexte(_dimY));
+					break;
+				default:
+					break;
+			}
+			Session::reinitialiser(Session::T_EFFACER);
+		}
+		else {
+			int nb = -1;
+			for(Session::evenement_t e = Session::T_0; e <= Session::T_9; ++e) {
+				if(Session::evenement(e)) {
+					nb = e - Session::T_0;
+					Session::reinitialiser(e);
+					break;
+				}
+			}
+			if(nb != -1) {
+				size_t &p = _selection ? _dimY : _dimX;
+				size_t p1 = p;
+				p1 = p1 * 10 + nb;
+				if(p1 <= TAILLE_MAX_NIVEAU) {
+					p = p1;
+					_valeurs[_selection].definir(nombreVersTexte(p));
+				}
+			}
+		}
+	}
+	
+	if(!_continuer) {
+		Session::supprimerVueFenetre();
+	}
+}
+
+void Editeur::modifDimensions() {
+	Image *ap = Ecran::apercu();
+	EditeurDimensions e(*this, *ap);
+	
+	Session::ajouterVueFenetre(&e);
+	
+	if(e.dimX() != _niveau->_dimX || e.dimY() != _niveau->_dimY) {
 		bool redim = true;
-		if(dimX < _niveau->_dimX || dimY < _niveau->_dimY) {
+		if(e.dimX() < _niveau->_dimX || e.dimY() < _niveau->_dimY) {
 			std::vector<Unichar> elem;
 			elem.push_back(TRAD("ed redimNiveauConfirm Continuer"));
 			Menu m(TRAD("ed Des éléments seront supprimés"), elem);
@@ -1534,7 +1679,7 @@ void Editeur::modifDimensions() {
 				redim = false;
 		}
 		if(redim) {
-			ActionEditeur *a = new RedimensionnerNiveau(dimX, dimY);
+			ActionEditeur *a = new RedimensionnerNiveau(e.dimX(), e.dimY());
 			this->posterAction(a);
 		}
 	}
@@ -1594,172 +1739,150 @@ void Editeur::modifIndex() {
 	}
 }
 
-static void afficheRien(Rectangle const &, index_t, Image &apercu) {
+static void afficheRien(Rectangle const &, index_t, Image const &apercu) {
 	
 }
 
-void Editeur::ApercuEntite::operator()(Rectangle const &dejaAffiche, index_t selection, Image &apercu) {
+void Editeur::ApercuEntite::operator()(Rectangle const &dejaAffiche, index_t selection, Image const &apercu) {
 	if(selection != _aSel) {
 		delete _elem;
 		_elem = new ElementEditeur(_cat, selection);
 		_aSel = selection;
 	}
 	
-	_elem->image().afficher(dejaAffiche.origine() + Coordonnees(dejaAffiche.largeur + 40, 0), _elem->cadre());
+	_elem->image().afficher(dejaAffiche.origine() + glm::vec2(dejaAffiche.largeur + 40, 0), _elem->cadre());
+}
+
+template<typename Afficheur>
+void SelecteurElement<Afficheur>::dessiner() {
+	_teinteSelection += 1.0f / 50.0f * (60.0f / Ecran::frequenceInstantanee()) * _sensTeinte;
+	if(_teinteSelection > 0.7f) {
+		_teinteSelection = 0.7f;
+		_sensTeinte = -1;
+	}
+	else if(_teinteSelection < 0) {
+		_teinteSelection = 0;
+		_sensTeinte = 1;
+	}
+	
+	
+	_elements[_selection].definir(Couleur(_teinteSelection * 255));
+	
+	Shader::flou(1).activer();
+	_apercu.afficher(glm::vec2(0));
+	Shader::desactiver();
+	
+	Affichage::afficherRectangle(Ecran::ecran(), Couleur(255, 255, 255, 200));
+	
+	Rectangle cadre(glm::vec2(80, 80), _titre.dimensions());
+	_titre.afficher(cadre.origine());
+	
+	cadre.haut += cadre.hauteur + 20;
+	cadre.gauche += 20;
+	
+	dimension_t largeur = std::max_element(_elements.begin() + _premierAffiche, _elements.begin() + _premierAffiche + _nbAffiches, largeurTexte_t())->dimensions().x;
+	
+	dimension_t hauteur = std::accumulate(_elements.begin() + _premierAffiche, _elements.begin() + _premierAffiche + _nbAffiches, dimension_t(0), hauteurTexte_t(10)) - 10;
+	
+	Rectangle dejaAffiche = cadre.cadreDecale(glm::vec2(largeur, 0));
+	
+	glm::vec2 pCadre(cadre.gauche + cadre.largeur + 20, cadre.haut);
+	Affichage::afficherRectangle(Rectangle(cadre.gauche, cadre.haut, largeur + 20, hauteur + 20), Couleur(200, 205, 220, 128));
+	
+	cadre.decaler(glm::vec2(10, 10));
+	coordonnee_t sauveHaut = cadre.haut;
+	afficheurTexte_t afficheur(cadre, 10);
+	for_each(_elements.begin() + _premierAffiche, _elements.begin() + _premierAffiche + _nbAffiches, afficheur);
+	cadre.haut = sauveHaut;
+	_elements[_selection].definir(Couleur::noir);
+	
+	_cadres.clear();
+	cadre.largeur = largeur;
+	cadre.haut = sauveHaut;
+	initCadres_t initCadres(_cadres, cadre, 10);
+	for_each(_elements.begin() + _premierAffiche, _elements.begin() + _premierAffiche + _nbAffiches, initCadres);
+	
+	cadre.decaler(-glm::vec2(10, -10));
+	
+	_valider.definir(POLICE_GRANDE, 20 * Ecran::echelleMin());
+	_annuler.definir(POLICE_GRANDE, 20 * Ecran::echelleMin());
+	
+	_cadreValider.definirDimensions(_valider.dimensions());
+	_cadreAnnuler.definirDimensions(_annuler.dimensions());
+	_cadreValider.definirOrigine(cadre.origine() + glm::vec2(20 * Ecran::echelleMin(), 20 * Ecran::echelleMin() + cadre.hauteur));
+	_cadreAnnuler.definirOrigine(_cadreValider.origine() + glm::vec2(80 * Ecran::echelleMin() + _cadreValider.largeur, 0));
+	
+	_valider.afficher(_cadreValider.origine());
+	_annuler.afficher(_cadreAnnuler.origine());
+	
+	dejaAffiche.definirDimensions(glm::vec2(std::max(dejaAffiche.largeur, _cadreAnnuler.gauche + _cadreAnnuler.largeur) - dejaAffiche.gauche, dejaAffiche.hauteur + _cadreAnnuler.haut + _cadreAnnuler.hauteur));
+	
+	_afficheur(dejaAffiche, _selection, _apercu);
+}
+
+template<typename Afficheur>
+void SelecteurElement<Afficheur>::gestionClavier() {
+	if(Session::evenement(Session::T_ESC) || Session::evenement(Session::QUITTER)) {
+		_continuer = false;
+		_selection = _elements.size();
+	}
+	else if(Session::evenement(Session::T_ENTREE)) {
+		_continuer = false;
+	}
+	else {
+		if(Session::evenement(Session::T_HAUT) && horloge() - _ancienDefilement > INTERVALLE_DEFILEMENT) {
+			if(_selection > 0) {
+				--_selection;
+				if(_selection < _premierAffiche)
+					--_premierAffiche;
+			}
+			else {
+				_selection = _elements.size() - 1;
+				if(_elements.size() > _nbAffiches)
+					_premierAffiche = _elements.size() - _nbAffiches;
+			}
+			
+			_ancienDefilement = horloge();
+		}
+		else if(Session::evenement(Session::T_BAS) && horloge() - _ancienDefilement > INTERVALLE_DEFILEMENT) {
+			if(_selection < _elements.size() - 1) {
+				++_selection;
+				if(_selection >= _premierAffiche + _nbAffiches)
+					++_premierAffiche;
+			}
+			else {
+				_selection = ElementNiveau::premierTypeElement;
+				_premierAffiche = 0;
+			}
+			
+			_ancienDefilement = horloge();
+		}
+		if(Session::evenement(Session::B_GAUCHE)) {
+			std::vector<Rectangle>::iterator souris = std::find_if(_cadres.begin(), _cadres.end(), trouveSouris_t());
+			if(souris != _cadres.end()) {
+				_selection = std::distance(_cadres.begin(), souris);
+			}
+			else if(_cadreAnnuler.contientPoint(Session::souris())) {
+				_selection = _elements.size();
+				_continuer = false;
+			}
+			else if(_cadreValider.contientPoint(Session::souris())) {
+				_continuer = false;
+			}
+		}
+	}
+	
+	if(!_continuer) {
+		Session::supprimerVueFenetre();
+	}
 }
 
 template<class Afficheur>
-static index_t choisirElement(std::vector<Unichar> const &el, index_t sel, Unichar const &tt, Image &apercu, Afficheur afficheurSup) {
-	bool continuer = true;
+static index_t choisirElement(std::vector<Unichar> const &el, index_t sel, Unichar const &tt, Image const &apercu, Afficheur afficheurSup) {
+	SelecteurElement<Afficheur> selecteur(afficheurSup, sel, tt, el, apercu);
+	Session::ajouterVueFenetre(&selecteur);
 	
-	horloge_t ancienDefilement = 0;
-	
-	index_t selection = sel;
-	
-	Texte titre(tt, POLICE_NORMALE, 20);
-	std::vector<Texte> elements;
-	elements.reserve(el.size());
-	for(index_t i = 0; i != el.size(); ++i) {
-		elements.push_back(Texte(el[i], POLICE_NORMALE, 16));
-	}
-	
-	std::vector<Rectangle> cadres;
-	cadres.reserve(elements.size());
-	
-	index_t premierAffiche = 0;
-	size_t nbAffiches = std::min(size_t(15), elements.size());
-		
-	float teinteSelection = 0;
-	int sensTeinte = 1;
-	
-	Texte valider(TRAD("ed Valider"),  POLICE_GRANDE, 20 * Ecran::echelleMin(), Couleur::noir);
-	Texte annuler(TRAD("ed Annuler"),  POLICE_GRANDE, 20 * Ecran::echelleMin(), Couleur::noir);
-	
-	Rectangle cadreAnnuler, cadreValider;
-
-	while(Session::boucle(100.0f, continuer)) {
-		teinteSelection += 1.0f / 50.0f * (60.0f / Ecran::frequenceInstantanee()) * sensTeinte;
-		if(teinteSelection > 0.7f) {
-			teinteSelection = 0.7f;
-			sensTeinte = -1;
-		}
-		else if(teinteSelection < 0) {
-			teinteSelection = 0;
-			sensTeinte = 1;
-		}
-		
-		
-		elements[selection].definir(Couleur(teinteSelection * 255));
-		
-		Ecran::effacer();
-
-		Shader::flou(1).activer();
-		apercu.afficher(Coordonnees());
-		Shader::desactiver();
-
-		Ecran::afficherRectangle(Ecran::ecran(), Couleur(255, 255, 255, 200));
-		
-		Rectangle cadre(Coordonnees(80, 80), titre.dimensions());
-		titre.afficher(cadre.origine());
-		
-		cadre.haut += cadre.hauteur + 20;
-		cadre.gauche += 20;
-		
-		dimension_t largeur = std::max_element(elements.begin() + premierAffiche, elements.begin() + premierAffiche + nbAffiches, largeurTexte_t())->dimensions().x;
-		
-		dimension_t hauteur = std::accumulate(elements.begin() + premierAffiche, elements.begin() + premierAffiche + nbAffiches, dimension_t(0), hauteurTexte_t(10)) - 10;
-		
-		Rectangle dejaAffiche = cadre + Coordonnees(largeur, 0);
-		
-		Coordonnees pCadre(cadre.gauche + cadre.largeur + 20, cadre.haut);
-		Ecran::afficherRectangle(Rectangle(cadre.gauche, cadre.haut, largeur + 20, hauteur + 20), Couleur(200, 205, 220, 128));
-		
-		cadre += Coordonnees(10, 10);
-		coordonnee_t sauveHaut = cadre.haut;
-		afficheurTexte_t afficheur(cadre, 10);
-		for_each(elements.begin() + premierAffiche, elements.begin() + premierAffiche + nbAffiches, afficheur);
-		cadre.haut = sauveHaut;
-		elements[selection].definir(Couleur::noir);
-		
-		cadres.clear();
-		cadre.largeur = largeur;
-		cadre.haut = sauveHaut;
-		initCadres_t initCadres(cadres, cadre, 10);
-		for_each(elements.begin() + premierAffiche, elements.begin() + premierAffiche + nbAffiches, initCadres);
-		
-		cadre -= Coordonnees(10, -10);
-		
-		valider.definir(POLICE_GRANDE, 20 * Ecran::echelleMin());
-		annuler.definir(POLICE_GRANDE, 20 * Ecran::echelleMin());
-		
-		cadreValider.definirDimensions(valider.dimensions()); 
-		cadreAnnuler.definirDimensions(annuler.dimensions()); 
-		cadreValider.definirOrigine(cadre.origine() + Coordonnees(20 * Ecran::echelleMin(), 20 * Ecran::echelleMin() + cadre.hauteur)); 
-		cadreAnnuler.definirOrigine(cadreValider.origine() + Coordonnees(80 * Ecran::echelleMin() + cadreValider.largeur, 0)); 
-		
-		valider.afficher(cadreValider.origine());
-		annuler.afficher(cadreAnnuler.origine());
-
-		dejaAffiche.definirDimensions(Coordonnees(std::max(dejaAffiche.largeur, cadreAnnuler.gauche + cadreAnnuler.largeur) - dejaAffiche.gauche, dejaAffiche.hauteur + cadreAnnuler.haut + cadreAnnuler.hauteur));
-		
-		afficheurSup(dejaAffiche, selection, apercu);
-		
-		Ecran::finaliser();
-		
-		if(Session::evenement(Session::T_ESC) || Session::evenement(Session::QUITTER)) {
-			continuer = false;
-			selection = elements.size();
-		}
-		else if(Session::evenement(Session::T_ENTREE)) {
-			continuer = false;
-		}
-		else {
-			if(Session::evenement(Session::T_HAUT) && horloge() - ancienDefilement > INTERVALLE_DEFILEMENT) {
-				if(selection > 0) {
-					--selection;
-					if(selection < premierAffiche)
-						--premierAffiche;
-				}
-				else {
-					selection = elements.size() - 1;
-					if(elements.size() > nbAffiches)
-						premierAffiche = elements.size() - nbAffiches;
-				}
-				
-				ancienDefilement = horloge();
-			}
-			else if(Session::evenement(Session::T_BAS) && horloge() - ancienDefilement > INTERVALLE_DEFILEMENT) {
-				if(selection < elements.size() - 1) {
-					++selection;
-					if(selection >= premierAffiche + nbAffiches)
-						++premierAffiche;
-				}
-				else {
-					selection = ElementNiveau::premierTypeElement;
-					premierAffiche = 0;
-				}
-				
-				ancienDefilement = horloge();
-			}
-			if(Session::evenement(Session::B_GAUCHE)) {
-				std::vector<Rectangle>::iterator souris = std::find_if(cadres.begin(), cadres.end(), trouveSouris_t());
-				if(souris != cadres.end()) {
-					selection = std::distance(cadres.begin(), souris);
-				}
-				else if(Session::souris() < cadreAnnuler) {
-					selection = elements.size();
-					continuer = false;
-				}
-				else if(Session::souris() < cadreValider) {
-					continuer = false;
-				}
-			}
-		}
-
-		Ecran::maj();
-	}
-		
-	return selection;
+	return selecteur.selection();
 }
 
 void Editeur::modifCouche() {
@@ -1769,6 +1892,7 @@ void Editeur::modifCouche() {
 	}
 	
 	Image *ap = Ecran::apercu();
+
 	index_t selection = choisirElement(couches, _coucheEdition, TRAD("ed Choisissez une couche :"), *ap, &afficheRien);
 	delete ap;
 	if(selection != couches.size()) {
@@ -1966,7 +2090,7 @@ void Editeur::selectionnerSemblables() {
 	ElementEditeur const *modele = _selection.front()._e;
 	_selection.clear();
 	
-	Coordonnees pos;
+	glm::vec2 pos;
 	for(Ligne::iterator i = _niveau->_elements.begin(); i != _niveau->_elements.end(); ++i) {
 		pos.x = 0;
 		for(Colonne::iterator j = i->begin(); j != i->end(); ++j) {
@@ -1979,19 +2103,19 @@ void Editeur::selectionnerSemblables() {
 	}
 }
 
-Rectangle const &Editeur::cadreEditeur() const {	
+Rectangle const &Editeur::cadreEditeur() {	
 	return _cadreEditeur;
 }
 
-Rectangle const &Editeur::cadreControles() const {
+Rectangle const &Editeur::cadreControles() {
 	return _cadreControles;
 }
 
-Rectangle const &Editeur::cadreInventaire() const {
+Rectangle const &Editeur::cadreInventaire() {
 	return _cadreInventaire;
 }
 
-Rectangle const &Editeur::cadreCarte() const {
+Rectangle const &Editeur::cadreCarte() {
 	return _cadreCarte;
 }
 
@@ -2040,13 +2164,13 @@ Editeur::NiveauEditeur::NiveauEditeur(std::string const &fichier) : _fichier(fic
 	}
 
 	for(Niveau::couche_t couche = Niveau::premiereCouche; couche < Niveau::nbCouches; ++couche) {
-		TiXmlElement *cc = n->FirstChildElement(Niveau::nomCouche(couche));
+		TiXmlElement *cc = n->FirstChildElement(Niveau::nomBaliseCouche(couche));
 		if(!cc)
 			continue;
 		char const *texte = cc->GetText();
 		size_t tailleAttendue = _dimY * (_dimX * 4 + 1) - 1; // chaque ligne contient 4 chiffres hexa par colonne et un saut de ligne, sauf pour la dernière ligne.
 		if(!texte || std::strlen(texte) != tailleAttendue) {
-			throw Exc_ChargementEditeur(std::string() + "Erreur : dimensions de la couche " + nombreVersTexte(couche) + " invalides (" + nombreVersTexte(std::strlen(texte)) + " au lieu de " + nombreVersTexte(tailleAttendue) +  " attendus) !");
+			throw Exc_ChargementEditeur(std::string() + "Erreur : dimensions de la couche " + nombreVersTexte(couche) + " invalides (" + nombreVersTexte(tailleAttendue) +  " attendus) !");
 		}
 		
 		index_t pos = 0;
@@ -2117,7 +2241,7 @@ Editeur::ElementEditeur::ElementEditeur(ElementNiveau::elementNiveau_t cat, inde
 	TiXmlElement *e = ElementNiveau::description(index, cat);
 	if(e->Attribute("image")) {
 		_image = Image(Session::cheminRessources() + e->Attribute("image"));
-		_cadre = Rectangle(Coordonnees(), _image.dimensions());
+		_cadre = Rectangle(glm::vec2(0), _image.dimensions());
 	}
 
 	_dimensions.x = _dimensions.y = LARGEUR_CASE;
@@ -2155,9 +2279,9 @@ Editeur::ElementEditeur::ElementEditeur(ElementNiveau::elementNiveau_t cat, inde
 			e->Attribute("blocY", &_dimensions.y);
 		}
 		_cadre.definirDimensions(_dimensions);
-		_dimensions = Coordonnees(LARGEUR_CASE, LARGEUR_CASE);
+		_dimensions = glm::vec2(LARGEUR_CASE, LARGEUR_CASE);
 
-		_origine = Coordonnees(_dimensions.x / 2, _cadre.hauteur * 3 / 4);
+		_origine = glm::vec2(_dimensions.x / 2, _cadre.hauteur * 3 / 4);
 	}
 	else {
 		if(e->Attribute("dimX")) {
@@ -2173,23 +2297,23 @@ Editeur::ElementEditeur::ElementEditeur(ElementNiveau::elementNiveau_t cat, inde
 			int tmp;
 			e->Attribute("centrage", &tmp);
 			if(tmp)
-				_origine -= Coordonnees(LARGEUR_CASE, 0) / 2;
+				_origine -= glm::vec2(LARGEUR_CASE, 0) / 2.0f;
 		}
 		if(e->Attribute("nbPoses")) {
 			int tmp;
 			e->Attribute("nbPoses", &tmp);
-			_cadre.definirDimensions(Coordonnees(_cadre.largeur / tmp, _cadre.hauteur));
+			_cadre.definirDimensions(glm::vec2(_cadre.largeur / tmp, _cadre.hauteur));
 		}
 	}
 	
-	if(!_image.valide()) {
+	if(!_image.chargee()) {
 		throw Exc_ChargementEditeur("Entité invalide, pas d'image !");
 	}
 }
 
 Editeur::ElementEditeur::ElementEditeur(index_t loiProba) : _proba(true), _indexProba(loiProba), _image(Session::cheminRessources() + "alea.png"), _cadre(), _teinte() {
-	_cadre = Rectangle(Coordonnees(), _image.dimensions());
-	_dimensions = Coordonnees(1, 1) * LARGEUR_CASE;
+	_cadre = Rectangle(glm::vec2(0), _image.dimensions());
+	_dimensions = glm::vec2(1, 1) * static_cast<coordonnee_t>(LARGEUR_CASE);
 	_origine.x = 0;
 	_origine.y = _image.dimensions().y / 2;
 
@@ -2214,11 +2338,11 @@ Rectangle Editeur::ElementEditeur::cadre() const {
 	return _cadre;
 }
 
-Coordonnees Editeur::ElementEditeur::dimensions() const {
+glm::vec2 Editeur::ElementEditeur::dimensions() const {
 	return _dimensions;
 }
 
-Coordonnees Editeur::ElementEditeur::origine() const {
+glm::vec2 Editeur::ElementEditeur::origine() const {
 	return _origine;
 }
 

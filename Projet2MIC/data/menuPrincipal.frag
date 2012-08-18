@@ -1,7 +1,6 @@
 #version 120
 
 uniform sampler2D _tex;
-uniform vec2 _dim;
 uniform vec2 _ecran;
 uniform float _tempsAbsolu;
 
@@ -240,15 +239,14 @@ vec4 basicShade( in vec3 inter, in vec4 obj, in vec4 col, in vec3 rd, in vec4 lu
 	return( col );
 }
 
-void main( void )
-{
+void main( void ) {
 	vec4  luz;
 	vec4  obj, col;
 	vec3  nor;
 	vec4  ref;
 	
 	vec2 p = -1.0 + 2.0 * gl_FragCoord.xy / _ecran.xy;
-	p *= vec2(_ecran.x/_ecran.y,1.0);
+	p *= vec2(_ecran.x / _ecran.y, 1.0);
 	
 	fpar00[0] = vec4( 1.2*sin( 6.2831*.33*_tempsAbsolu + 0.0 ), 0.0,  1.8*sin( 6.2831*.39*_tempsAbsolu + 1.0 ), 1 );
 	fpar00[1] = vec4( 1.5*sin( 6.2831*.31*_tempsAbsolu + 4.0 ), 1.0*sin( 6.2831*.29*_tempsAbsolu + 1.9),  1.8*sin( 6.2831*.29*_tempsAbsolu + 0.0 ), 1 );

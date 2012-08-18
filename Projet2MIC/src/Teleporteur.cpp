@@ -8,7 +8,7 @@
 
 #include "Teleporteur.h"
 
-Teleporteur::Teleporteur(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : EntiteStatiqueAnimee(decoupagePerspective, n, index, cat), _destination(Coordonnees::aucun), _actif(false) {
+Teleporteur::Teleporteur(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t cat) : EntiteStatiqueAnimee(decoupagePerspective, n, index, cat), _destination(vec2Aucun), _actif(false) {
 	
 }
 

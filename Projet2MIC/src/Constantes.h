@@ -13,22 +13,14 @@
 #define VERSION_MAJ 1
 #define VERSION_MIN 1
 
-#define DEVELOPPEMENT
+//#define DEVELOPPEMENT
 
 #ifndef DEVELOPPEMENT
 #define NDEBUG
 #endif
 
-#include <string>
-#include <cassert>
-
 // Pour avoir les macros qui déterminent la plate-forme de compilation
 #include <SDL/SDL.h>
-
-#define GAUCHE 0
-#define DROITE 1
-#define HAUT 2
-#define BAS 3
 
 #define TAILLE_TEXTE_CHARGEMENT (42 * Ecran::echelleMin())
 #define INTERVALLE_DEFILEMENT 0.150f

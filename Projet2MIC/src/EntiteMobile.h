@@ -23,10 +23,10 @@ public:
 			
 	virtual ~EntiteMobile();
 	
-	virtual void afficher(index_t deltaY, Coordonnees const &decalage) const;
+	virtual void afficher(index_t deltaY, glm::vec2 const &decalage) const;
 	virtual bool collision(index_t x, index_t y) const;
 	virtual void animer();
-	virtual Coordonnees dimensions() const;
+	virtual glm::vec2 dimensions() const;
 	
 	// Direction (gauche, droite…)
 	direction_t direction() const;
@@ -39,7 +39,7 @@ public:
 	
 	// Met à jour la direction de l'entité en fonction de la direction du vecteur de déplacement.
 	// ATTENTION : utiliser cette fonction va générer une détection des collisions. Pour décaler une entité sans tester les collisions, utiliser entité.definirPosition(entité.position() + dep);
-	virtual bool deplacerPosition(Coordonnees const &dep);
+	virtual bool deplacerPosition(glm::vec2 const &dep);
 		
 	virtual Niveau::couche_t couche() const = 0;
 	virtual bool mobile() const;
@@ -62,7 +62,7 @@ protected:
 	EntiteMobile(bool decoupagePerspective, Niveau *n, uindex_t index, ElementNiveau::elementNiveau_t);
 	static bool actionInterruptible(action_t a);
 	bool actionInterruptible() const;
-	bool testerDeplacement(Coordonnees const &dep);
+	bool testerDeplacement(glm::vec2 const &dep);
 	
 	index_t imageActuelle() const { return _imageActuelle; }
 	index_t imageAttaque() const { return _imageAttaque; }

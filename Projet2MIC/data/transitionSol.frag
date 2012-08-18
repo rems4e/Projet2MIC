@@ -7,13 +7,13 @@
 #define LARGEUR_CASE 64
 
 uniform sampler2D _tex;
-uniform vec2 _dim;
 uniform vec2 _pos;
 uniform vec2 _ecran;
 
 varying vec2 _texCoord;
 varying vec4 _color;
 
+uniform float dimY;
 uniform float pos;
 uniform float dimTrans;
 
@@ -32,7 +32,7 @@ void main(void) {
 	
 	float dim = dimTrans * LARGEUR_CASE;
 	
-	vec2 posDansImage = vec2(gl_FragCoord.x, _ecran.y - gl_FragCoord.y) - _pos - vec2(0, _dim.y) / 2;
+	vec2 posDansImage = vec2(gl_FragCoord.x, _ecran.y - gl_FragCoord.y) - _pos - vec2(0, dimY) / 2;
 	vec2 posRectifiee = referentielEcranVersNiveau(posDansImage);
 	
 	if(pos == T_ANGLE) {
