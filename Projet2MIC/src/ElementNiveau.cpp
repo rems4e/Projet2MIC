@@ -202,7 +202,7 @@ TiXmlElement *ElementNiveau::description(uindex_t index, elementNiveau_t cc) {
 }
 
 size_t ElementNiveau::nombreEntites(elementNiveau_t categorie) {
-	static size_t nb[ElementNiveau::nbTypesElement] = {-1};
+	static size_t nb[ElementNiveau::nbTypesElement] = {static_cast<size_t>(-1)};
 	if(nb[0] == -1) {
 		ElementNiveau::chargerDescription();
 		TiXmlElement *element = _description->FirstChildElement("ElementsNiveau");

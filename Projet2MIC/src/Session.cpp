@@ -115,11 +115,11 @@ namespace Session {
 	void rechargerLangue();
 }
 
-#if defined(__MACOSX__) && !defined(DEVELOPPEMENT)
+//#if defined(__MACOSX__) && !defined(DEVELOPPEMENT)
 extern "C" {
 #include <CoreFoundation/CoreFoundation.h>
 }
-#endif
+//#endif
 
 std::string const &Session::cheminRessources() {
 	return _chemin;
@@ -142,10 +142,10 @@ void Session::initialiser() {
 #endif
 	
 	// Ici on règle le problème des chemins de fichiers différents suivant le système d'exploitation
-#if defined(__MACOSX__)
-#if defined(DEVELOPPEMENT)
+/*#if defined(__MACOSX__)
+#if defined(DEVELOPPEMENT)*/
 	_chemin = "/Users/remi/Documents/INSA/2e année MIC/Projet/gitProjet/Projet2MIC/";
-#else
+/*#else
 	CFBundleRef bun = CFBundleGetMainBundle();
 	CFURLRef r = CFBundleCopyResourcesDirectoryURL(bun);
 	CFURLRef res = CFURLCopyAbsoluteURL(r);
@@ -170,7 +170,7 @@ void Session::initialiser() {
 	
 #else
 	
-#endif
+#endif*/
 	_chemin += "data/";
 		
 	Audio::initialiser();

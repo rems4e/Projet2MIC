@@ -27,6 +27,8 @@ void jeu() {
 	TiXmlElement *charge = 0;
 	std::vector<Unichar> elements;
 	
+	bool premierLancement = true;
+	
 	do {
 		if(charge) {
 			Partie *nouvellePartie = Partie::partie();
@@ -48,7 +50,7 @@ void jeu() {
 			Menu menu(TRAD("gen Menu principal"), elements, "");
 			
 			// FIXME: éviter la reconstruction de l'objet, ou au moins la rendre moins couteuse.
-			AfficheurMaj afficheurMaj(menu, Parametres::rechercherMaj() && Parametres::majDisponible());
+			AfficheurMaj afficheurMaj(menu, premierLancement && Parametres::rechercherMaj() && Parametres::majDisponible());
 			
 			selection = menu.afficher(0, fond, sFond, 0, &afficheurMaj);
 			if(selection == 0) {
@@ -72,6 +74,7 @@ void jeu() {
 				delete Editeur::editeur();
 			}
 		}
+		premierLancement = false;
 	} while(selection != elements.size() - 1);
 	
 	delete charge;

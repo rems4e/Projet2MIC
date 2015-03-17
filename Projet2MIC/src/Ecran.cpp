@@ -163,6 +163,7 @@ void Ecran::modifierResolution(unsigned int largeur, unsigned int hauteur, bool 
 	Ecran::_attributs->_echelleMin = std::min(Ecran::_attributs->_echelle.x, Ecran::_attributs->_echelle.y);
 
 	while(Ecran::_attributs->_cadresAffichage.size()) {
+		std::cout << "Modif " << Ecran::_attributs->_cadresAffichage.size() << std::endl;
 		Ecran::_attributs->_cadresAffichage.pop();
 	}
 	Ecran::_attributs->_cadresAffichage.push(Rectangle(glm::vec2(0), glm::vec2(Ecran::dimensions())));
@@ -335,6 +336,8 @@ void Ecran::maj() {
 	}
 	
 	while(Ecran::_attributs->_cadresAffichage.size() > 1) {
+		std::cout << "maj " << Ecran::_attributs->_cadresAffichage.size() << std::endl;
+		//break;
 		Ecran::_attributs->_cadresAffichage.pop();
 	}
 
@@ -433,7 +436,12 @@ void Ecran::ajouterCadreAffichage(Rectangle const &r) {
 
 void Ecran::supprimerCadreAffichage() {
 	Affichage::changerTexture(-1);
-
+	if(Ecran::_attributs->_cadresAffichage.size() == 1) {
+		std::cout << "Gaaay" << std::endl;
+	}
+	else {
+		std::cout << "Pas gay " << Ecran::_attributs->_cadresAffichage.size() << std::endl;
+	}
 	Ecran::_attributs->_cadresAffichage.pop();
 	Rectangle const &nouveau = Ecran::cadreAffichage();
 	glViewport(nouveau.gauche, Ecran::hauteur() - nouveau.haut - nouveau.hauteur, nouveau.largeur, nouveau.hauteur);

@@ -88,7 +88,7 @@ void InventaireC<Conteneur>::definirCapacite(size_t c) {
 	if(c < this->nombreObjets())
 		return;
 	
-	_capacite = _capacite;
+	_capacite = c;
 }
 
 template <template <class e, class = std::allocator<e> > class Conteneur>

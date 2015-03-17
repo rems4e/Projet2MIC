@@ -348,7 +348,7 @@ static size_t ecrireDonnees(char *ptr, size_t size, size_t nmemb, void *userdata
 }
 
 bool Parametres::majDisponible() {
-	char const *fichierMaj = "r4.saurel.free.fr/Projet2MIC/fichiers/version.txt";
+	char const *fichierMaj = "etud.insa-toulouse.fr/~saurel/projet2MIC-version.txt";
 	
 	//FIXME: timeout connexion
 	std::ostringstream data;
@@ -357,6 +357,8 @@ bool Parametres::majDisponible() {
 	cURL::curl_easy_setopt(session,  cURL::CURLOPT_WRITEDATA, &data);
 	cURL::curl_easy_setopt(session, cURL::CURLOPT_SSL_VERIFYPEER, false);
 	cURL::curl_easy_setopt(session,  cURL::CURLOPT_WRITEFUNCTION, ecrireDonnees);
+	cURL::curl_easy_setopt(session,  cURL::CURLOPT_DNS_CACHE_TIMEOUT, 1);
+	cURL::curl_easy_setopt(session,  cURL::CURLOPT_TIMEOUT, 1);
 	cURL::CURLcode res = cURL::curl_easy_perform(session);
 	std::string err = cURL::curl_easy_strerror(res);
 	cURL::curl_easy_cleanup(session);
@@ -373,7 +375,6 @@ bool Parametres::majDisponible() {
 		if(l.size() == 3 && l[0] == "majProjet2MIC") {
 			int maj = texteVersNombre(l[1]);
 			int min = texteVersNombre(l[2]);
-			
 			if(maj > VERSION_MAJ || (maj == VERSION_MAJ && min > VERSION_MIN)) {
 				return true;
 			}

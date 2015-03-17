@@ -26,8 +26,8 @@ namespace WinWin {
 void jeu();
 
 struct AfficheurMaj : public Menu::AfficheurAuxiliaire {
-	AfficheurMaj(Menu &m, bool maj) : Menu::AfficheurAuxiliaire(m), _maj(false), _txt() {
-		
+	AfficheurMaj(Menu &m, bool maj) : Menu::AfficheurAuxiliaire(m), _maj(maj), _txt() {
+
 	}
 	
 	virtual void preparationDessin() override {
@@ -38,7 +38,7 @@ struct AfficheurMaj : public Menu::AfficheurAuxiliaire {
 		txt += std::string("v. ") + Parametres::versionTexte();
 		if(_maj)
 			txt += "\n" + TRAD("gen Mise à jour disponible !") + "\n" + TRAD("gen Cliquez pour l'afficher.");
-		
+
 		_txt.definir(txt);
 		_txt.definir(POLICE_NORMALE, 16 * Ecran::echelleMin());
 		_txt.definir(Couleur::blanc);
