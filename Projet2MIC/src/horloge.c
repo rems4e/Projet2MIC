@@ -22,7 +22,7 @@ horloge_t horloge() {
 		gettimeofday(&refheure, 0);
 	struct timeval temp;
 	gettimeofday(&temp, 0);
-	
+
 	return (horloge_t)(temp.tv_sec - refheure.tv_sec + (temp.tv_usec - refheure.tv_usec) / 1.0E6);
 #endif
 }
